@@ -5,17 +5,14 @@ class TessieConfigurator extends IPSModule
 {
     // Symcon Core WebSocket Client (I/O)
     private const WS_CLIENT_MODULE_ID = '{D68FD31F-0E90-7019-F16C-1949BD3079EF}';
-
     // TessieVehicle module GUID
     private const VEHICLE_MODULE_ID   = '{3F1F7E31-8BA0-4B8F-9B62-47DAD7A0B6C9}';
-
     // Fixed ApiBase
     private const API_BASE = 'https://api.tessie.com';
 
     public function Create()
     {
         parent::Create();
-
         // Single token (used for REST + Telemetry)
         $this->RegisterPropertyString('Token', '');
 
@@ -38,14 +35,12 @@ class TessieConfigurator extends IPSModule
         // Fetch VINs and softly sync existing WS clients + vehicle instances
         $vehicles = $this->fetchVehicles($token);
         $vins = [];
-
         foreach ($vehicles as $v) {
             $vin = (string)($v['vin'] ?? '');
             if ($vin !== '') {
                 $vins[] = $vin;
             }
         }
-
         $vins = array_values(array_unique($vins));
 
         $this->syncExistingWSClientsOnApply($token, $vins);
@@ -64,16 +59,13 @@ class TessieConfigurator extends IPSModule
         $values = [];
         if ($token !== '') {
             $vehicles = $this->fetchVehicles($token);
-
             foreach ($vehicles as $v) {
                 $vin = (string)($v['vin'] ?? '');
                 if ($vin === '') {
                     continue;
                 }
-
                 $name = (string)($v['display_name'] ?? $v['name'] ?? $vin);
                 $instanceId = $this->findVehicleInstance($vin);
-
                 $create = $this->buildCreateChain($vin, $name, $token);
 
                 $values[] = [
@@ -105,7 +97,6 @@ class TessieConfigurator extends IPSModule
     // ----------------------------
     // ApplyChanges-only soft sync
     // ----------------------------
-
     private function syncExistingWSClientsOnApply(string $token, array $vins): void
     {
         if (count($vins) === 0) {
@@ -121,12 +112,12 @@ class TessieConfigurator extends IPSModule
             }
 
             $desiredUrl = 'wss://streaming.tessie.com/' . rawurlencode($vin)
-                        . '?access_token=' . rawurlencode($token);
+                . '?access_token=' . rawurlencode($token);
 
             $desired = [
                 'Active'            => true,
                 'VerifyCertificate' => true,
-                'Type'              => 0,     // Text (JSON)
+                'Type'              => 0, // Text (JSON)
                 'URL'               => $desiredUrl,
                 'Headers'           => '[]'
             ];
@@ -137,15 +128,11 @@ class TessieConfigurator extends IPSModule
             }
 
             $needApply = false;
-
             foreach ($desired as $k => $v) {
                 $cur = $cfg[$k] ?? null;
-
-                // normalize bools (true/false vs 1/0)
                 if (is_bool($v)) {
                     $cur = (bool)$cur;
                 }
-
                 if ($cur !== $v) {
                     IPS_SetProperty($wsId, $k, $v);
                     $needApply = true;
@@ -181,12 +168,10 @@ class TessieConfigurator extends IPSModule
                 IPS_SetProperty($vehId, 'ApiToken', $token);
                 $needApply = true;
             }
-
             if (($cfg['ApiBase'] ?? '') !== self::API_BASE) {
                 IPS_SetProperty($vehId, 'ApiBase', self::API_BASE);
                 $needApply = true;
             }
-
             // NOTE: TelemetryEnabled is intentionally NOT touched anymore.
 
             if ($needApply) {
@@ -205,12 +190,12 @@ class TessieConfigurator extends IPSModule
             if (!is_array($cfg)) {
                 continue;
             }
-
             $url = (string)($cfg['URL'] ?? '');
             if ($url === '') {
                 continue;
             }
 
+            // ✅ BUGFIX: fehlendes ODER (||)
             if (stripos($url, $needle1) !== false || stripos($url, $needle2) !== false) {
                 return $iid;
             }
@@ -222,37 +207,36 @@ class TessieConfigurator extends IPSModule
     // ----------------------------
     // Create chain (used by Configurator list)
     // ----------------------------
-
     private function buildCreateChain(string $vin, string $name, string $token): array
     {
         $vehicleCfg = [
-            'VIN'      => $vin,
-            'ApiToken' => $token,
-            'ApiBase'  => self::API_BASE
+            'VIN'     => $vin,
+            'ApiToken'=> $token,
+            'ApiBase' => self::API_BASE
             // TelemetryEnabled intentionally removed
         ];
 
         $wsUrl = 'wss://streaming.tessie.com/' . rawurlencode($vin)
-               . '?access_token=' . rawurlencode($token);
+            . '?access_token=' . rawurlencode($token);
 
         $wsCfg = [
             'Active'            => true,
             'VerifyCertificate' => true,
-            'Type'              => 0,   // Text
+            'Type'              => 0, // Text
             'URL'               => $wsUrl,
             'Headers'           => '[]'
         ];
 
         return [
             [
-                'moduleID'      => self::VEHICLE_MODULE_ID,
-                'configuration' => $vehicleCfg,
-                'name'          => $name
+                'moduleID'       => self::VEHICLE_MODULE_ID,
+                'configuration'  => $vehicleCfg,
+                'name'           => $name
             ],
             [
-                'moduleID'      => self::WS_CLIENT_MODULE_ID,
-                'configuration' => $wsCfg,
-                'name'          => 'Tessie Telemetry ' . $vin
+                'moduleID'       => self::WS_CLIENT_MODULE_ID,
+                'configuration'  => $wsCfg,
+                'name'           => 'Tessie Telemetry ' . $vin
             ]
         ];
     }
@@ -260,32 +244,28 @@ class TessieConfigurator extends IPSModule
     // ----------------------------
     // REST helpers
     // ----------------------------
-
     private function getToken(): string
     {
         $t = trim($this->ReadPropertyString('Token'));
         if ($t !== '') {
             return $t;
         }
-
         $old = trim($this->ReadPropertyString('ApiToken'));
         if ($old !== '') {
             return $old;
         }
-
         $oldTel = trim($this->ReadPropertyString('TelemetryToken'));
         if ($oldTel !== '') {
             return $oldTel;
         }
-
         return '';
     }
 
     private function fetchVehicles(string $token): array
     {
         $data = $this->apiRequest($token, 'GET', '/api/1/vehicles');
-        $payload = $data['response'] ?? $data;
 
+        $payload = $data['response'] ?? $data;
         if (!is_array($payload)) {
             return [];
         }
