@@ -30,47 +30,33 @@
     {
       "type": "List",
       "name": "VisibleVars",
-      "caption": "Anzuzeigende Variablen (für Links)",
-      "rowCount": 10,
-      "add": false,
-      "delete": false,
-      "loadValuesFromConfiguration": true,
-      "changeOrder": true,
-      "columns": [
-        { "caption": "Ident", "name": "Ident", "width": "220px", "save": true },
-        { "caption": "Name", "name": "Name", "width": "auto", "save": true },
-        {
-          "caption": "Anzeigen",
-          "name": "Enabled",
-          "width": "90px",
-          "save": true,
-          "edit": { "type": "CheckBox" }
-        }
-      ]
-    },
-    {
-      "type": "CheckBox",
-      "name": "TelemetryDefaultEnabledInLinks",
-      "caption": "Neue Telemetrie-Variablen in Links standardmäßig aktivieren (vorsichtig!)"
-    },
-    {
-      "type": "List",
-      "name": "TelemetryVisibleVars",
-      "caption": "Telemetrie-Variablen (für Links)",
+      "caption": "Anzuzeigende Variablen",
       "rowCount": 12,
       "add": false,
       "delete": false,
       "loadValuesFromConfiguration": true,
       "changeOrder": true,
       "columns": [
-        { "caption": "Ident", "name": "Ident", "width": "220px", "save": true },
-        { "caption": "Name", "name": "Name", "width": "auto", "save": true },
+        {
+          "caption": "Ident",
+          "name": "Ident",
+          "width": "220px",
+          "save": true
+        },
+        {
+          "caption": "Name",
+          "name": "Name",
+          "width": "auto",
+          "save": true
+        },
         {
           "caption": "Anzeigen",
           "name": "Enabled",
           "width": "90px",
           "save": true,
-          "edit": { "type": "CheckBox" }
+          "edit": {
+            "type": "CheckBox"
+          }
         }
       ]
     }
@@ -81,12 +67,6 @@
       "caption": "Reset: Standardliste wiederherstellen",
       "confirm": "Wirklich die Variablenliste und Reihenfolge auf Standard zurücksetzen?",
       "onClick": "TESSIE_ResetVisibleVars($_IPS[\"TARGET\"]);"
-    },
-    {
-      "type": "Button",
-      "caption": "Reset: Telemetrie-Liste leeren",
-      "confirm": "Wirklich die Telemetrie-Variablenliste leeren? (Links werden bereinigt, wenn CleanupLinks aktiv ist.)",
-      "onClick": "TESSIE_ResetTelemetryVisibleVars($_IPS[\"TARGET\"]);"
     },
     {
       "type": "Label",
