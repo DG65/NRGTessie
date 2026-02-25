@@ -764,3 +764,537 @@ class TessieVehicle extends IPSModule
         // Core
         $toTry[self::PURPOSE_ACTIONS][]  = self::IDENT_LINK_PREFIX . 'ACT_' . $varIdent;
         $toTry[self::PURPOSE_STATUS][]   = self::IDENT_LINK_PREFIX . 'STAT_' . $varIdent;
+        $toTry[self::PURPOSE_CHARGING][] = self::IDENT_LINK_PREFIX . 'DOM_' . $this->makeIdent(self::PURPOSE_CHARGING) . '_' . $varIdent;
+        $toTry[self::PURPOSE_CLIMATE][]  = self::IDENT_LINK_PREFIX . 'DOM_' . $this->makeIdent(self::PURPOSE_CLIMATE)  . '_' . $varIdent;
+        $toTry[self::PURPOSE_SECURITY][] = self::IDENT_LINK_PREFIX . 'DOM_' . $this->makeIdent(self::PURPOSE_SECURITY) . '_' . $varIdent;
+
+        // Telemetrie (Variante A): nur kategorisierte Links – kein Telemetrie-Sammelordner
+        $toTry[self::PURPOSE_STATUS][]   = self::IDENT_LINK_PREFIX . 'TELSTAT_' . $varIdent;
+        $toTry[self::PURPOSE_CHARGING][] = self::IDENT_LINK_PREFIX . 'TELDOM_' . $this->makeIdent(self::PURPOSE_CHARGING) . '_' . $varIdent;
+        $toTry[self::PURPOSE_CLIMATE][]  = self::IDENT_LINK_PREFIX . 'TELDOM_' . $this->makeIdent(self::PURPOSE_CLIMATE)  . '_' . $varIdent;
+        $toTry[self::PURPOSE_SECURITY][] = self::IDENT_LINK_PREFIX . 'TELDOM_' . $this->makeIdent(self::PURPOSE_SECURITY) . '_' . $varIdent;
+
+        foreach ($toTry as $purpose => $idents) {
+            if (!isset($purposeIds[$purpose])) continue;
+            $pid = $purposeIds[$purpose];
+            foreach ($idents as $lidIdent) {
+                $lid = @IPS_GetObjectIDByIdent($lidIdent, $pid);
+                if ($lid > 0 && IPS_ObjectExists($lid)) {
+                    $obj = IPS_GetObject($lid);
+                    if (($obj['ObjectType'] ?? 0) === OBJECTTYPE_LINK) {
+                        IPS_Delete($lid);
+                    }
+                }
+            }
+        }
+    }
+
+    // -------- Variables & profiles (MaintainVariable wie bisher) --------
+    private function ensureVariables(): void
+    {
+        $enabled = $this->getEnabledMap();
+        $posMap  = $this->getOrderPosMap(10);
+
+        $keep = fn(string $ident) => ($enabled[$ident] ?? true);
+        $pos  = fn(string $ident) => ($posMap[$ident] ?? 0);
+
+        // Komfort: erst Links löschen für alles, was deaktiviert wird
+        foreach (array_keys($posMap) as $ident) {
+            if (!$keep($ident)) {
+                $this->deleteManagedLinksForIdent($ident);
+            }
+        }
+
+        // Actions
+        $this->MaintainVariable(self::ACT_LOCKED, 'Verriegelt', VARIABLETYPE_BOOLEAN, '~Lock', $pos(self::ACT_LOCKED), $keep(self::ACT_LOCKED));
+        if ($keep(self::ACT_LOCKED)) $this->EnableAction(self::ACT_LOCKED);
+
+        $this->MaintainVariable(self::ACT_CLIMATE, 'Klima', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_CLIMATE), $keep(self::ACT_CLIMATE));
+        if ($keep(self::ACT_CLIMATE)) $this->EnableAction(self::ACT_CLIMATE);
+
+        $this->MaintainVariable(self::ACT_START_CHARGING, 'Laden', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_START_CHARGING), $keep(self::ACT_START_CHARGING));
+        if ($keep(self::ACT_START_CHARGING)) $this->EnableAction(self::ACT_START_CHARGING);
+
+        $this->MaintainVariable(self::ACT_CHARGE_LIMIT, 'Ladelimit (%)', VARIABLETYPE_INTEGER, 'Tessie.PercentInt', $pos(self::ACT_CHARGE_LIMIT), $keep(self::ACT_CHARGE_LIMIT));
+        if ($keep(self::ACT_CHARGE_LIMIT)) $this->EnableAction(self::ACT_CHARGE_LIMIT);
+
+        $this->MaintainVariable(self::ACT_CHARGING_AMPS_REQUEST, 'Ladestrom Soll (A)', VARIABLETYPE_INTEGER, 'Tessie.Amps', $pos(self::ACT_CHARGING_AMPS_REQUEST), $keep(self::ACT_CHARGING_AMPS_REQUEST));
+        if ($keep(self::ACT_CHARGING_AMPS_REQUEST)) $this->EnableAction(self::ACT_CHARGING_AMPS_REQUEST);
+
+        $this->MaintainVariable(self::ACT_FLASH, 'Licht blinken', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_FLASH), $keep(self::ACT_FLASH));
+        if ($keep(self::ACT_FLASH)) $this->EnableAction(self::ACT_FLASH);
+
+        $this->MaintainVariable(self::ACT_HONK, 'Hupe', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_HONK), $keep(self::ACT_HONK));
+        if ($keep(self::ACT_HONK)) $this->EnableAction(self::ACT_HONK);
+
+        // Status
+        $this->MaintainVariable(self::STAT_CHARGING_AMPS_ACTUAL, 'Ladestrom Ist (A)', VARIABLETYPE_FLOAT, 'Tessie.AmpsFloat', $pos(self::STAT_CHARGING_AMPS_ACTUAL), $keep(self::STAT_CHARGING_AMPS_ACTUAL));
+        $this->MaintainVariable(self::STAT_CHARGING_AMPS_MAX, 'Ladestrom Max (A)', VARIABLETYPE_INTEGER, 'Tessie.Amps', $pos(self::STAT_CHARGING_AMPS_MAX), $keep(self::STAT_CHARGING_AMPS_MAX));
+        $this->MaintainVariable(self::STAT_AC_CHARGING_POWER, 'AC Ladeleistung (kW)', VARIABLETYPE_FLOAT, 'Tessie.kW', $pos(self::STAT_AC_CHARGING_POWER), $keep(self::STAT_AC_CHARGING_POWER));
+    }
+
+    private function ensureProfiles(): void
+    {
+        // Bestehende Profile
+        if (!IPS_VariableProfileExists('Tessie.PercentInt')) {
+            IPS_CreateVariableProfile('Tessie.PercentInt', VARIABLETYPE_INTEGER);
+            IPS_SetVariableProfileText('Tessie.PercentInt', '', ' %');
+            IPS_SetVariableProfileValues('Tessie.PercentInt', 0, 100, 1);
+            IPS_SetVariableProfileDigits('Tessie.PercentInt', 0);
+            IPS_SetVariableProfileIcon('Tessie.PercentInt', 'Intensity');
+        }
+        if (!IPS_VariableProfileExists('Tessie.Amps')) {
+            IPS_CreateVariableProfile('Tessie.Amps', VARIABLETYPE_INTEGER);
+            IPS_SetVariableProfileText('Tessie.Amps', '', ' A');
+            IPS_SetVariableProfileValues('Tessie.Amps', 0, 48, 1);
+            IPS_SetVariableProfileDigits('Tessie.Amps', 0);
+            IPS_SetVariableProfileIcon('Tessie.Amps', 'Electricity');
+        }
+        if (!IPS_VariableProfileExists('Tessie.AmpsFloat')) {
+            IPS_CreateVariableProfile('Tessie.AmpsFloat', VARIABLETYPE_FLOAT);
+            IPS_SetVariableProfileText('Tessie.AmpsFloat', '', ' A');
+            IPS_SetVariableProfileValues('Tessie.AmpsFloat', 0, 48, 0);
+            IPS_SetVariableProfileDigits('Tessie.AmpsFloat', 1);
+            IPS_SetVariableProfileIcon('Tessie.AmpsFloat', 'Electricity');
+        }
+        if (!IPS_VariableProfileExists('Tessie.kW')) {
+            IPS_CreateVariableProfile('Tessie.kW', VARIABLETYPE_FLOAT);
+            IPS_SetVariableProfileText('Tessie.kW', '', ' kW');
+            IPS_SetVariableProfileValues('Tessie.kW', 0, 30, 0);
+            IPS_SetVariableProfileDigits('Tessie.kW', 2);
+            IPS_SetVariableProfileIcon('Tessie.kW', 'Electricity');
+        }
+
+        // Auto-Profil Set (Heuristik; Fleet Telemetry hat sehr viele Felder) [4](https://github.com/DG65/Symcon-Go-e-Modbus)[3](https://github.com/tessie)
+        if (!IPS_VariableProfileExists('Tessie.PercentFloat')) {
+            IPS_CreateVariableProfile('Tessie.PercentFloat', VARIABLETYPE_FLOAT);
+            IPS_SetVariableProfileText('Tessie.PercentFloat', '', ' %');
+            IPS_SetVariableProfileValues('Tessie.PercentFloat', 0, 100, 0);
+            IPS_SetVariableProfileDigits('Tessie.PercentFloat', 1);
+            IPS_SetVariableProfileIcon('Tessie.PercentFloat', 'Intensity');
+        }
+        if (!IPS_VariableProfileExists('Tessie.kWh')) {
+            IPS_CreateVariableProfile('Tessie.kWh', VARIABLETYPE_FLOAT);
+            IPS_SetVariableProfileText('Tessie.kWh', '', ' kWh');
+            IPS_SetVariableProfileDigits('Tessie.kWh', 2);
+            IPS_SetVariableProfileIcon('Tessie.kWh', 'Energy');
+        }
+        if (!IPS_VariableProfileExists('Tessie.Voltage')) {
+            IPS_CreateVariableProfile('Tessie.Voltage', VARIABLETYPE_FLOAT);
+            IPS_SetVariableProfileText('Tessie.Voltage', '', ' V');
+            IPS_SetVariableProfileDigits('Tessie.Voltage', 1);
+            IPS_SetVariableProfileIcon('Tessie.Voltage', 'Electricity');
+        }
+        if (!IPS_VariableProfileExists('Tessie.TempC')) {
+            IPS_CreateVariableProfile('Tessie.TempC', VARIABLETYPE_FLOAT);
+            IPS_SetVariableProfileText('Tessie.TempC', '', ' °C');
+            IPS_SetVariableProfileDigits('Tessie.TempC', 1);
+            IPS_SetVariableProfileIcon('Tessie.TempC', 'Temperature');
+        }
+        if (!IPS_VariableProfileExists('Tessie.Miles')) {
+            IPS_CreateVariableProfile('Tessie.Miles', VARIABLETYPE_FLOAT);
+            IPS_SetVariableProfileText('Tessie.Miles', '', ' mi');
+            IPS_SetVariableProfileDigits('Tessie.Miles', 2);
+            IPS_SetVariableProfileIcon('Tessie.Miles', 'Distance');
+        }
+        if (!IPS_VariableProfileExists('Tessie.Mph')) {
+            IPS_CreateVariableProfile('Tessie.Mph', VARIABLETYPE_FLOAT);
+            IPS_SetVariableProfileText('Tessie.Mph', '', ' mph');
+            IPS_SetVariableProfileDigits('Tessie.Mph', 1);
+            IPS_SetVariableProfileIcon('Tessie.Mph', 'Speed');
+        }
+        if (!IPS_VariableProfileExists('Tessie.Degrees')) {
+            IPS_CreateVariableProfile('Tessie.Degrees', VARIABLETYPE_FLOAT);
+            IPS_SetVariableProfileText('Tessie.Degrees', '', ' °');
+            IPS_SetVariableProfileDigits('Tessie.Degrees', 1);
+            IPS_SetVariableProfileIcon('Tessie.Degrees', 'Compass');
+        }
+    }
+
+    private function guessProfileForTelemetryKey(string $key, int $type): string
+    {
+        $k = strtolower($key);
+
+        if ($type !== VARIABLETYPE_STRING && (strpos($k, 'soc') !== false || (strpos($k, 'battery') !== false && strpos($k, 'level') !== false) || strpos($k, 'percent') !== false)) {
+            return ($type === VARIABLETYPE_INTEGER) ? 'Tessie.PercentInt' : 'Tessie.PercentFloat';
+        }
+        if ($type !== VARIABLETYPE_STRING && (strpos($k, 'temp') !== false || strpos($k, 'inside') !== false || strpos($k, 'outside') !== false)) {
+            return 'Tessie.TempC';
+        }
+        if ($type !== VARIABLETYPE_STRING && (strpos($k, 'power') !== false || strpos($k, 'kw') !== false)) {
+            return 'Tessie.kW';
+        }
+        if ($type !== VARIABLETYPE_STRING && (strpos($k, 'energy') !== false || strpos($k, 'kwh') !== false)) {
+            return 'Tessie.kWh';
+        }
+        if ($type !== VARIABLETYPE_STRING && (strpos($k, 'volt') !== false || strpos($k, 'voltage') !== false)) {
+            return 'Tessie.Voltage';
+        }
+        if ($type !== VARIABLETYPE_STRING && (strpos($k, 'current') !== false || strpos($k, 'amps') !== false || strpos($k, 'amp') !== false)) {
+            return ($type === VARIABLETYPE_INTEGER) ? 'Tessie.Amps' : 'Tessie.AmpsFloat';
+        }
+        if ($type !== VARIABLETYPE_STRING && strpos($k, 'heading') !== false) {
+            return 'Tessie.Degrees';
+        }
+        if ($type !== VARIABLETYPE_STRING && (strpos($k, 'speed') !== false || strpos($k, 'mph') !== false)) {
+            return 'Tessie.Mph';
+        }
+        if ($type !== VARIABLETYPE_STRING && (strpos($k, 'odometer') !== false || strpos($k, 'range') !== false || strpos($k, 'miles') !== false)) {
+            return 'Tessie.Miles';
+        }
+        return '';
+    }
+
+    private function safeSetValue(string $ident, $value): void
+    {
+        $id = @IPS_GetObjectIDByIdent($ident, $this->InstanceID);
+        if ($id <= 0) return;
+
+        $type = IPS_GetVariable($id)['VariableType'] ?? null;
+        if ($type === VARIABLETYPE_BOOLEAN) {
+            @SetValueBoolean($id, (bool)$value);
+        } elseif ($type === VARIABLETYPE_INTEGER) {
+            @SetValueInteger($id, (int)$value);
+        } elseif ($type === VARIABLETYPE_FLOAT) {
+            @SetValueFloat($id, (float)$value);
+        } else {
+            @SetValueString($id, (string)$value);
+        }
+    }
+
+    // -------- Link tree (Core + Telemetrie nur kategorisiert, Variante A) --------
+    private function ensureLinkTree(bool $forceRename = false): void
+    {
+        if (!(bool)$this->ReadPropertyBoolean('CreateLinks')) return;
+
+        $linksParent = (int)$this->ReadPropertyInteger('LinksLocation');
+        if ($linksParent <= 0 || !IPS_ObjectExists($linksParent)) return;
+
+        if ((bool)$this->ReadPropertyBoolean('CleanupLinks')) {
+            $this->cleanupOldRootIfNeeded($linksParent);
+        }
+
+        // Core-Liste (wie bisher) [2](https://adsoba-my.sharepoint.com/personal/d_gureth_adsoba_de/Documents/Microsoft%20Copilot%20Chat-Dateien/form.json)[1](https://adsoba-my.sharepoint.com/personal/d_gureth_adsoba_de/Documents/Microsoft%20Copilot%20Chat-Dateien/module.php)
+        $enabledCore = $this->getEnabledMap();
+        $posMapCore  = $this->getOrderPosMap(10);
+
+        // Telemetrie-Liste (gleiches Prinzip)
+        $enabledTel = $this->getTelemetryEnabledMap();
+        $posMapTel  = $this->getTelemetryOrderPosMap(10);
+        $keyMapTel  = $this->getTelemetryKeyMap();
+
+        $vehicleName = trim($this->ReadAttributeString(self::ATTR_VEHICLE_NAME));
+        $rootName = $vehicleName !== '' ? $vehicleName : IPS_GetName($this->InstanceID);
+
+        $rootIdent = self::IDENT_ROOT_PREFIX . $this->InstanceID;
+        $rootId = @IPS_GetObjectIDByIdent($rootIdent, $linksParent);
+        if ($rootId <= 0) {
+            $rootId = IPS_CreateCategory();
+            IPS_SetParent($rootId, $linksParent);
+            IPS_SetIdent($rootId, $rootIdent);
+        }
+
+        if ($forceRename || IPS_GetName($rootId) !== $rootName) {
+            IPS_SetName($rootId, $rootName);
+        }
+
+        // Purpose-Kategorien (OHNE Telemetrie-Sammelordner)
+        $purposes = [
+            self::PURPOSE_ACTIONS,
+            self::PURPOSE_STATUS,
+            self::PURPOSE_CHARGING,
+            self::PURPOSE_CLIMATE,
+            self::PURPOSE_SECURITY
+        ];
+
+        $purposeIds = [];
+        foreach ($purposes as $p) {
+            $pid = $this->ensureCategoryUnder($rootId, $p, self::IDENT_PURP_PREFIX . $this->makeIdent($p));
+            $purposeIds[$p] = $pid;
+        }
+
+        $desired = [];
+
+        // ---------- Core Links (wie bisher) ----------
+        $createCoreLink = function (string $purpose, string $linkIdent, string $varIdent) use (&$desired, $purposeIds, $enabledCore, $posMapCore) {
+            if (isset($enabledCore[$varIdent]) && !$enabledCore[$varIdent]) return;
+            $varId = @IPS_GetObjectIDByIdent($varIdent, $this->InstanceID);
+            if ($varId <= 0) return;
+
+            $pos = $posMapCore[$varIdent] ?? 999999;
+            $this->ensureLinkUnder($purposeIds[$purpose], $varId, $linkIdent, IPS_GetName($varId), $pos);
+            $desired[$purposeIds[$purpose]][] = $linkIdent;
+        };
+
+        foreach ($posMapCore as $ident => $pos) {
+            if (strpos($ident, 'act_') === 0) {
+                $createCoreLink(self::PURPOSE_ACTIONS, self::IDENT_LINK_PREFIX . 'ACT_' . $ident, $ident);
+            }
+        }
+
+        foreach ($posMapCore as $ident => $pos) {
+            if (strpos($ident, 'stat_') === 0) {
+                $createCoreLink(self::PURPOSE_STATUS, self::IDENT_LINK_PREFIX . 'STAT_' . $ident, $ident);
+            }
+        }
+
+        $domain = [
+            self::PURPOSE_CHARGING => [
+                self::ACT_START_CHARGING,
+                self::ACT_CHARGE_LIMIT,
+                self::ACT_CHARGING_AMPS_REQUEST,
+                self::STAT_CHARGING_AMPS_ACTUAL,
+                self::STAT_CHARGING_AMPS_MAX,
+                self::STAT_AC_CHARGING_POWER
+            ],
+            self::PURPOSE_CLIMATE => [ self::ACT_CLIMATE ],
+            self::PURPOSE_SECURITY => [ self::ACT_LOCKED, self::ACT_FLASH, self::ACT_HONK ]
+        ];
+
+        foreach ($posMapCore as $ident => $pos) {
+            foreach ($domain as $purpose => $identsInDomain) {
+                if (!in_array($ident, $identsInDomain, true)) continue;
+                $createCoreLink($purpose, self::IDENT_LINK_PREFIX . 'DOM_' . $this->makeIdent($purpose) . '_' . $ident, $ident);
+            }
+        }
+
+        // ---------- Telemetry Links (nur kategorisiert: Status / Laden / Klima / Sicherheit) ----------
+        $telemetryCatId = $this->getTelemetryCategoryId();
+
+        $createTelLink = function (string $purpose, string $linkIdent, int $varId, string $varName, int $pos) use (&$desired, $purposeIds) {
+            $this->ensureLinkUnder($purposeIds[$purpose], $varId, $linkIdent, $varName, $pos);
+            $desired[$purposeIds[$purpose]][] = $linkIdent;
+        };
+
+        foreach ($posMapTel as $telIdent => $pos) {
+            if (!($enabledTel[$telIdent] ?? false)) {
+                $this->deleteManagedLinksForIdent($telIdent);
+                continue;
+            }
+
+            $varId = @IPS_GetObjectIDByIdent($telIdent, $telemetryCatId);
+            if ($varId <= 0) continue;
+
+            $varName = IPS_GetName($varId);
+            $key = (string)($keyMapTel[$telIdent] ?? $varName);
+
+            $purps = $this->classifyTelemetryKeyToPurposes($key);
+
+            if (in_array(self::PURPOSE_STATUS, $purps, true)) {
+                $createTelLink(self::PURPOSE_STATUS, self::IDENT_LINK_PREFIX . 'TELSTAT_' . $telIdent, $varId, $varName, $pos);
+            }
+            if (in_array(self::PURPOSE_CHARGING, $purps, true)) {
+                $createTelLink(self::PURPOSE_CHARGING, self::IDENT_LINK_PREFIX . 'TELDOM_' . $this->makeIdent(self::PURPOSE_CHARGING) . '_' . $telIdent, $varId, $varName, $pos);
+            }
+            if (in_array(self::PURPOSE_CLIMATE, $purps, true)) {
+                $createTelLink(self::PURPOSE_CLIMATE, self::IDENT_LINK_PREFIX . 'TELDOM_' . $this->makeIdent(self::PURPOSE_CLIMATE) . '_' . $telIdent, $varId, $varName, $pos);
+            }
+            if (in_array(self::PURPOSE_SECURITY, $purps, true)) {
+                $createTelLink(self::PURPOSE_SECURITY, self::IDENT_LINK_PREFIX . 'TELDOM_' . $this->makeIdent(self::PURPOSE_SECURITY) . '_' . $telIdent, $varId, $varName, $pos);
+            }
+        }
+
+        // Cleanup: entferne nicht gewünschte Links pro Purpose
+        if ((bool)$this->ReadPropertyBoolean('CleanupLinks')) {
+            foreach ($purposeIds as $pid) {
+                $keep = $desired[$pid] ?? [];
+                $this->cleanupLinksUnder($pid, $keep);
+            }
+        }
+
+        $this->WriteAttributeInteger(self::ATTR_LAST_LINKS_LOCATION, $linksParent);
+    }
+
+    /**
+     * Heuristische Zuordnung von Telemetrie-Keys zu Kategorien.
+     * Fleet Telemetry bietet viele Feldgruppen (Charging/Climate/Safety/Location/Vehicle State/Driving …). [4](https://github.com/DG65/Symcon-Go-e-Modbus)
+     */
+    private function classifyTelemetryKeyToPurposes(string $key): array
+    {
+        $k = strtolower($key);
+        $purposes = [];
+
+        // Default: Status
+        $purposes[] = self::PURPOSE_STATUS;
+
+        // Charging
+        if (
+            strpos($k, 'charge') !== false ||
+            strpos($k, 'charging') !== false ||
+            strpos($k, 'charger') !== false ||
+            strpos($k, 'battery') !== false ||
+            strpos($k, 'soc') !== false ||
+            strpos($k, 'energy') !== false ||
+            strpos($k, 'range') !== false ||
+            strpos($k, 'pack') !== false ||
+            strpos($k, 'supercharg') !== false ||
+            strpos($k, 'fastcharger') !== false ||
+            strpos($k, 'precondition') !== false ||
+            strpos($k, 'bms') !== false
+        ) {
+            $purposes[] = self::PURPOSE_CHARGING;
+        }
+
+        // Climate
+        if (
+            strpos($k, 'hvac') !== false ||
+            strpos($k, 'temp') !== false ||
+            strpos($k, 'defrost') !== false ||
+            strpos($k, 'climate') !== false ||
+            strpos($k, 'cabin') !== false ||
+            strpos($k, 'seat') !== false ||
+            strpos($k, 'overheat') !== false ||
+            strpos($k, 'steering') !== false ||
+            strpos($k, 'bio') !== false
+        ) {
+            $purposes[] = self::PURPOSE_CLIMATE;
+        }
+
+        // Security/Safety
+        if (
+            strpos($k, 'lock') !== false ||
+            strpos($k, 'door') !== false ||
+            strpos($k, 'window') !== false ||
+            strpos($k, 'sentry') !== false ||
+            strpos($k, 'pin') !== false ||
+            strpos($k, 'valet') !== false ||
+            strpos($k, 'belt') !== false ||
+            strpos($k, 'alarm') !== false ||
+            strpos($k, 'homelink') !== false ||
+            strpos($k, 'hazard') !== false
+        ) {
+            $purposes[] = self::PURPOSE_SECURITY;
+        }
+
+        return array_values(array_unique($purposes));
+    }
+
+    private function cleanupOldRootIfNeeded(int $currentLinksParent): void
+    {
+        $last = (int)$this->ReadAttributeInteger(self::ATTR_LAST_LINKS_LOCATION);
+        if ($last <= 0 || $last === $currentLinksParent) return;
+        if (!IPS_ObjectExists($last)) return;
+
+        $rootIdent = self::IDENT_ROOT_PREFIX . $this->InstanceID;
+        $oldRootId = @IPS_GetObjectIDByIdent($rootIdent, $last);
+        if ($oldRootId > 0) {
+            $obj = IPS_GetObject($oldRootId);
+            if (($obj['ObjectType'] ?? 0) === OBJECTTYPE_CATEGORY) {
+                IPS_Delete($oldRootId);
+            }
+        }
+    }
+
+    private function cleanupLinksUnder(int $parentId, array $keepIdents): void
+    {
+        $keep = array_flip($keepIdents);
+        foreach (IPS_GetChildrenIDs($parentId) as $cid) {
+            $obj = IPS_GetObject($cid);
+            if (($obj['ObjectType'] ?? 0) !== OBJECTTYPE_LINK) continue;
+
+            $ident = IPS_GetIdent($cid);
+            if (strpos($ident, self::IDENT_LINK_PREFIX) !== 0) continue;
+
+            if (!isset($keep[$ident])) {
+                IPS_Delete($cid);
+            }
+        }
+    }
+
+    private function ensureCategoryUnder(int $parentId, string $name, string $ident): int
+    {
+        $id = @IPS_GetObjectIDByIdent($ident, $parentId);
+        if ($id <= 0) {
+            $id = IPS_CreateCategory();
+            IPS_SetParent($id, $parentId);
+            IPS_SetIdent($id, $ident);
+        }
+        if (IPS_GetName($id) !== $name) {
+            IPS_SetName($id, $name);
+        }
+        return $id;
+    }
+
+    private function ensureLinkUnder(int $parentId, int $targetId, string $ident, string $name, int $pos): void
+    {
+        if ($targetId <= 0 || !IPS_ObjectExists($targetId)) return;
+
+        $id = @IPS_GetObjectIDByIdent($ident, $parentId);
+        if ($id <= 0) {
+            $id = IPS_CreateLink();
+            IPS_SetParent($id, $parentId);
+            IPS_SetIdent($id, $ident);
+        }
+        IPS_SetName($id, $name);
+        IPS_SetLinkTargetID($id, $targetId);
+        IPS_SetPosition($id, $pos);
+    }
+
+    private function makeIdent(string $s): string
+    {
+        $s = preg_replace('/[^a-zA-Z0-9_]/', '_', $s);
+        $s = preg_replace('/_+/', '_', (string)$s);
+        $s = trim((string)$s, '_');
+        if ($s === '') $s = 'X';
+        return substr($s, 0, 64);
+    }
+
+    // -------- HTTP (Tessie API) --------
+    private function apiRequest(string $token, string $method, string $path, $body): array
+    {
+        $base = rtrim(trim($this->ReadPropertyString('ApiBase')), '/');
+        if ($path === '' || $path[0] !== '/') {
+            $path = '/' . $path;
+        }
+        $url = $base . $path;
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+
+        $methodUpper = strtoupper($method);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $methodUpper);
+
+        $headers = [
+            'Accept: application/json',
+            'Authorization: Bearer ' . $token
+        ];
+
+        $hasJsonBody = !($body === null || (is_array($body) && count($body) === 0));
+        if ($hasJsonBody) {
+            $jsonBody = json_encode($body);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonBody);
+            $headers[] = 'Content-Type: application/json';
+        } else {
+            if ($methodUpper === 'POST') {
+                curl_setopt($ch, CURLOPT_POSTFIELDS, '');
+                $headers[] = 'Content-Length: 0';
+            }
+        }
+
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+        if ((bool)$this->ReadPropertyBoolean('DebugHTTP')) {
+            $this->SendDebug('ApiRequestURL', $methodUpper . ' ' . $url, 0);
+        }
+
+        $resp = curl_exec($ch);
+        $err  = curl_error($ch);
+        $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($resp === false) {
+            $this->SendDebug('ApiRequest', 'cURL error: ' . $err, 0);
+            return [];
+        }
+
+        $json = json_decode($resp, true);
+        if (!is_array($json)) {
+            $this->SendDebug('ApiRequest', 'HTTP ' . $code . ' non-JSON: ' . substr($resp, 0, 500), 0);
+            return [];
+        }
+        return $json;
+    }
+}
