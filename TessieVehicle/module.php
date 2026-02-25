@@ -82,7 +82,7 @@ class TessieVehicle extends IPSModule
         $this->RegisterPropertyBoolean(self::PROP_TELEMETRY_DEBUG_EVERY_KEY, false);
 
         // NEW: "gleiches Prozedere wie Bestandsvariablen" => neue Telemetrie-Variablen werden standardmäßig aktiviert
-        $this->RegisterPropertyBoolean(self::PROP_TELEMETRY_DEFAULT_ENABLED, true);
+        $this->RegisterPropertyBoolean(self::PROP_TELEMETRY_DEFAULT_ENABLED, false);
 
         // Timer
         $this->RegisterTimer(self::TIMER_UPDATE, 0, 'TESSIE_Update($_IPS["TARGET"]);');
