@@ -21,15 +21,18 @@ class TessieVehicle extends IPSModule
     private const TIMER_UPDATE = 'UpdateTimer';
 
     // -------------------- Purpose categories (Links) --------------------
-    private const PURPOSE_ACTIONS   = 'Aktionen';
-    private const PURPOSE_STATUS    = 'Status';
-    private const PURPOSE_CHARGING  = 'Laden';
-    private const PURPOSE_CLIMATE   = 'Klima';
-    private const PURPOSE_SECURITY  = 'Sicherheit';
+    private const PURPOSE_ACTIONS  = 'Aktionen';
+    private const PURPOSE_STATUS   = 'Status';
+    private const PURPOSE_CHARGING = 'Laden';
+    private const PURPOSE_CLIMATE  = 'Klima';
+    private const PURPOSE_SECURITY = 'Sicherheit';
 
     // -------------------- Attributes --------------------
     private const ATTR_VEHICLE_NAME        = 'VehicleName';
     private const ATTR_LAST_LINKS_LOCATION = 'LastLinksLocation';
+
+    // NEW: Telemetry registry (metadata for auto-created vars)
+    private const ATTR_TELEMETRY_REGISTRY  = 'TelemetryRegistry'; // JSON map ident => {key,name,type,profile}
 
     // -------------------- Ident prefixes for managed link tree --------------------
     private const IDENT_ROOT_PREFIX = 'TESSIE_LINKROOT_';
@@ -37,19 +40,13 @@ class TessieVehicle extends IPSModule
     private const IDENT_LINK_PREFIX = 'LNK_';
 
     // -------------------- Properties --------------------
-    private const PROP_VISIBLE_VARS            = 'VisibleVars';
-    private const PROP_VISIBLE_TELEMETRY_VARS  = 'TelemetryVisibleVars';
+    private const PROP_VISIBLE_VARS = 'VisibleVars';
 
-    // -------------------- Telemetry Auto Variables --------------------
-    private const TELEMETRY_PARENT_IDENT = 'TelemetryVars';     // category under instance
-    private const TELEMETRY_IDENT_PREFIX = 'tel_';              // ident prefix for auto telemetry vars
-
-    private const PROP_AUTO_CREATE_TELEMETRY_VARS   = 'AutoCreateTelemetryVars';
-    private const PROP_AUTO_PROFILE_TELEMETRY_VARS  = 'AutoProfileTelemetryVars';
-    private const PROP_TELEMETRY_DEBUG_EVERY_KEY    = 'TelemetryDebugEveryKey';
-
-    // Default: neue Telemetrie-Variablen NICHT automatisch verlinken (sonst explodiert der Linkbaum)
-    private const PROP_TELEMETRY_DEFAULT_ENABLED    = 'TelemetryDefaultEnabledInLinks';
+    // NEW (hidden properties; no form entry required)
+    private const PROP_AUTO_CREATE_TELEMETRY_VARS  = 'AutoCreateTelemetryVars';
+    private const PROP_AUTO_PROFILE_TELEMETRY_VARS = 'AutoProfileTelemetryVars';
+    private const PROP_TELEMETRY_DEBUG_EVERY_KEY   = 'TelemetryDebugEveryKey';
+    private const PROP_TELEMETRY_DEFAULT_ENABLED   = 'TelemetryDefaultEnabled'; // new telemetry vars default enabled in VisibleVars
 
     public function Create()
     {
@@ -76,25 +73,24 @@ class TessieVehicle extends IPSModule
         $this->RegisterPropertyBoolean('CreateLinks', true);
         $this->RegisterPropertyBoolean('CleanupLinks', true);
 
-        // Default VisibleVars (Ident/Name read-only im Form, Enabled + Reihenfolge usergesteuert)
+        // Default VisibleVars
         $this->RegisterPropertyString(self::PROP_VISIBLE_VARS, json_encode($this->getDefaultVisibleVars()));
 
-        // Telemetry Link-Liste (Ident/Name read-only, Enabled+Order steuerbar)
-        // Einträge werden automatisch ergänzt, sobald neue Telemetrie-Variablen entstehen.
-        $this->RegisterPropertyString(self::PROP_VISIBLE_TELEMETRY_VARS, json_encode([]));
-
-        // Maximal:
+        // NEW: Maximal defaults (hidden)
         $this->RegisterPropertyBoolean(self::PROP_AUTO_CREATE_TELEMETRY_VARS, true);
         $this->RegisterPropertyBoolean(self::PROP_AUTO_PROFILE_TELEMETRY_VARS, true);
         $this->RegisterPropertyBoolean(self::PROP_TELEMETRY_DEBUG_EVERY_KEY, false);
 
-        // Default Enabled für neue Telemetrie-Einträge in der Link-Liste
-        $this->RegisterPropertyBoolean(self::PROP_TELEMETRY_DEFAULT_ENABLED, false);
+        // NEW: "gleiches Prozedere wie Bestandsvariablen" => neue Telemetrie-Variablen werden standardmäßig aktiviert
+        $this->RegisterPropertyBoolean(self::PROP_TELEMETRY_DEFAULT_ENABLED, true);
 
-        // Internal
+        // Timer
         $this->RegisterTimer(self::TIMER_UPDATE, 0, 'TESSIE_Update($_IPS["TARGET"]);');
+
+        // Attributes
         $this->RegisterAttributeString(self::ATTR_VEHICLE_NAME, '');
         $this->RegisterAttributeInteger(self::ATTR_LAST_LINKS_LOCATION, 0);
+        $this->RegisterAttributeString(self::ATTR_TELEMETRY_REGISTRY, json_encode(new stdClass()));
     }
 
     public function ApplyChanges()
@@ -118,8 +114,7 @@ class TessieVehicle extends IPSModule
         }
 
         $this->ensureProfiles();
-        $this->ensureVariables();
-        $this->ensureTelemetryCategory();
+        $this->ensureVariables(); // maintains core vars + telemetry vars that exist in registry
 
         // Links
         try {
@@ -137,15 +132,6 @@ class TessieVehicle extends IPSModule
     public function ResetVisibleVars()
     {
         IPS_SetProperty($this->InstanceID, self::PROP_VISIBLE_VARS, json_encode($this->getDefaultVisibleVars()));
-        IPS_ApplyChanges($this->InstanceID);
-    }
-
-    // ------------------------------------------------------------
-    // Button Action (Form): Reset Telemetry VisibleVars (leert Liste)
-    // ------------------------------------------------------------
-    public function ResetTelemetryVisibleVars()
-    {
-        IPS_SetProperty($this->InstanceID, self::PROP_VISIBLE_TELEMETRY_VARS, json_encode([]));
         IPS_ApplyChanges($this->InstanceID);
     }
 
@@ -174,7 +160,7 @@ class TessieVehicle extends IPSModule
             return;
         }
 
-        // bewusst leicht: nur Status pollen, Telemetrie liefert "Maximal" [3](https://github.com/tessie)[4](https://github.com/DG65/Symcon-Go-e-Modbus)
+        // bewusst leicht: nur Status pollen
         $status = $this->getVehicleStatus($vin, $token);
         if ($status !== '') {
             $this->SendDebug('Status', $status, 0);
@@ -199,7 +185,7 @@ class TessieVehicle extends IPSModule
             return;
         }
 
-        // Telemetry ist Key/Value-Stream und kann sehr viele Felder liefern. [3](https://github.com/tessie)[4](https://github.com/DG65/Symcon-Go-e-Modbus)
+        // Telemetry ist Key/Value-Stream; values können stringValue/locationValue/... enthalten. [3](https://github.com/tessie)[4](https://github.com/DG65/Symcon-Go-e-Modbus)
         $this->SendDebug('Telemetry', $buf, 0);
 
         if (isset($payload['errors'])) {
@@ -319,14 +305,17 @@ class TessieVehicle extends IPSModule
     }
 
     // --------------------------------------------------------------------
-    // Telemetry -> Variables (MAXIMAL)
-    // - Mappt bekannte Keys weiterhin auf bestehende Variablen
-    // - Legt für ALLE anderen Keys automatisch Variablen an (tel_<Key>)
-    // - führt TelemetryVisibleVars-Liste (für Links)
+    // Telemetry -> Variables (MAXIMAL, ohne Telemetrie-Kategorie)
+    // - Neue Keys werden zu "stat_tel_*" Variablen direkt unter der Instanz
+    // - Einträge werden in VisibleVars aufgenommen (gleiches Form/List-Prozedere)
+    // - Links werden automatisch kategorisiert (Status/Laden/Klima/Sicherheit)
     // --------------------------------------------------------------------
     private function syncFromTelemetry(array $dataItems): void
     {
-        // "Bekannte" für Actions/Status
+        $debugEveryKey = (bool)$this->ReadPropertyBoolean(self::PROP_TELEMETRY_DEBUG_EVERY_KEY);
+        $autoCreate    = (bool)$this->ReadPropertyBoolean(self::PROP_AUTO_CREATE_TELEMETRY_VARS);
+
+        // existing mapped core values
         $locked = null;
         $limit  = null;
         $req    = null;
@@ -335,28 +324,22 @@ class TessieVehicle extends IPSModule
         $acp    = null;
         $vehicleName = null;
 
-        $debugEveryKey = (bool)$this->ReadPropertyBoolean(self::PROP_TELEMETRY_DEBUG_EVERY_KEY);
-        $autoCreate    = (bool)$this->ReadPropertyBoolean(self::PROP_AUTO_CREATE_TELEMETRY_VARS);
-
-        $teleListChanged = false;
+        $registry = $this->getTelemetryRegistry();
+        $visibleChanged = false;
+        $registryChanged = false;
 
         foreach ($dataItems as $item) {
-            if (!is_array($item)) {
-                continue;
-            }
+            if (!is_array($item)) continue;
 
             $key = (string)($item['key'] ?? '');
             $val = $item['value'] ?? null;
-
-            if ($key === '' || !is_array($val)) {
-                continue;
-            }
+            if ($key === '' || !is_array($val)) continue;
 
             if ($debugEveryKey) {
                 $this->SendDebug('TelemetryKey', $key . ' => ' . json_encode($val), 0);
             }
 
-            // ---- Explizites Mapping für bestehende "Core" Variablen ----
+            // Preserve your existing explicit mappings
             if ($key === 'Locked') {
                 $b = $this->telemetryGetBool($val);
                 if ($b !== null) $locked = $b;
@@ -393,35 +376,81 @@ class TessieVehicle extends IPSModule
                 continue;
             }
 
-            // ---- MAXIMAL: alles andere als Telemetrievariable ablegen ----
-            if ($autoCreate) {
-                // Upsert Variable(n), liefert ident=>[Name,Key]
-                $identsCreated = $this->telemetryUpsertAutoVar($key, $val);
+            if (!$autoCreate) {
+                continue;
+            }
 
-                // füge neue Telemetrie-Idents in Link-Liste ein (Enabled default: false)
-                foreach ($identsCreated as $ident => $meta) {
-                    $nameForList = (string)($meta['Name'] ?? $ident);
-                    $keyForList  = (string)($meta['Key'] ?? $key);
+            // Create/update telemetry variables directly under instance:
+            // Use stable ident prefix "stat_tel_" to follow the stat_* handling pattern.
+            $baseIdent = 'stat_tel_' . $this->makeIdent($key);
 
-                    if ($this->telemetryVisibleListEnsureEntry($ident, $nameForList, $keyForList)) {
-                        $teleListChanged = true;
-                    }
+            // Special: Location -> create two vars (lat/lon)
+            if (array_key_exists('locationValue', $val) && is_array($val['locationValue'])) {
+                $loc = $val['locationValue'];
+                $lat = isset($loc['latitude']) ? (float)$loc['latitude'] : null;
+                $lon = isset($loc['longitude']) ? (float)$loc['longitude'] : null;
+
+                $identLat = $baseIdent . '_lat';
+                $identLon = $baseIdent . '_lon';
+
+                // register in visible list + registry
+                if ($this->ensureVisibleVarEntry($identLat, $key . ' Latitude')) $visibleChanged = true;
+                if ($this->ensureVisibleVarEntry($identLon, $key . ' Longitude')) $visibleChanged = true;
+
+                if (!isset($registry[$identLat])) {
+                    $registry[$identLat] = $this->makeRegistryEntry($key, $key . ' Latitude', VARIABLETYPE_FLOAT);
+                    $registryChanged = true;
                 }
+                if (!isset($registry[$identLon])) {
+                    $registry[$identLon] = $this->makeRegistryEntry($key, $key . ' Longitude', VARIABLETYPE_FLOAT);
+                    $registryChanged = true;
+                }
+
+                // If enabled, ensure variable exists and write value
+                if ($this->isVisibleVarEnabled($identLat)) {
+                    $this->MaintainVariable($identLat, $registry[$identLat]['name'], VARIABLETYPE_FLOAT, $registry[$identLat]['profile'], 0, true);
+                    if ($lat !== null) $this->safeSetValue($identLat, $lat);
+                }
+                if ($this->isVisibleVarEnabled($identLon)) {
+                    $this->MaintainVariable($identLon, $registry[$identLon]['name'], VARIABLETYPE_FLOAT, $registry[$identLon]['profile'], 0, true);
+                    if ($lon !== null) $this->safeSetValue($identLon, $lon);
+                }
+
+                continue;
+            }
+
+            // Determine type/value
+            [$type, $value] = $this->telemetryInferTypeAndValue($val);
+
+            // Maintain metadata
+            if (!isset($registry[$baseIdent])) {
+                $registry[$baseIdent] = $this->makeRegistryEntry($key, $key, $type);
+                $registryChanged = true;
+            }
+
+            // Ensure entry in VisibleVars
+            if ($this->ensureVisibleVarEntry($baseIdent, $registry[$baseIdent]['name'])) {
+                $visibleChanged = true;
+            }
+
+            // If enabled, ensure variable exists and write value
+            if ($this->isVisibleVarEnabled($baseIdent)) {
+                $this->MaintainVariable($baseIdent, $registry[$baseIdent]['name'], $type, $registry[$baseIdent]['profile'], 0, true);
+                $this->safeSetValue($baseIdent, $value);
             }
         }
 
-        // Persistiere Link-Liste NUR wenn sich etwas geändert hat
-        if ($teleListChanged) {
-            IPS_SetProperty($this->InstanceID, self::PROP_VISIBLE_TELEMETRY_VARS, json_encode($this->getTelemetryVisibleList()));
-            // kein ApplyChanges hier. Links aktualisieren wir direkt:
-            try {
-                $this->ensureLinkTree();
-            } catch (Throwable $e) {
-                $this->LogMessage('ensureLinkTree after telemetry list update failed: ' . $e->getMessage(), KL_WARNING);
-            }
+        // Persist registry/visible list (no ApplyChanges recursion)
+        if ($registryChanged) {
+            $this->WriteAttributeString(self::ATTR_TELEMETRY_REGISTRY, json_encode($registry));
+        }
+        if ($visibleChanged) {
+            // Update property so user sees new entries in same list (same Prozedere/Form)
+            IPS_SetProperty($this->InstanceID, self::PROP_VISIBLE_VARS, $this->encodeVisibleVars($this->getVisibleList()));
+            // do NOT ApplyChanges here; we update links below directly
         }
 
-        // Setze die bestehenden Kern-Variablen
+        // Apply core variable values
         if ($locked !== null) $this->safeSetValue(self::ACT_LOCKED, $locked);
         if ($limit  !== null) $this->safeSetValue(self::ACT_CHARGE_LIMIT, $limit);
         if ($req    !== null) $this->safeSetValue(self::ACT_CHARGING_AMPS_REQUEST, $req);
@@ -429,17 +458,132 @@ class TessieVehicle extends IPSModule
         if ($max    !== null) $this->safeSetValue(self::STAT_CHARGING_AMPS_MAX, $max);
         if ($acp    !== null) $this->safeSetValue(self::STAT_AC_CHARGING_POWER, $acp);
 
-        // VehicleName als Attribut (für Link-Tree Root)
+        // VehicleName attribute affects link root name
         if ($vehicleName !== null && trim($vehicleName) !== '') {
             $old = $this->ReadAttributeString(self::ATTR_VEHICLE_NAME);
             if ($old !== $vehicleName) {
                 $this->WriteAttributeString(self::ATTR_VEHICLE_NAME, $vehicleName);
-                $this->ensureLinkTree(true);
             }
+        }
+
+        // Update link tree immediately (so categorization happens without "Übernehmen")
+        try {
+            $this->ensureLinkTree(true);
+        } catch (Throwable $e) {
+            $this->LogMessage('ensureLinkTree after telemetry update failed: ' . $e->getMessage(), KL_WARNING);
         }
     }
 
-    // ---------------- Telemetry value helpers ----------------
+    // --- Registry helpers ---
+    private function getTelemetryRegistry(): array
+    {
+        $raw = $this->ReadAttributeString(self::ATTR_TELEMETRY_REGISTRY);
+        $arr = json_decode($raw, true);
+        return is_array($arr) ? $arr : [];
+    }
+
+    private function makeRegistryEntry(string $key, string $name, int $type): array
+    {
+        $profile = '';
+        if ((bool)$this->ReadPropertyBoolean(self::PROP_AUTO_PROFILE_TELEMETRY_VARS)) {
+            $profile = $this->guessProfileForTelemetryKey($key, $type);
+        }
+        return [
+            'key'     => $key,
+            'name'    => $name,
+            'type'    => $type,
+            'profile' => $profile
+        ];
+    }
+
+    private function telemetryInferTypeAndValue(array $val): array
+    {
+        if (array_key_exists('booleanValue', $val)) return [VARIABLETYPE_BOOLEAN, (bool)$val['booleanValue']];
+        if (array_key_exists('intValue', $val))     return [VARIABLETYPE_INTEGER, (int)$val['intValue']];
+        if (array_key_exists('doubleValue', $val))  return [VARIABLETYPE_FLOAT, (float)$val['doubleValue']];
+        if (array_key_exists('stringValue', $val)) {
+            $sv = (string)$val['stringValue'];
+            if (is_numeric(trim($sv))) return [VARIABLETYPE_FLOAT, (float)$sv];
+            return [VARIABLETYPE_STRING, $sv];
+        }
+        return [VARIABLETYPE_STRING, json_encode($val)];
+    }
+
+    // --- VisibleVars handling (same list as existing) ---
+    private function getVisibleList(): array
+    {
+        $arr = json_decode($this->ReadPropertyString(self::PROP_VISIBLE_VARS), true);
+        return is_array($arr) ? $arr : [];
+    }
+
+    private function encodeVisibleVars(array $list): string
+    {
+        return json_encode(array_values($list));
+    }
+
+    private function ensureVisibleVarEntry(string $ident, string $name): bool
+    {
+        $list = $this->getVisibleList();
+
+        foreach ($list as $idx => $row) {
+            if (!is_array($row)) continue;
+            if ((string)($row['Ident'] ?? '') === $ident) {
+                // keep name up to date
+                if ((string)($row['Name'] ?? '') !== $name) {
+                    $list[$idx]['Name'] = $name;
+                    IPS_SetProperty($this->InstanceID, self::PROP_VISIBLE_VARS, $this->encodeVisibleVars($list));
+                    return true;
+                }
+                return false;
+            }
+        }
+
+        $defaultEnabled = (bool)$this->ReadPropertyBoolean(self::PROP_TELEMETRY_DEFAULT_ENABLED);
+        $list[] = ['Ident' => $ident, 'Name' => $name, 'Enabled' => $defaultEnabled];
+
+        IPS_SetProperty($this->InstanceID, self::PROP_VISIBLE_VARS, $this->encodeVisibleVars($list));
+        return true;
+    }
+
+    private function isVisibleVarEnabled(string $ident): bool
+    {
+        foreach ($this->getVisibleList() as $row) {
+            if (!is_array($row)) continue;
+            if ((string)($row['Ident'] ?? '') === $ident) {
+                return (bool)($row['Enabled'] ?? true);
+            }
+        }
+        // if not present => default true (but normally it will be present)
+        return true;
+    }
+
+    private function getEnabledMap(): array
+    {
+        $map = [];
+        foreach ($this->getVisibleList() as $row) {
+            if (!is_array($row)) continue;
+            $ident = (string)($row['Ident'] ?? '');
+            if ($ident === '') continue;
+            $map[$ident] = (bool)($row['Enabled'] ?? true);
+        }
+        return $map;
+    }
+
+    private function getOrderPosMap(int $step = 10): array
+    {
+        $posMap = [];
+        $pos = $step;
+        foreach ($this->getVisibleList() as $row) {
+            if (!is_array($row)) continue;
+            $ident = (string)($row['Ident'] ?? '');
+            if ($ident === '') continue;
+            $posMap[$ident] = $pos;
+            $pos += $step;
+        }
+        return $posMap;
+    }
+
+    // -------- Telemetry value helpers --------
     private function telemetryGetNumber(array $val): ?float
     {
         if (array_key_exists('doubleValue', $val)) return (float)$val['doubleValue'];
@@ -472,324 +616,7 @@ class TessieVehicle extends IPSModule
         return null;
     }
 
-    // ---------------- Auto telemetry variable management ----------------
-    private function ensureTelemetryCategory(): void
-    {
-        $this->getTelemetryCategoryId();
-    }
-
-    private function getTelemetryCategoryId(): int
-    {
-        $id = @IPS_GetObjectIDByIdent(self::TELEMETRY_PARENT_IDENT, $this->InstanceID);
-        if ($id > 0 && IPS_ObjectExists($id)) {
-            return $id;
-        }
-        $id = IPS_CreateCategory();
-        IPS_SetParent($id, $this->InstanceID);
-        IPS_SetIdent($id, self::TELEMETRY_PARENT_IDENT);
-        IPS_SetName($id, 'Telemetrie');
-        IPS_SetPosition($id, 1000);
-        return $id;
-    }
-
-    /**
-     * Creates/updates telemetry vars.
-     * Returns ident => ['Name'=>..., 'Key'=>...] entries for link-list sync.
-     * Telemetry payload is data[{key,value}], and value can be stringValue/locationValue/... [3](https://github.com/tessie)[4](https://github.com/DG65/Symcon-Go-e-Modbus)
-     */
-    private function telemetryUpsertAutoVar(string $key, array $val): array
-    {
-        $parentCat = $this->getTelemetryCategoryId();
-        $autoProfile = (bool)$this->ReadPropertyBoolean(self::PROP_AUTO_PROFILE_TELEMETRY_VARS);
-
-        $created = [];
-
-        // Location: zwei Variablen (lat/lon)
-        if (array_key_exists('locationValue', $val) && is_array($val['locationValue'])) {
-            $loc = $val['locationValue'];
-            $lat = isset($loc['latitude']) ? (float)$loc['latitude'] : null;
-            $lon = isset($loc['longitude']) ? (float)$loc['longitude'] : null;
-
-            $identBase = self::TELEMETRY_IDENT_PREFIX . $this->makeIdent($key);
-            $identLat  = $identBase . '_lat';
-            $identLon  = $identBase . '_lon';
-
-            $this->telemetryEnsureVar($parentCat, $identLat, $key . ' Latitude', VARIABLETYPE_FLOAT, '', 0);
-            $this->telemetryEnsureVar($parentCat, $identLon, $key . ' Longitude', VARIABLETYPE_FLOAT, '', 0);
-
-            if ($lat !== null) $this->telemetrySafeSet($identLat, $lat, $parentCat);
-            if ($lon !== null) $this->telemetrySafeSet($identLon, $lon, $parentCat);
-
-            $created[$identLat] = ['Name' => $key . ' Latitude',  'Key' => $key];
-            $created[$identLon] = ['Name' => $key . ' Longitude', 'Key' => $key];
-            return $created;
-        }
-
-        // Bestimme Typ & Wert
-        $value = null;
-        $type  = VARIABLETYPE_STRING;
-
-        if (array_key_exists('booleanValue', $val)) {
-            $type  = VARIABLETYPE_BOOLEAN;
-            $value = (bool)$val['booleanValue'];
-        } elseif (array_key_exists('intValue', $val)) {
-            $type  = VARIABLETYPE_INTEGER;
-            $value = (int)$val['intValue'];
-        } elseif (array_key_exists('doubleValue', $val)) {
-            $type  = VARIABLETYPE_FLOAT;
-            $value = (float)$val['doubleValue'];
-        } elseif (array_key_exists('stringValue', $val)) {
-            $sv = (string)$val['stringValue'];
-            if (is_numeric(trim($sv))) {
-                $type  = VARIABLETYPE_FLOAT;
-                $value = (float)$sv;
-            } else {
-                $type  = VARIABLETYPE_STRING;
-                $value = $sv;
-            }
-        } else {
-            $type  = VARIABLETYPE_STRING;
-            $value = json_encode($val);
-        }
-
-        $ident = self::TELEMETRY_IDENT_PREFIX . $this->makeIdent($key);
-        $name  = $key;
-
-        $profile = '';
-        if ($autoProfile) {
-            $profile = $this->guessProfileForTelemetryKey($key, $type);
-        }
-
-        $this->telemetryEnsureVar($parentCat, $ident, $name, $type, $profile, 0);
-        $this->telemetrySafeSet($ident, $value, $parentCat);
-
-        $created[$ident] = ['Name' => $name, 'Key' => $key];
-        return $created;
-    }
-
-    private function telemetryEnsureVar(int $parentCat, string $ident, string $name, int $type, string $profile, int $pos): void
-    {
-        $varId = @IPS_GetObjectIDByIdent($ident, $parentCat);
-        if ($varId > 0 && IPS_ObjectExists($varId)) {
-            if (IPS_GetName($varId) !== $name) {
-                IPS_SetName($varId, $name);
-            }
-            $v = IPS_GetVariable($varId);
-            $curType = (int)($v['VariableType'] ?? -1);
-
-            if ($curType !== $type) {
-                IPS_Delete($varId);
-                $varId = 0;
-            } else {
-                if ($profile !== '') {
-                    @IPS_SetVariableCustomProfile($varId, $profile);
-                }
-                if ($pos > 0) {
-                    IPS_SetPosition($varId, $pos);
-                }
-                return;
-            }
-        }
-
-        $varId = IPS_CreateVariable($type);
-        IPS_SetParent($varId, $parentCat);
-        IPS_SetIdent($varId, $ident);
-        IPS_SetName($varId, $name);
-        if ($pos > 0) {
-            IPS_SetPosition($varId, $pos);
-        }
-        if ($profile !== '') {
-            @IPS_SetVariableCustomProfile($varId, $profile);
-        }
-    }
-
-    private function telemetrySafeSet(string $ident, $value, int $parentCat): void
-    {
-        $id = @IPS_GetObjectIDByIdent($ident, $parentCat);
-        if ($id <= 0) return;
-
-        $type = IPS_GetVariable($id)['VariableType'] ?? null;
-
-        if ($type === VARIABLETYPE_BOOLEAN) {
-            @SetValueBoolean($id, (bool)$value);
-        } elseif ($type === VARIABLETYPE_INTEGER) {
-            @SetValueInteger($id, (int)$value);
-        } elseif ($type === VARIABLETYPE_FLOAT) {
-            @SetValueFloat($id, (float)$value);
-        } else {
-            @SetValueString($id, (string)$value);
-        }
-    }
-
-    // ---------------- Telemetry Visible List (Links) ----------------
-    private function getTelemetryVisibleList(): array
-    {
-        $arr = json_decode($this->ReadPropertyString(self::PROP_VISIBLE_TELEMETRY_VARS), true);
-        return is_array($arr) ? $arr : [];
-    }
-
-    /**
-     * Ensure telemetry list has entry for ident.
-     * Stores extra fields (Key) even if form doesn't display them. [2](https://adsoba-my.sharepoint.com/personal/d_gureth_adsoba_de/Documents/Microsoft%20Copilot%20Chat-Dateien/form.json)
-     */
-    private function telemetryVisibleListEnsureEntry(string $ident, string $name, string $key): bool
-    {
-        $list = $this->getTelemetryVisibleList();
-
-        foreach ($list as $idx => $row) {
-            if (is_array($row) && (string)($row['Ident'] ?? '') === $ident) {
-                $changed = false;
-                if ((string)($row['Name'] ?? '') !== $name) {
-                    $list[$idx]['Name'] = $name;
-                    $changed = true;
-                }
-                if ((string)($row['Key'] ?? '') !== $key) {
-                    $list[$idx]['Key'] = $key;
-                    $changed = true;
-                }
-                if ($changed) {
-                    IPS_SetProperty($this->InstanceID, self::PROP_VISIBLE_TELEMETRY_VARS, json_encode($list));
-                }
-                return $changed;
-            }
-        }
-
-        $defaultEnabled = (bool)$this->ReadPropertyBoolean(self::PROP_TELEMETRY_DEFAULT_ENABLED);
-        $list[] = ['Ident' => $ident, 'Name' => $name, 'Key' => $key, 'Enabled' => $defaultEnabled];
-
-        IPS_SetProperty($this->InstanceID, self::PROP_VISIBLE_TELEMETRY_VARS, json_encode($list));
-        return true;
-    }
-
-    private function getTelemetryEnabledMap(): array
-    {
-        $map = [];
-        foreach ($this->getTelemetryVisibleList() as $row) {
-            if (!is_array($row)) continue;
-            $ident = (string)($row['Ident'] ?? '');
-            if ($ident === '') continue;
-            $map[$ident] = (bool)($row['Enabled'] ?? false);
-        }
-        return $map;
-    }
-
-    private function getTelemetryOrderPosMap(int $step = 10): array
-    {
-        $posMap = [];
-        $pos = $step;
-        foreach ($this->getTelemetryVisibleList() as $row) {
-            if (!is_array($row)) continue;
-            $ident = (string)($row['Ident'] ?? '');
-            if ($ident === '') continue;
-            $posMap[$ident] = $pos;
-            $pos += $step;
-        }
-        return $posMap;
-    }
-
-    private function getTelemetryKeyMap(): array
-    {
-        $map = [];
-        foreach ($this->getTelemetryVisibleList() as $row) {
-            if (!is_array($row)) continue;
-            $ident = (string)($row['Ident'] ?? '');
-            if ($ident === '') continue;
-            $map[$ident] = (string)($row['Key'] ?? $row['Name'] ?? $ident);
-        }
-        return $map;
-    }
-
-    // -------- Existing VisibleVars helpers --------
-    private function getVisibleList(): array
-    {
-        $arr = json_decode($this->ReadPropertyString(self::PROP_VISIBLE_VARS), true);
-        return is_array($arr) ? $arr : [];
-    }
-
-    private function getEnabledMap(): array
-    {
-        $map = [];
-        foreach ($this->getVisibleList() as $row) {
-            if (!is_array($row)) continue;
-            $ident = (string)($row['Ident'] ?? '');
-            if ($ident === '') continue;
-            $map[$ident] = (bool)($row['Enabled'] ?? true);
-        }
-        return $map;
-    }
-
-    private function getOrderPosMap(int $step = 10): array
-    {
-        $posMap = [];
-        $pos = $step;
-        foreach ($this->getVisibleList() as $row) {
-            if (!is_array($row)) continue;
-            $ident = (string)($row['Ident'] ?? '');
-            if ($ident === '') continue;
-            $posMap[$ident] = $pos;
-            $pos += $step;
-        }
-        return $posMap;
-    }
-
-    // -------- Komfort: Links sofort löschen, wenn Variable deaktiviert wird --------
-    private function deleteManagedLinksForIdent(string $varIdent): void
-    {
-        if (!(bool)$this->ReadPropertyBoolean('CreateLinks')) return;
-
-        $linksParent = (int)$this->ReadPropertyInteger('LinksLocation');
-        if ($linksParent <= 0 || !IPS_ObjectExists($linksParent)) return;
-
-        $rootIdent = self::IDENT_ROOT_PREFIX . $this->InstanceID;
-        $rootId = @IPS_GetObjectIDByIdent($rootIdent, $linksParent);
-        if ($rootId <= 0 || !IPS_ObjectExists($rootId)) return;
-
-        $purposeNames = [
-            self::PURPOSE_ACTIONS,
-            self::PURPOSE_STATUS,
-            self::PURPOSE_CHARGING,
-            self::PURPOSE_CLIMATE,
-            self::PURPOSE_SECURITY
-        ];
-
-        $purposeIds = [];
-        foreach ($purposeNames as $p) {
-            $pid = @IPS_GetObjectIDByIdent(self::IDENT_PURP_PREFIX . $this->makeIdent($p), $rootId);
-            if ($pid > 0 && IPS_ObjectExists($pid)) {
-                $purposeIds[$p] = $pid;
-            }
-        }
-
-        $toTry = [];
-        // Core
-        $toTry[self::PURPOSE_ACTIONS][]  = self::IDENT_LINK_PREFIX . 'ACT_' . $varIdent;
-        $toTry[self::PURPOSE_STATUS][]   = self::IDENT_LINK_PREFIX . 'STAT_' . $varIdent;
-        $toTry[self::PURPOSE_CHARGING][] = self::IDENT_LINK_PREFIX . 'DOM_' . $this->makeIdent(self::PURPOSE_CHARGING) . '_' . $varIdent;
-        $toTry[self::PURPOSE_CLIMATE][]  = self::IDENT_LINK_PREFIX . 'DOM_' . $this->makeIdent(self::PURPOSE_CLIMATE)  . '_' . $varIdent;
-        $toTry[self::PURPOSE_SECURITY][] = self::IDENT_LINK_PREFIX . 'DOM_' . $this->makeIdent(self::PURPOSE_SECURITY) . '_' . $varIdent;
-
-        // Telemetrie (Variante A): nur kategorisierte Links – kein Telemetrie-Sammelordner
-        $toTry[self::PURPOSE_STATUS][]   = self::IDENT_LINK_PREFIX . 'TELSTAT_' . $varIdent;
-        $toTry[self::PURPOSE_CHARGING][] = self::IDENT_LINK_PREFIX . 'TELDOM_' . $this->makeIdent(self::PURPOSE_CHARGING) . '_' . $varIdent;
-        $toTry[self::PURPOSE_CLIMATE][]  = self::IDENT_LINK_PREFIX . 'TELDOM_' . $this->makeIdent(self::PURPOSE_CLIMATE)  . '_' . $varIdent;
-        $toTry[self::PURPOSE_SECURITY][] = self::IDENT_LINK_PREFIX . 'TELDOM_' . $this->makeIdent(self::PURPOSE_SECURITY) . '_' . $varIdent;
-
-        foreach ($toTry as $purpose => $idents) {
-            if (!isset($purposeIds[$purpose])) continue;
-            $pid = $purposeIds[$purpose];
-            foreach ($idents as $lidIdent) {
-                $lid = @IPS_GetObjectIDByIdent($lidIdent, $pid);
-                if ($lid > 0 && IPS_ObjectExists($lid)) {
-                    $obj = IPS_GetObject($lid);
-                    if (($obj['ObjectType'] ?? 0) === OBJECTTYPE_LINK) {
-                        IPS_Delete($lid);
-                    }
-                }
-            }
-        }
-    }
-
-    // -------- Variables & profiles (MaintainVariable wie bisher) --------
+    // -------- Variables & profiles (Bestands-Prozedere) --------
     private function ensureVariables(): void
     {
         $enabled = $this->getEnabledMap();
@@ -798,14 +625,14 @@ class TessieVehicle extends IPSModule
         $keep = fn(string $ident) => ($enabled[$ident] ?? true);
         $pos  = fn(string $ident) => ($posMap[$ident] ?? 0);
 
-        // Komfort: erst Links löschen für alles, was deaktiviert wird
+        // Erst Links löschen für alles, was deaktiviert wird (wie bisher)
         foreach (array_keys($posMap) as $ident) {
             if (!$keep($ident)) {
                 $this->deleteManagedLinksForIdent($ident);
             }
         }
 
-        // Actions
+        // ----- Core Actions (wie bisher) -----
         $this->MaintainVariable(self::ACT_LOCKED, 'Verriegelt', VARIABLETYPE_BOOLEAN, '~Lock', $pos(self::ACT_LOCKED), $keep(self::ACT_LOCKED));
         if ($keep(self::ACT_LOCKED)) $this->EnableAction(self::ACT_LOCKED);
 
@@ -827,15 +654,32 @@ class TessieVehicle extends IPSModule
         $this->MaintainVariable(self::ACT_HONK, 'Hupe', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_HONK), $keep(self::ACT_HONK));
         if ($keep(self::ACT_HONK)) $this->EnableAction(self::ACT_HONK);
 
-        // Status
+        // ----- Core Status (wie bisher) -----
         $this->MaintainVariable(self::STAT_CHARGING_AMPS_ACTUAL, 'Ladestrom Ist (A)', VARIABLETYPE_FLOAT, 'Tessie.AmpsFloat', $pos(self::STAT_CHARGING_AMPS_ACTUAL), $keep(self::STAT_CHARGING_AMPS_ACTUAL));
         $this->MaintainVariable(self::STAT_CHARGING_AMPS_MAX, 'Ladestrom Max (A)', VARIABLETYPE_INTEGER, 'Tessie.Amps', $pos(self::STAT_CHARGING_AMPS_MAX), $keep(self::STAT_CHARGING_AMPS_MAX));
         $this->MaintainVariable(self::STAT_AC_CHARGING_POWER, 'AC Ladeleistung (kW)', VARIABLETYPE_FLOAT, 'Tessie.kW', $pos(self::STAT_AC_CHARGING_POWER), $keep(self::STAT_AC_CHARGING_POWER));
+
+        // ----- Telemetry Vars from registry (also via MaintainVariable, direct under instance) -----
+        $registry = $this->getTelemetryRegistry();
+        foreach ($registry as $ident => $meta) {
+            if (!is_array($meta)) continue;
+
+            if (!$keep($ident)) {
+                // If disabled: variable will be removed by MaintainVariable (keep=false)
+                $this->MaintainVariable($ident, (string)($meta['name'] ?? $ident), VARIABLETYPE_STRING, '', $pos($ident), false);
+                continue;
+            }
+
+            $type = (int)($meta['type'] ?? VARIABLETYPE_STRING);
+            $profile = (string)($meta['profile'] ?? '');
+            $name = (string)($meta['name'] ?? $ident);
+
+            $this->MaintainVariable($ident, $name, $type, $profile, $pos($ident), true);
+        }
     }
 
     private function ensureProfiles(): void
     {
-        // Bestehende Profile
         if (!IPS_VariableProfileExists('Tessie.PercentInt')) {
             IPS_CreateVariableProfile('Tessie.PercentInt', VARIABLETYPE_INTEGER);
             IPS_SetVariableProfileText('Tessie.PercentInt', '', ' %');
@@ -865,7 +709,7 @@ class TessieVehicle extends IPSModule
             IPS_SetVariableProfileIcon('Tessie.kW', 'Electricity');
         }
 
-        // Auto-Profil Set (Heuristik; Fleet Telemetry hat sehr viele Felder) [4](https://github.com/DG65/Symcon-Go-e-Modbus)[3](https://github.com/tessie)
+        // Auto-Profil Set (Heuristik)
         if (!IPS_VariableProfileExists('Tessie.PercentFloat')) {
             IPS_CreateVariableProfile('Tessie.PercentFloat', VARIABLETYPE_FLOAT);
             IPS_SetVariableProfileText('Tessie.PercentFloat', '', ' %');
@@ -962,7 +806,7 @@ class TessieVehicle extends IPSModule
         }
     }
 
-    // -------- Link tree (Core + Telemetrie nur kategorisiert, Variante A) --------
+    // -------- Link tree (bestehend + Telemetrie-Links automatisch kategorisiert) --------
     private function ensureLinkTree(bool $forceRename = false): void
     {
         if (!(bool)$this->ReadPropertyBoolean('CreateLinks')) return;
@@ -974,14 +818,8 @@ class TessieVehicle extends IPSModule
             $this->cleanupOldRootIfNeeded($linksParent);
         }
 
-        // Core-Liste (wie bisher) [2](https://adsoba-my.sharepoint.com/personal/d_gureth_adsoba_de/Documents/Microsoft%20Copilot%20Chat-Dateien/form.json)[1](https://adsoba-my.sharepoint.com/personal/d_gureth_adsoba_de/Documents/Microsoft%20Copilot%20Chat-Dateien/module.php)
-        $enabledCore = $this->getEnabledMap();
-        $posMapCore  = $this->getOrderPosMap(10);
-
-        // Telemetrie-Liste (gleiches Prinzip)
-        $enabledTel = $this->getTelemetryEnabledMap();
-        $posMapTel  = $this->getTelemetryOrderPosMap(10);
-        $keyMapTel  = $this->getTelemetryKeyMap();
+        $enabled = $this->getEnabledMap();
+        $posMap  = $this->getOrderPosMap(10);
 
         $vehicleName = trim($this->ReadAttributeString(self::ATTR_VEHICLE_NAME));
         $rootName = $vehicleName !== '' ? $vehicleName : IPS_GetName($this->InstanceID);
@@ -998,7 +836,6 @@ class TessieVehicle extends IPSModule
             IPS_SetName($rootId, $rootName);
         }
 
-        // Purpose-Kategorien (OHNE Telemetrie-Sammelordner)
         $purposes = [
             self::PURPOSE_ACTIONS,
             self::PURPOSE_STATUS,
@@ -1015,30 +852,32 @@ class TessieVehicle extends IPSModule
 
         $desired = [];
 
-        // ---------- Core Links (wie bisher) ----------
-        $createCoreLink = function (string $purpose, string $linkIdent, string $varIdent) use (&$desired, $purposeIds, $enabledCore, $posMapCore) {
-            if (isset($enabledCore[$varIdent]) && !$enabledCore[$varIdent]) return;
+        $createLink = function (string $purpose, string $linkIdent, string $varIdent, string $fallbackName, int $pos) use (&$desired, $purposeIds, $enabled) {
+            if (isset($enabled[$varIdent]) && !$enabled[$varIdent]) return;
             $varId = @IPS_GetObjectIDByIdent($varIdent, $this->InstanceID);
             if ($varId <= 0) return;
 
-            $pos = $posMapCore[$varIdent] ?? 999999;
-            $this->ensureLinkUnder($purposeIds[$purpose], $varId, $linkIdent, IPS_GetName($varId), $pos);
+            $name = IPS_GetName($varId) ?: $fallbackName;
+            $this->ensureLinkUnder($purposeIds[$purpose], $varId, $linkIdent, $name, $pos);
             $desired[$purposeIds[$purpose]][] = $linkIdent;
         };
 
-        foreach ($posMapCore as $ident => $pos) {
+        // Actions links
+        foreach ($posMap as $ident => $pos) {
             if (strpos($ident, 'act_') === 0) {
-                $createCoreLink(self::PURPOSE_ACTIONS, self::IDENT_LINK_PREFIX . 'ACT_' . $ident, $ident);
+                $createLink(self::PURPOSE_ACTIONS, self::IDENT_LINK_PREFIX . 'ACT_' . $ident, $ident, $ident, $pos);
             }
         }
 
-        foreach ($posMapCore as $ident => $pos) {
+        // Status links (includes telemetry vars since they are "stat_*")
+        foreach ($posMap as $ident => $pos) {
             if (strpos($ident, 'stat_') === 0) {
-                $createCoreLink(self::PURPOSE_STATUS, self::IDENT_LINK_PREFIX . 'STAT_' . $ident, $ident);
+                $createLink(self::PURPOSE_STATUS, self::IDENT_LINK_PREFIX . 'STAT_' . $ident, $ident, $ident, $pos);
             }
         }
 
-        $domain = [
+        // Domain links for core vars (existing)
+        $domainCore = [
             self::PURPOSE_CHARGING => [
                 self::ACT_START_CHARGING,
                 self::ACT_CHARGE_LIMIT,
@@ -1051,50 +890,34 @@ class TessieVehicle extends IPSModule
             self::PURPOSE_SECURITY => [ self::ACT_LOCKED, self::ACT_FLASH, self::ACT_HONK ]
         ];
 
-        foreach ($posMapCore as $ident => $pos) {
-            foreach ($domain as $purpose => $identsInDomain) {
+        foreach ($posMap as $ident => $pos) {
+            foreach ($domainCore as $purpose => $identsInDomain) {
                 if (!in_array($ident, $identsInDomain, true)) continue;
-                $createCoreLink($purpose, self::IDENT_LINK_PREFIX . 'DOM_' . $this->makeIdent($purpose) . '_' . $ident, $ident);
+                $createLink($purpose, self::IDENT_LINK_PREFIX . 'DOM_' . $this->makeIdent($purpose) . '_' . $ident, $ident, $ident, $pos);
             }
         }
 
-        // ---------- Telemetry Links (nur kategorisiert: Status / Laden / Klima / Sicherheit) ----------
-        $telemetryCatId = $this->getTelemetryCategoryId();
+        // Domain links for telemetry vars (auto categorized by telemetry key)
+        $registry = $this->getTelemetryRegistry();
+        foreach ($posMap as $ident => $pos) {
+            if (strpos($ident, 'stat_tel_') !== 0) continue;
+            if (!isset($registry[$ident]) || !is_array($registry[$ident])) continue;
 
-        $createTelLink = function (string $purpose, string $linkIdent, int $varId, string $varName, int $pos) use (&$desired, $purposeIds) {
-            $this->ensureLinkUnder($purposeIds[$purpose], $varId, $linkIdent, $varName, $pos);
-            $desired[$purposeIds[$purpose]][] = $linkIdent;
-        };
-
-        foreach ($posMapTel as $telIdent => $pos) {
-            if (!($enabledTel[$telIdent] ?? false)) {
-                $this->deleteManagedLinksForIdent($telIdent);
-                continue;
-            }
-
-            $varId = @IPS_GetObjectIDByIdent($telIdent, $telemetryCatId);
-            if ($varId <= 0) continue;
-
-            $varName = IPS_GetName($varId);
-            $key = (string)($keyMapTel[$telIdent] ?? $varName);
-
+            $key = (string)($registry[$ident]['key'] ?? $registry[$ident]['name'] ?? $ident);
             $purps = $this->classifyTelemetryKeyToPurposes($key);
 
-            if (in_array(self::PURPOSE_STATUS, $purps, true)) {
-                $createTelLink(self::PURPOSE_STATUS, self::IDENT_LINK_PREFIX . 'TELSTAT_' . $telIdent, $varId, $varName, $pos);
-            }
             if (in_array(self::PURPOSE_CHARGING, $purps, true)) {
-                $createTelLink(self::PURPOSE_CHARGING, self::IDENT_LINK_PREFIX . 'TELDOM_' . $this->makeIdent(self::PURPOSE_CHARGING) . '_' . $telIdent, $varId, $varName, $pos);
+                $createLink(self::PURPOSE_CHARGING, self::IDENT_LINK_PREFIX . 'TELDOM_' . $this->makeIdent(self::PURPOSE_CHARGING) . '_' . $ident, $ident, $key, $pos);
             }
             if (in_array(self::PURPOSE_CLIMATE, $purps, true)) {
-                $createTelLink(self::PURPOSE_CLIMATE, self::IDENT_LINK_PREFIX . 'TELDOM_' . $this->makeIdent(self::PURPOSE_CLIMATE) . '_' . $telIdent, $varId, $varName, $pos);
+                $createLink(self::PURPOSE_CLIMATE, self::IDENT_LINK_PREFIX . 'TELDOM_' . $this->makeIdent(self::PURPOSE_CLIMATE) . '_' . $ident, $ident, $key, $pos);
             }
             if (in_array(self::PURPOSE_SECURITY, $purps, true)) {
-                $createTelLink(self::PURPOSE_SECURITY, self::IDENT_LINK_PREFIX . 'TELDOM_' . $this->makeIdent(self::PURPOSE_SECURITY) . '_' . $telIdent, $varId, $varName, $pos);
+                $createLink(self::PURPOSE_SECURITY, self::IDENT_LINK_PREFIX . 'TELDOM_' . $this->makeIdent(self::PURPOSE_SECURITY) . '_' . $ident, $ident, $key, $pos);
             }
         }
 
-        // Cleanup: entferne nicht gewünschte Links pro Purpose
+        // Cleanup
         if ((bool)$this->ReadPropertyBoolean('CleanupLinks')) {
             foreach ($purposeIds as $pid) {
                 $keep = $desired[$pid] ?? [];
@@ -1105,17 +928,10 @@ class TessieVehicle extends IPSModule
         $this->WriteAttributeInteger(self::ATTR_LAST_LINKS_LOCATION, $linksParent);
     }
 
-    /**
-     * Heuristische Zuordnung von Telemetrie-Keys zu Kategorien.
-     * Fleet Telemetry bietet viele Feldgruppen (Charging/Climate/Safety/Location/Vehicle State/Driving …). [4](https://github.com/DG65/Symcon-Go-e-Modbus)
-     */
     private function classifyTelemetryKeyToPurposes(string $key): array
     {
         $k = strtolower($key);
         $purposes = [];
-
-        // Default: Status
-        $purposes[] = self::PURPOSE_STATUS;
 
         // Charging
         if (
@@ -1167,6 +983,61 @@ class TessieVehicle extends IPSModule
         }
 
         return array_values(array_unique($purposes));
+    }
+
+    private function deleteManagedLinksForIdent(string $varIdent): void
+    {
+        if (!(bool)$this->ReadPropertyBoolean('CreateLinks')) return;
+
+        $linksParent = (int)$this->ReadPropertyInteger('LinksLocation');
+        if ($linksParent <= 0 || !IPS_ObjectExists($linksParent)) return;
+
+        $rootIdent = self::IDENT_ROOT_PREFIX . $this->InstanceID;
+        $rootId = @IPS_GetObjectIDByIdent($rootIdent, $linksParent);
+        if ($rootId <= 0 || !IPS_ObjectExists($rootId)) return;
+
+        $purposeNames = [
+            self::PURPOSE_ACTIONS,
+            self::PURPOSE_STATUS,
+            self::PURPOSE_CHARGING,
+            self::PURPOSE_CLIMATE,
+            self::PURPOSE_SECURITY
+        ];
+
+        $purposeIds = [];
+        foreach ($purposeNames as $p) {
+            $pid = @IPS_GetObjectIDByIdent(self::IDENT_PURP_PREFIX . $this->makeIdent($p), $rootId);
+            if ($pid > 0 && IPS_ObjectExists($pid)) {
+                $purposeIds[$p] = $pid;
+            }
+        }
+
+        $toTry = [];
+        // core
+        $toTry[self::PURPOSE_ACTIONS][]  = self::IDENT_LINK_PREFIX . 'ACT_' . $varIdent;
+        $toTry[self::PURPOSE_STATUS][]   = self::IDENT_LINK_PREFIX . 'STAT_' . $varIdent;
+        $toTry[self::PURPOSE_CHARGING][] = self::IDENT_LINK_PREFIX . 'DOM_' . $this->makeIdent(self::PURPOSE_CHARGING) . '_' . $varIdent;
+        $toTry[self::PURPOSE_CLIMATE][]  = self::IDENT_LINK_PREFIX . 'DOM_' . $this->makeIdent(self::PURPOSE_CLIMATE)  . '_' . $varIdent;
+        $toTry[self::PURPOSE_SECURITY][] = self::IDENT_LINK_PREFIX . 'DOM_' . $this->makeIdent(self::PURPOSE_SECURITY) . '_' . $varIdent;
+
+        // telemetry domain links (Variante A)
+        $toTry[self::PURPOSE_CHARGING][] = self::IDENT_LINK_PREFIX . 'TELDOM_' . $this->makeIdent(self::PURPOSE_CHARGING) . '_' . $varIdent;
+        $toTry[self::PURPOSE_CLIMATE][]  = self::IDENT_LINK_PREFIX . 'TELDOM_' . $this->makeIdent(self::PURPOSE_CLIMATE)  . '_' . $varIdent;
+        $toTry[self::PURPOSE_SECURITY][] = self::IDENT_LINK_PREFIX . 'TELDOM_' . $this->makeIdent(self::PURPOSE_SECURITY) . '_' . $varIdent;
+
+        foreach ($toTry as $purpose => $idents) {
+            if (!isset($purposeIds[$purpose])) continue;
+            $pid = $purposeIds[$purpose];
+            foreach ($idents as $lidIdent) {
+                $lid = @IPS_GetObjectIDByIdent($lidIdent, $pid);
+                if ($lid > 0 && IPS_ObjectExists($lid)) {
+                    $obj = IPS_GetObject($lid);
+                    if (($obj['ObjectType'] ?? 0) === OBJECTTYPE_LINK) {
+                        IPS_Delete($lid);
+                    }
+                }
+            }
+        }
     }
 
     private function cleanupOldRootIfNeeded(int $currentLinksParent): void
