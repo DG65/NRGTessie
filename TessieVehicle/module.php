@@ -183,7 +183,7 @@ class TessieVehicle extends IPSModule
                 'type' => 'Button',
                 'caption' => 'Reset: Standardliste wiederherstellen',
                 'confirm' => 'Wirklich die Variablenliste und Reihenfolge auf Standard zurücksetzen?',
-                'onClick' => 'TESSIE_ResetVisibleVars($_IPS["TARGET"]);'
+                'onClick' => 'TESSIE_ResetVisibleVars(' . $this->InstanceID . ');'
             ],
             [
                 'type' => 'Label',
