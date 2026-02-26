@@ -1,0 +1,975 @@
+<?php
+declare(strict_types=1);
+
+class TessieVehicle extends IPSModule
+{
+    // -------------------- Variable Idents (Actions) --------------------
+    private const ACT_LOCKED                = 'act_locked';
+    private const ACT_CLIMATE               = 'act_climate';
+    private const ACT_START_CHARGING        = 'act_charging';
+    private const ACT_CHARGE_LIMIT          = 'act_charge_limit';
+    private const ACT_CHARGING_AMPS_REQUEST = 'act_charging_amps';
+    private const ACT_FLASH                 = 'act_flash';
+    private const ACT_HONK                  = 'act_honk';
+
+    // -------------------- Variable Idents (Status) --------------------
+    private const STAT_CHARGING_AMPS_ACTUAL = 'stat_charge_amps_actual';
+    private const STAT_CHARGING_AMPS_MAX    = 'stat_charge_amps_max';
+    private const STAT_AC_CHARGING_POWER    = 'stat_ac_charging_power';
+
+    // -------------------- Timer --------------------
+    private const TIMER_UPDATE = 'UpdateTimer';
+
+    // -------------------- Purpose categories (Links) --------------------
+    private const PURPOSE_ACTIONS  = 'Aktionen';
+    private const PURPOSE_STATUS   = 'Status';
+    private const PURPOSE_CHARGING = 'Laden';
+    private const PURPOSE_CLIMATE  = 'Klima';
+    private const PURPOSE_SECURITY = 'Sicherheit';
+
+    // -------------------- Attributes --------------------
+    private const ATTR_VEHICLE_NAME        = 'VehicleName';
+    private const ATTR_LAST_LINKS_LOCATION = 'LastLinksLocation';
+    private const ATTR_TELEMETRY_REGISTRY = 'TelemetryRegistry';
+
+    // -------------------- Ident prefixes for managed link tree --------------------
+    private const IDENT_ROOT_PREFIX  = 'TESSIE_LINKROOT_';
+    private const IDENT_PURP_PREFIX  = 'PURP_';
+    private const IDENT_LINK_PREFIX  = 'LNK_';
+
+    // -------------------- Properties --------------------
+    private const PROP_VISIBLE_VARS = 'VisibleVars';
+    private const PROP_AUTO_CREATE_TELEMETRY_VARS = 'AutoCreateTelemetryVars';
+    private const PROP_AUTO_PROFILE_TELEMETRY_VARS = 'AutoProfileTelemetryVars';
+    private const PROP_TELEMETRY_DEBUG_EVERY_KEY = 'TelemetryDebugEveryKey';
+    private const PROP_TELEMETRY_DEFAULT_ENABLED = 'TelemetryDefaultEnabled';
+
+    public function Create()
+    {
+        parent::Create();
+
+        // API (vom Configurator gesetzt, im Form ausgeblendet)
+        $this->RegisterPropertyString('ApiToken', '');
+        $this->RegisterPropertyString('VIN', '');
+        $this->RegisterPropertyString('ApiBase', 'https://api.tessie.com');
+
+        // Kompatibilität: ältere Create-Chains setzen diese Eigenschaft.
+        // Intern wird Telemetrie immer verarbeitet, aber die Property muss existieren.
+        $this->RegisterPropertyBoolean('TelemetryEnabled', true);
+
+        // Update-Intervall (bleibt)
+        $this->RegisterPropertyInteger('UpdateInterval', 300);
+
+        // Debug optional (im Form ausgeblendet)
+        $this->RegisterPropertyBoolean('DebugHTTP', false);
+
+        // Links / Ablageorte
+        $this->RegisterPropertyInteger('InstanceLocation', 0);
+        $this->RegisterPropertyInteger('LinksLocation', 0);
+        $this->RegisterPropertyBoolean('CreateLinks', true);
+        $this->RegisterPropertyBoolean('CleanupLinks', true);
+
+        // Default VisibleVars (Ident/Name read-only im Form, Enabled + Reihenfolge usergesteuert)
+        $this->RegisterPropertyString(self::PROP_VISIBLE_VARS, json_encode($this->getDefaultVisibleVars()));
+
+        // Telemetrie: neue Keys automatisch erkennen, aber standardmäßig deaktiviert in der Liste
+        $this->RegisterPropertyBoolean(self::PROP_AUTO_CREATE_TELEMETRY_VARS, true);
+        $this->RegisterPropertyBoolean(self::PROP_AUTO_PROFILE_TELEMETRY_VARS, true);
+        $this->RegisterPropertyBoolean(self::PROP_TELEMETRY_DEBUG_EVERY_KEY, false);
+        $this->RegisterPropertyBoolean(self::PROP_TELEMETRY_DEFAULT_ENABLED, false);
+
+        $this->RegisterAttributeString(self::ATTR_TELEMETRY_REGISTRY, json_encode(new stdClass()));
+
+
+        // Internal
+        $this->RegisterTimer(self::TIMER_UPDATE, 0, 'TESSIE_Update($_IPS["TARGET"]);');
+        $this->RegisterAttributeString(self::ATTR_VEHICLE_NAME, '');
+        $this->RegisterAttributeInteger(self::ATTR_LAST_LINKS_LOCATION, 0);
+    }
+
+    public function ApplyChanges()
+    {
+        parent::ApplyChanges();
+
+        // Timer
+        $interval = (int)$this->ReadPropertyInteger('UpdateInterval');
+        if ($interval < 0) {
+            $interval = 0;
+        }
+
+    public function GetConfigurationForm()
+    {
+        // Einfache Form: eine Liste "Anzuzeigende Variablen" (VisibleVars)
+        $elements = [
+            [
+                'type' => 'NumberSpinner',
+                'name' => 'UpdateInterval',
+                'caption' => 'Update Intervall (Sekunden)',
+                'minimum' => 0,
+                'maximum' => 3600
+            ],
+            [
+                'type' => 'SelectCategory',
+                'name' => 'InstanceLocation',
+                'caption' => 'Ablageort Instanz (optional)'
+            ],
+            [
+                'type' => 'SelectCategory',
+                'name' => 'LinksLocation',
+                'caption' => 'Ablageort Links (Root Kategorie)'
+            ],
+            [
+                'type' => 'CheckBox',
+                'name' => 'CreateLinks',
+                'caption' => 'Links anlegen/aktualisieren'
+            ],
+            [
+                'type' => 'CheckBox',
+                'name' => 'CleanupLinks',
+                'caption' => 'Links automatisch bereinigen'
+            ]
+        ];
+
+        $baseList = $this->getVisibleList();
+        $fullList = $this->mergeTelemetryIntoVisibleVars($baseList);
+
+        $elements[] = [
+            'type' => 'List',
+            'name' => 'VisibleVars',
+            'caption' => 'Anzuzeigende Variablen',
+            'rowCount' => 12,
+            'add' => false,
+            'delete' => false,
+            'changeOrder' => true,
+            'loadValuesFromConfiguration' => false,
+            'values' => $fullList,
+            'columns' => [
+                ['caption' => 'Ident', 'name' => 'Ident', 'width' => '220px', 'save' => true],
+                ['caption' => 'Name',  'name' => 'Name',  'width' => 'auto',  'save' => true],
+                [
+                    'caption' => 'Anzeigen',
+                    'name' => 'Enabled',
+                    'width' => '90px',
+                    'save' => true,
+                    'edit' => ['type' => 'CheckBox']
+                ]
+            ]
+        ];
+
+        $actions = [
+            [
+                'type' => 'Button',
+                'caption' => 'Reset: Standardliste wiederherstellen',
+                'confirm' => 'Wirklich die Variablenliste und Reihenfolge auf Standard zurücksetzen?',
+                'onClick' => 'TESSIE_ResetVisibleVars($_IPS["TARGET"]);'
+            ],
+            [
+                'type' => 'Label',
+                'caption' => "Ident/Name sind schreibgeschützt. Du änderst nur 'Anzeigen'. Reihenfolge per Drag & Drop."
+            ]
+        ];
+
+        return json_encode([
+            'elements' => $elements,
+            'actions'  => $actions
+        ]);
+    }
+
+    private function getTelemetryRegistry(): array
+    {
+        $raw = $this->ReadAttributeString(self::ATTR_TELEMETRY_REGISTRY);
+        $arr = json_decode($raw, true);
+        return is_array($arr) ? $arr : [];
+    }
+
+    private function mergeTelemetryIntoVisibleVars(array $list): array
+    {
+        $registry = $this->getTelemetryRegistry();
+        if (!is_array($registry) || count($registry) === 0) {
+            return $list;
+        }
+
+        $present = [];
+        foreach ($list as $row) {
+            if (!is_array($row)) continue;
+            $id = (string)($row['Ident'] ?? '');
+            if ($id !== '') $present[$id] = true;
+        }
+
+        $defaultEnabled = (bool)$this->ReadPropertyBoolean(self::PROP_TELEMETRY_DEFAULT_ENABLED);
+
+        foreach ($registry as $ident => $meta) {
+            if (!is_string($ident) || $ident === '') continue;
+            if (isset($present[$ident])) continue;
+            $name = is_array($meta) ? (string)($meta['name'] ?? $ident) : $ident;
+            $list[] = [
+                'Ident' => $ident,
+                'Name' => $name,
+                'Enabled' => $defaultEnabled
+            ];
+            $present[$ident] = true;
+        }
+
+        return array_values($list);
+    }
+
+        $this->SetTimerInterval(self::TIMER_UPDATE, $interval > 0 ? $interval * 1000 : 0);
+
+        // Instanz verschieben (optional)
+        $instanceParent = (int)$this->ReadPropertyInteger('InstanceLocation');
+        if ($instanceParent > 0 && IPS_ObjectExists($instanceParent)) {
+            $currentParent = IPS_GetParent($this->InstanceID);
+            if ($currentParent !== $instanceParent) {
+                IPS_SetParent($this->InstanceID, $instanceParent);
+            }
+        }
+
+        $this->ensureProfiles();
+        $this->ensureVariables();
+
+        // Links
+        try {
+            $this->ensureLinkTree();
+        } catch (Throwable $e) {
+            $this->LogMessage('ensureLinkTree failed: ' . $e->getMessage(), KL_WARNING);
+        }
+
+        $this->SetStatus(102);
+    }
+
+    // ------------------------------------------------------------
+    // Button Action (Form): Reset VisibleVars auf Standard
+    // form.json ruft auf: TESSIE_ResetVisibleVars($_IPS["TARGET"]);
+    // ------------------------------------------------------------
+    public function ResetVisibleVars()
+    {
+        IPS_SetProperty($this->InstanceID, self::PROP_VISIBLE_VARS, json_encode($this->getDefaultVisibleVars()));
+        IPS_ApplyChanges($this->InstanceID);
+    }
+
+    private function getDefaultVisibleVars(): array
+    {
+        return [
+            ['Ident' => self::ACT_LOCKED,                'Name' => 'Verriegelt',           'Enabled' => true],
+            ['Ident' => self::ACT_CLIMATE,               'Name' => 'Klima',                'Enabled' => true],
+            ['Ident' => self::ACT_START_CHARGING,        'Name' => 'Laden',                'Enabled' => true],
+            ['Ident' => self::ACT_CHARGE_LIMIT,          'Name' => 'Ladelimit (%)',        'Enabled' => true],
+            ['Ident' => self::ACT_CHARGING_AMPS_REQUEST, 'Name' => 'Ladestrom Soll (A)',   'Enabled' => true],
+            ['Ident' => self::ACT_FLASH,                 'Name' => 'Licht blinken',        'Enabled' => true],
+            ['Ident' => self::ACT_HONK,                  'Name' => 'Hupe',                 'Enabled' => true],
+            ['Ident' => self::STAT_CHARGING_AMPS_ACTUAL, 'Name' => 'Ladestrom Ist (A)',    'Enabled' => true],
+            ['Ident' => self::STAT_CHARGING_AMPS_MAX,    'Name' => 'Ladestrom Max (A)',    'Enabled' => true],
+            ['Ident' => self::STAT_AC_CHARGING_POWER,    'Name' => 'AC Ladeleistung (kW)', 'Enabled' => true]
+        ];
+    }
+
+    // -------- Timer Update --------
+    public function Update()
+    {
+        $token = trim($this->ReadPropertyString('ApiToken'));
+        $vin   = trim($this->ReadPropertyString('VIN'));
+        if ($token === '' || $vin === '') {
+            return;
+        }
+
+        $status = $this->getVehicleStatus($vin, $token);
+        if ($status !== '') {
+            $this->SendDebug('Status', $status, 0);
+        }
+    }
+
+    // -------- Telemetry ReceiveData (intern immer true) --------
+    public function ReceiveData($JSONString)
+    {
+        $packet = json_decode($JSONString, true);
+        if (!is_array($packet)) {
+            return;
+        }
+
+        $buf = (string)($packet['Buffer'] ?? '');
+        if ($buf === '') {
+            return;
+        }
+
+        $payload = json_decode($buf, true);
+        if (!is_array($payload)) {
+            $this->SendDebug('Telemetry', 'Non-JSON buffer: ' . substr($buf, 0, 300), 0);
+            return;
+        }
+
+        $this->SendDebug('Telemetry', $buf, 0);
+
+        if (isset($payload['errors'])) {
+            $this->SendDebug('TelemetryErrors', json_encode($payload['errors']), 0);
+            return;
+        }
+        if (isset($payload['status']) && isset($payload['connectionId'])) {
+            $this->SendDebug('TelemetryConnection', json_encode($payload), 0);
+            return;
+        }
+        if (!isset($payload['data']) || !is_array($payload['data'])) {
+            return;
+        }
+
+        $this->syncFromTelemetry($payload['data']);
+    }
+
+    // -------- RequestAction (untyped) --------
+    public function RequestAction($Ident, $Value)
+    {
+        $token = trim($this->ReadPropertyString('ApiToken'));
+        $vin   = trim($this->ReadPropertyString('VIN'));
+        if ($token === '' || $vin === '') {
+            throw new Exception('ApiToken oder VIN fehlt.');
+        }
+
+        switch ((string)$Ident) {
+            case self::ACT_LOCKED:
+                $wantLocked = (bool)$Value;
+                $this->sendCommand($vin, $token, $wantLocked ? 'lock' : 'unlock');
+                $this->safeSetValue(self::ACT_LOCKED, $wantLocked);
+                break;
+
+            case self::ACT_CLIMATE:
+                $on = (bool)$Value;
+                $this->sendCommand($vin, $token, $on ? 'start_climate' : 'stop_climate');
+                $this->safeSetValue(self::ACT_CLIMATE, $on);
+                break;
+
+            case self::ACT_START_CHARGING:
+                $on = (bool)$Value;
+                $this->sendCommand($vin, $token, $on ? 'start_charging' : 'stop_charging');
+                $this->safeSetValue(self::ACT_START_CHARGING, $on);
+                break;
+
+            case self::ACT_CHARGE_LIMIT:
+                $percent = (int)$Value;
+                if ($percent < 0) $percent = 0;
+                if ($percent > 100) $percent = 100;
+                $this->sendCommand($vin, $token, 'set_charge_limit', ['percent' => $percent]);
+                $this->safeSetValue(self::ACT_CHARGE_LIMIT, $percent);
+                break;
+
+            case self::ACT_CHARGING_AMPS_REQUEST:
+                $amps = (int)$Value;
+                if ($amps < 0) $amps = 0;
+                if ($amps > 48) $amps = 48;
+                $this->sendCommand($vin, $token, 'set_charging_amps', ['amps' => $amps]);
+                $this->safeSetValue(self::ACT_CHARGING_AMPS_REQUEST, $amps);
+                break;
+
+            case self::ACT_FLASH:
+                if ((bool)$Value) {
+                    $this->sendCommand($vin, $token, 'flash');
+                }
+                $this->safeSetValue(self::ACT_FLASH, false);
+                break;
+
+            case self::ACT_HONK:
+                if ((bool)$Value) {
+                    $this->sendCommand($vin, $token, 'honk');
+                }
+                $this->safeSetValue(self::ACT_HONK, false);
+                break;
+
+            default:
+                throw new Exception('Unbekannte Aktion: ' . (string)$Ident);
+        }
+    }
+
+    // -------- Commands (Wake + Wait fest verdrahtet) --------
+    private function sendCommand(string $vin, string $token, string $command, array $queryParams = []): void
+    {
+        $this->ensureAwake($vin, $token);
+
+        $params = $queryParams;
+        $params['wait_for_completion'] = 'true';
+
+        $path = '/' . rawurlencode($vin) . '/command/' . rawurlencode($command);
+        if (count($params) > 0) {
+            $path .= '?' . http_build_query($params, '', '&', PHP_QUERY_RFC3986);
+        }
+
+        $resp = $this->apiRequest($token, 'POST', $path, null);
+
+        $ok = (bool)($resp['result'] ?? ($resp['response']['result'] ?? false));
+        $this->SendDebug('Command', ($ok ? 'OK: ' : 'Failed: ') . $command . ($ok ? '' : (' ' . json_encode($resp))), 0);
+    }
+
+    private function ensureAwake(string $vin, string $token): void
+    {
+        $status = $this->getVehicleStatus($vin, $token);
+        if ($status === 'awake') {
+            return;
+        }
+
+        $path = '/' . rawurlencode($vin) . '/wake';
+        $resp = $this->apiRequest($token, 'POST', $path, null);
+        $this->SendDebug('Wake', 'result=' . json_encode($resp), 0);
+    }
+
+    private function getVehicleStatus(string $vin, string $token): string
+    {
+        $path = '/' . rawurlencode($vin) . '/status';
+        $resp = $this->apiRequest($token, 'GET', $path, null);
+        $st = $resp['status'] ?? '';
+        return is_string($st) ? $st : '';
+    }
+
+    // -------- Telemetry -> Variables --------
+    private function syncFromTelemetry(array $dataItems): void
+    {
+        $debugEveryKey = (bool)$this->ReadPropertyBoolean(self::PROP_TELEMETRY_DEBUG_EVERY_KEY);
+        $autoCreate    = (bool)$this->ReadPropertyBoolean(self::PROP_AUTO_CREATE_TELEMETRY_VARS);
+
+        // existing mapped keys
+        $locked = null;
+        $limit  = null;
+        $req    = null;
+        $act    = null;
+        $max    = null;
+        $acp    = null;
+        $vehicleName = null;
+
+        $registry = $this->getTelemetryRegistry();
+        $registryChanged = false;
+
+        foreach ($dataItems as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $key = (string)($item['key'] ?? '');
+            $val = $item['value'] ?? null;
+            if ($key === '' || !is_array($val)) {
+                continue;
+            }
+
+            if ($debugEveryKey) {
+                $this->SendDebug('TelemetryKey', $key . ' => ' . json_encode($val), 0);
+            }
+
+            // keep existing explicit mappings
+            if ($key === 'Locked' && array_key_exists('booleanValue', $val)) {
+                $locked = (bool)$val['booleanValue'];
+                continue;
+            }
+            if ($key === 'ChargeLimitSoc') {
+                $n = $this->telemetryGetNumber($val);
+                if ($n !== null) $limit = (int)round($n);
+                continue;
+            }
+            if ($key === 'ChargeCurrentRequest') {
+                $n = $this->telemetryGetNumber($val);
+                if ($n !== null) $req = (int)round($n);
+                continue;
+            }
+            if ($key === 'ChargeAmps') {
+                $n = $this->telemetryGetNumber($val);
+                if ($n !== null) $act = (float)$n;
+                continue;
+            }
+            if ($key === 'ChargeCurrentRequestMax') {
+                $n = $this->telemetryGetNumber($val);
+                if ($n !== null) $max = (int)round($n);
+                continue;
+            }
+            if ($key === 'ACChargingPower') {
+                $n = $this->telemetryGetNumber($val);
+                if ($n !== null) $acp = (float)$n;
+                continue;
+            }
+            if ($key === 'VehicleName' && array_key_exists('stringValue', $val)) {
+                $vehicleName = (string)$val['stringValue'];
+                continue;
+            }
+
+            if (!$autoCreate) {
+                continue;
+            }
+
+            $baseIdent = 'stat_tel_' . $this->makeIdent($key);
+
+            // location -> lat/lon
+            if (array_key_exists('locationValue', $val) && is_array($val['locationValue'])) {
+                $identLat = $baseIdent . '_lat';
+                $identLon = $baseIdent . '_lon';
+
+                if (!isset($registry[$identLat])) {
+                    $registry[$identLat] = $this->makeRegistryEntry($key, $key . ' Latitude', VARIABLETYPE_FLOAT);
+                    $registryChanged = true;
+                }
+                if (!isset($registry[$identLon])) {
+                    $registry[$identLon] = $this->makeRegistryEntry($key, $key . ' Longitude', VARIABLETYPE_FLOAT);
+                    $registryChanged = true;
+                }
+
+                $loc = $val['locationValue'];
+                if (is_array($loc)) {
+                    if (isset($loc['latitude'])) {
+                        $this->safeSetValueIfExists($identLat, (float)$loc['latitude']);
+                    }
+                    if (isset($loc['longitude'])) {
+                        $this->safeSetValueIfExists($identLon, (float)$loc['longitude']);
+                    }
+                }
+                continue;
+            }
+
+            // infer type + value
+            [$type, $value] = $this->telemetryInferTypeAndValue($val);
+
+            if (!isset($registry[$baseIdent])) {
+                $registry[$baseIdent] = $this->makeRegistryEntry($key, $key, $type);
+                $registryChanged = true;
+            }
+
+            $this->safeSetValueIfExists($baseIdent, $value);
+        }
+
+        if ($registryChanged) {
+            $this->WriteAttributeString(self::ATTR_TELEMETRY_REGISTRY, json_encode($registry));
+        }
+
+        // apply explicit mappings
+        if ($locked !== null) $this->safeSetValueIfExists(self::ACT_LOCKED, $locked);
+        if ($limit  !== null) $this->safeSetValueIfExists(self::ACT_CHARGE_LIMIT, $limit);
+        if ($req    !== null) $this->safeSetValueIfExists(self::ACT_CHARGING_AMPS_REQUEST, $req);
+        if ($act    !== null) $this->safeSetValueIfExists(self::STAT_CHARGING_AMPS_ACTUAL, $act);
+        if ($max    !== null) $this->safeSetValueIfExists(self::STAT_CHARGING_AMPS_MAX, $max);
+        if ($acp    !== null) $this->safeSetValueIfExists(self::STAT_AC_CHARGING_POWER, $acp);
+
+        if ($vehicleName !== null && trim($vehicleName) !== '') {
+            $old = $this->ReadAttributeString(self::ATTR_VEHICLE_NAME);
+            if ($old !== $vehicleName) {
+                $this->WriteAttributeString(self::ATTR_VEHICLE_NAME, $vehicleName);
+            }
+        }
+    }
+
+
+    private function safeSetValue(string $ident, $value): void
+    {
+        $id = @IPS_GetObjectIDByIdent($ident, $this->InstanceID);
+        if ($id <= 0) return;
+
+        $type = IPS_GetVariable($id)['VariableType'] ?? null;
+        if ($type === VARIABLETYPE_BOOLEAN) {
+            @SetValueBoolean($id, (bool)$value);
+        } elseif ($type === VARIABLETYPE_INTEGER) {
+            @SetValueInteger($id, (int)$value);
+        } elseif ($type === VARIABLETYPE_FLOAT) {
+            @SetValueFloat($id, (float)$value);
+        } else {
+            @SetValueString($id, (string)$value);
+        }
+    }
+
+    // -------- VisibleVars helpers --------
+    private function getVisibleList(): array
+    {
+        $arr = json_decode($this->ReadPropertyString(self::PROP_VISIBLE_VARS), true);
+        return is_array($arr) ? $arr : [];
+    }
+
+    private function getEnabledMap(): array
+    {
+        $map = [];
+        foreach ($this->getVisibleList() as $row) {
+            if (!is_array($row)) continue;
+            $ident = (string)($row['Ident'] ?? '');
+            if ($ident === '') continue;
+            $map[$ident] = (bool)($row['Enabled'] ?? true);
+        }
+        return $map;
+    }
+
+    private function getOrderPosMap(int $step = 10): array
+    {
+        $posMap = [];
+        $pos = $step;
+        foreach ($this->getVisibleList() as $row) {
+            if (!is_array($row)) continue;
+            $ident = (string)($row['Ident'] ?? '');
+            if ($ident === '') continue;
+            $posMap[$ident] = $pos;
+            $pos += $step;
+        }
+        return $posMap;
+    }
+
+    // -------- Komfortfunktion: Links SOFORT löschen, wenn Variable deaktiviert wird --------
+    private function deleteManagedLinksForIdent(string $varIdent): void
+    {
+        if (!(bool)$this->ReadPropertyBoolean('CreateLinks')) return;
+
+        $linksParent = (int)$this->ReadPropertyInteger('LinksLocation');
+        if ($linksParent <= 0 || !IPS_ObjectExists($linksParent)) return;
+
+        $rootIdent = self::IDENT_ROOT_PREFIX . $this->InstanceID;
+        $rootId = @IPS_GetObjectIDByIdent($rootIdent, $linksParent);
+        if ($rootId <= 0 || !IPS_ObjectExists($rootId)) return;
+
+        $purposeNames = [
+            self::PURPOSE_ACTIONS,
+            self::PURPOSE_STATUS,
+            self::PURPOSE_CHARGING,
+            self::PURPOSE_CLIMATE,
+            self::PURPOSE_SECURITY
+        ];
+
+        $purposeIds = [];
+        foreach ($purposeNames as $p) {
+            $pid = @IPS_GetObjectIDByIdent(self::IDENT_PURP_PREFIX . $this->makeIdent($p), $rootId);
+            if ($pid > 0 && IPS_ObjectExists($pid)) {
+                $purposeIds[$p] = $pid;
+            }
+        }
+
+        $toTry = [];
+        $toTry[self::PURPOSE_ACTIONS][] = self::IDENT_LINK_PREFIX . 'ACT_' . $varIdent;
+        $toTry[self::PURPOSE_STATUS][]  = self::IDENT_LINK_PREFIX . 'STAT_' . $varIdent;
+
+        $toTry[self::PURPOSE_CHARGING][] = self::IDENT_LINK_PREFIX . 'DOM_' . $this->makeIdent(self::PURPOSE_CHARGING) . '_' . $varIdent;
+        $toTry[self::PURPOSE_CLIMATE][]  = self::IDENT_LINK_PREFIX . 'DOM_' . $this->makeIdent(self::PURPOSE_CLIMATE)  . '_' . $varIdent;
+        $toTry[self::PURPOSE_SECURITY][] = self::IDENT_LINK_PREFIX . 'DOM_' . $this->makeIdent(self::PURPOSE_SECURITY) . '_' . $varIdent;
+
+        foreach ($toTry as $purpose => $idents) {
+            if (!isset($purposeIds[$purpose])) continue;
+            $pid = $purposeIds[$purpose];
+
+            foreach ($idents as $lidIdent) {
+                $lid = @IPS_GetObjectIDByIdent($lidIdent, $pid);
+                if ($lid > 0 && IPS_ObjectExists($lid)) {
+                    $obj = IPS_GetObject($lid);
+                    if (($obj['ObjectType'] ?? 0) === OBJECTTYPE_LINK) {
+                        IPS_Delete($lid);
+                    }
+                }
+            }
+        }
+    }
+
+    // -------- Variables & profiles (Shelly-like: Retain == Enabled) --------
+    private function ensureVariables(): void
+    {
+        $enabled = $this->getEnabledMap();
+        $posMap  = $this->getOrderPosMap(10);
+
+        $keep = fn(string $ident) => ($enabled[$ident] ?? true);
+        $pos  = fn(string $ident) => ($posMap[$ident] ?? 0);
+
+        // Komfort: erst Links löschen für alles, was deaktiviert wird
+        foreach (array_keys($posMap) as $ident) {
+            if (!$keep($ident)) {
+                $this->deleteManagedLinksForIdent($ident);
+            }
+        
+
+        // Telemetrie Vars aus Registry (nur wenn in VisibleVars vorhanden und Enabled=true)
+        $registry = $this->getTelemetryRegistry();
+        foreach ($registry as $ident => $meta) {
+            if (!is_string($ident) || $ident === '') continue;
+            if (!is_array($meta)) continue;
+
+            // Wenn der Ident nicht in der Enabled-Map ist, gilt er als deaktiviert (bis User ihn in der Liste übernimmt)
+            $isKnown = array_key_exists($ident, $enabled);
+            $isEnabled = $isKnown ? (bool)$enabled[$ident] : false;
+
+            $name = (string)($meta['name'] ?? $ident);
+            $type = (int)($meta['type'] ?? VARIABLETYPE_STRING);
+            $profile = (string)($meta['profile'] ?? '');
+            $position = $posMap[$ident] ?? 0;
+
+            $this->MaintainVariable($ident, $name, $type, $profile, $position, $isEnabled);
+        }
+}
+
+        // Actions
+        $this->MaintainVariable(self::ACT_LOCKED, 'Verriegelt', VARIABLETYPE_BOOLEAN, '~Lock', $pos(self::ACT_LOCKED), $keep(self::ACT_LOCKED));
+        if ($keep(self::ACT_LOCKED)) $this->EnableAction(self::ACT_LOCKED);
+
+        $this->MaintainVariable(self::ACT_CLIMATE, 'Klima', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_CLIMATE), $keep(self::ACT_CLIMATE));
+        if ($keep(self::ACT_CLIMATE)) $this->EnableAction(self::ACT_CLIMATE);
+
+        $this->MaintainVariable(self::ACT_START_CHARGING, 'Laden', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_START_CHARGING), $keep(self::ACT_START_CHARGING));
+        if ($keep(self::ACT_START_CHARGING)) $this->EnableAction(self::ACT_START_CHARGING);
+
+        $this->MaintainVariable(self::ACT_CHARGE_LIMIT, 'Ladelimit (%)', VARIABLETYPE_INTEGER, 'Tessie.PercentInt', $pos(self::ACT_CHARGE_LIMIT), $keep(self::ACT_CHARGE_LIMIT));
+        if ($keep(self::ACT_CHARGE_LIMIT)) $this->EnableAction(self::ACT_CHARGE_LIMIT);
+
+        $this->MaintainVariable(self::ACT_CHARGING_AMPS_REQUEST, 'Ladestrom Soll (A)', VARIABLETYPE_INTEGER, 'Tessie.Amps', $pos(self::ACT_CHARGING_AMPS_REQUEST), $keep(self::ACT_CHARGING_AMPS_REQUEST));
+        if ($keep(self::ACT_CHARGING_AMPS_REQUEST)) $this->EnableAction(self::ACT_CHARGING_AMPS_REQUEST);
+
+        $this->MaintainVariable(self::ACT_FLASH, 'Licht blinken', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_FLASH), $keep(self::ACT_FLASH));
+        if ($keep(self::ACT_FLASH)) $this->EnableAction(self::ACT_FLASH);
+
+        $this->MaintainVariable(self::ACT_HONK, 'Hupe', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_HONK), $keep(self::ACT_HONK));
+        if ($keep(self::ACT_HONK)) $this->EnableAction(self::ACT_HONK);
+
+        // Status
+        $this->MaintainVariable(self::STAT_CHARGING_AMPS_ACTUAL, 'Ladestrom Ist (A)', VARIABLETYPE_FLOAT, 'Tessie.AmpsFloat', $pos(self::STAT_CHARGING_AMPS_ACTUAL), $keep(self::STAT_CHARGING_AMPS_ACTUAL));
+        $this->MaintainVariable(self::STAT_CHARGING_AMPS_MAX, 'Ladestrom Max (A)', VARIABLETYPE_INTEGER, 'Tessie.Amps', $pos(self::STAT_CHARGING_AMPS_MAX), $keep(self::STAT_CHARGING_AMPS_MAX));
+        $this->MaintainVariable(self::STAT_AC_CHARGING_POWER, 'AC Ladeleistung (kW)', VARIABLETYPE_FLOAT, 'Tessie.kW', $pos(self::STAT_AC_CHARGING_POWER), $keep(self::STAT_AC_CHARGING_POWER));
+    }
+
+    private function ensureProfiles(): void
+    {
+        if (!IPS_VariableProfileExists('Tessie.PercentInt')) {
+            IPS_CreateVariableProfile('Tessie.PercentInt', VARIABLETYPE_INTEGER);
+            IPS_SetVariableProfileText('Tessie.PercentInt', '', ' %');
+            IPS_SetVariableProfileValues('Tessie.PercentInt', 0, 100, 1);
+            IPS_SetVariableProfileDigits('Tessie.PercentInt', 0);
+            IPS_SetVariableProfileIcon('Tessie.PercentInt', 'Intensity');
+        }
+
+        if (!IPS_VariableProfileExists('Tessie.Amps')) {
+            IPS_CreateVariableProfile('Tessie.Amps', VARIABLETYPE_INTEGER);
+            IPS_SetVariableProfileText('Tessie.Amps', '', ' A');
+            IPS_SetVariableProfileValues('Tessie.Amps', 0, 48, 1);
+            IPS_SetVariableProfileDigits('Tessie.Amps', 0);
+            IPS_SetVariableProfileIcon('Tessie.Amps', 'Electricity');
+        }
+
+        if (!IPS_VariableProfileExists('Tessie.AmpsFloat')) {
+            IPS_CreateVariableProfile('Tessie.AmpsFloat', VARIABLETYPE_FLOAT);
+            IPS_SetVariableProfileText('Tessie.AmpsFloat', '', ' A');
+            IPS_SetVariableProfileValues('Tessie.AmpsFloat', 0, 48, 0);
+            IPS_SetVariableProfileDigits('Tessie.AmpsFloat', 1);
+            IPS_SetVariableProfileIcon('Tessie.AmpsFloat', 'Electricity');
+        }
+
+        if (!IPS_VariableProfileExists('Tessie.kW')) {
+            IPS_CreateVariableProfile('Tessie.kW', VARIABLETYPE_FLOAT);
+            IPS_SetVariableProfileText('Tessie.kW', '', ' kW');
+            IPS_SetVariableProfileValues('Tessie.kW', 0, 30, 0);
+            IPS_SetVariableProfileDigits('Tessie.kW', 2);
+            IPS_SetVariableProfileIcon('Tessie.kW', 'Electricity');
+        }
+    }
+
+    // -------- Link tree (nur Enabled=true; Reihenfolge überall wie VisibleVars) --------
+    private function ensureLinkTree(bool $forceRename = false): void
+    {
+        if (!(bool)$this->ReadPropertyBoolean('CreateLinks')) return;
+
+        $linksParent = (int)$this->ReadPropertyInteger('LinksLocation');
+        if ($linksParent <= 0 || !IPS_ObjectExists($linksParent)) return;
+
+        if ((bool)$this->ReadPropertyBoolean('CleanupLinks')) {
+            $this->cleanupOldRootIfNeeded($linksParent);
+        }
+
+        $enabled = $this->getEnabledMap();
+        $posMap  = $this->getOrderPosMap(10);
+
+        $vehicleName = trim($this->ReadAttributeString(self::ATTR_VEHICLE_NAME));
+        $rootName = $vehicleName !== '' ? $vehicleName : IPS_GetName($this->InstanceID);
+
+        $rootIdent = self::IDENT_ROOT_PREFIX . $this->InstanceID;
+        $rootId = @IPS_GetObjectIDByIdent($rootIdent, $linksParent);
+        if ($rootId <= 0) {
+            $rootId = IPS_CreateCategory();
+            IPS_SetParent($rootId, $linksParent);
+            IPS_SetIdent($rootId, $rootIdent);
+        }
+        if ($forceRename || IPS_GetName($rootId) !== $rootName) {
+            IPS_SetName($rootId, $rootName);
+        }
+
+        $purposes = [
+            self::PURPOSE_ACTIONS,
+            self::PURPOSE_STATUS,
+            self::PURPOSE_CHARGING,
+            self::PURPOSE_CLIMATE,
+            self::PURPOSE_SECURITY
+        ];
+
+        $purposeIds = [];
+        foreach ($purposes as $p) {
+            $pid = $this->ensureCategoryUnder($rootId, $p, self::IDENT_PURP_PREFIX . $this->makeIdent($p));
+            $purposeIds[$p] = $pid;
+        }
+
+        $desired = [];
+
+        $createLink = function(string $purpose, string $linkIdent, string $varIdent) use (&$desired, $purposeIds, $enabled, $posMap) {
+            if (isset($enabled[$varIdent]) && !$enabled[$varIdent]) return;
+            $varId = @IPS_GetObjectIDByIdent($varIdent, $this->InstanceID);
+            if ($varId <= 0) return;
+            $pos = $posMap[$varIdent] ?? 999999;
+            $this->ensureLinkUnder($purposeIds[$purpose], $varId, $linkIdent, IPS_GetName($varId), $pos);
+            $desired[$purposeIds[$purpose]][] = $linkIdent;
+        };
+
+        foreach ($posMap as $ident => $pos) {
+            if (strpos($ident, 'act_') === 0) {
+                $createLink(self::PURPOSE_ACTIONS, self::IDENT_LINK_PREFIX . 'ACT_' . $ident, $ident);
+            }
+        }
+        foreach ($posMap as $ident => $pos) {
+            if (strpos($ident, 'stat_') === 0) {
+                $createLink(self::PURPOSE_STATUS, self::IDENT_LINK_PREFIX . 'STAT_' . $ident, $ident);
+            }
+        }
+
+        $domain = [
+            self::PURPOSE_CHARGING => [
+                self::ACT_START_CHARGING,
+                self::ACT_CHARGE_LIMIT,
+                self::ACT_CHARGING_AMPS_REQUEST,
+                self::STAT_CHARGING_AMPS_ACTUAL,
+                self::STAT_CHARGING_AMPS_MAX,
+                self::STAT_AC_CHARGING_POWER
+            ],
+            self::PURPOSE_CLIMATE => [ self::ACT_CLIMATE ],
+            self::PURPOSE_SECURITY => [ self::ACT_LOCKED, self::ACT_FLASH, self::ACT_HONK ]
+        ];
+
+        foreach ($posMap as $ident => $pos) {
+            foreach ($domain as $purpose => $identsInDomain) {
+                if (!in_array($ident, $identsInDomain, true)) continue;
+                $createLink($purpose, self::IDENT_LINK_PREFIX . 'DOM_' . $this->makeIdent($purpose) . '_' . $ident, $ident);
+            }
+        }
+
+        if ((bool)$this->ReadPropertyBoolean('CleanupLinks')) {
+            foreach ($purposeIds as $pid) {
+                $keep = $desired[$pid] ?? [];
+                $this->cleanupLinksUnder($pid, $keep);
+            }
+        }
+
+        $this->WriteAttributeInteger(self::ATTR_LAST_LINKS_LOCATION, $linksParent);
+    }
+
+    private function cleanupOldRootIfNeeded(int $currentLinksParent): void
+    {
+        $last = (int)$this->ReadAttributeInteger(self::ATTR_LAST_LINKS_LOCATION);
+        if ($last <= 0 || $last === $currentLinksParent) return;
+        if (!IPS_ObjectExists($last)) return;
+
+        $rootIdent = self::IDENT_ROOT_PREFIX . $this->InstanceID;
+        $oldRootId = @IPS_GetObjectIDByIdent($rootIdent, $last);
+        if ($oldRootId > 0) {
+            $obj = IPS_GetObject($oldRootId);
+            if (($obj['ObjectType'] ?? 0) === OBJECTTYPE_CATEGORY) {
+                IPS_Delete($oldRootId);
+            }
+        }
+    }
+
+    private function cleanupLinksUnder(int $parentId, array $keepIdents): void
+    {
+        $keep = array_flip($keepIdents);
+        foreach (IPS_GetChildrenIDs($parentId) as $cid) {
+            $obj = IPS_GetObject($cid);
+            if (($obj['ObjectType'] ?? 0) !== OBJECTTYPE_LINK) continue;
+
+            $ident = IPS_GetIdent($cid);
+            if (strpos($ident, self::IDENT_LINK_PREFIX) !== 0) continue;
+
+            if (!isset($keep[$ident])) {
+                IPS_Delete($cid);
+            }
+        }
+    }
+
+    private function ensureCategoryUnder(int $parentId, string $name, string $ident): int
+    {
+        $id = @IPS_GetObjectIDByIdent($ident, $parentId);
+        if ($id <= 0) {
+            $id = IPS_CreateCategory();
+            IPS_SetParent($id, $parentId);
+            IPS_SetIdent($id, $ident);
+        }
+        if (IPS_GetName($id) !== $name) {
+            IPS_SetName($id, $name);
+        }
+        return $id;
+    }
+
+    private function ensureLinkUnder(int $parentId, int $targetId, string $ident, string $name, int $pos): void
+    {
+        if ($targetId <= 0 || !IPS_ObjectExists($targetId)) return;
+
+        $id = @IPS_GetObjectIDByIdent($ident, $parentId);
+        if ($id <= 0) {
+            $id = IPS_CreateLink();
+            IPS_SetParent($id, $parentId);
+            IPS_SetIdent($id, $ident);
+        }
+        IPS_SetName($id, $name);
+        IPS_SetLinkTargetID($id, $targetId);
+        IPS_SetPosition($id, $pos);
+    }
+
+    private function makeIdent(string $s): string
+    {
+        $s = preg_replace('/[^a-zA-Z0-9_]/', '_', $s);
+        $s = preg_replace('/_+/', '_', (string)$s);
+        $s = trim((string)$s, '_');
+        if ($s === '') $s = 'X';
+        return substr($s, 0, 64);
+    }
+
+    // -------- HTTP (Tessie API) --------
+    private function apiRequest(string $token, string $method, string $path, $body): array
+    {
+        $base = rtrim(trim($this->ReadPropertyString('ApiBase')), '/');
+        if ($path === '' || $path[0] !== '/') {
+            $path = '/' . $path;
+        }
+        $url = $base . $path;
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+
+        $methodUpper = strtoupper($method);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $methodUpper);
+
+        $headers = [
+            'Accept: application/json',
+            'Authorization: Bearer ' . $token
+        ];
+
+        $hasJsonBody = !($body === null || (is_array($body) && count($body) === 0));
+
+        if ($hasJsonBody) {
+            $jsonBody = json_encode($body);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonBody);
+            $headers[] = 'Content-Type: application/json';
+        } else {
+            if ($methodUpper === 'POST') {
+                curl_setopt($ch, CURLOPT_POSTFIELDS, '');
+                $headers[] = 'Content-Length: 0';
+            }
+        }
+
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+        if ((bool)$this->ReadPropertyBoolean('DebugHTTP')) {
+            $this->SendDebug('ApiRequestURL', $methodUpper . ' ' . $url, 0);
+        }
+
+        $resp = curl_exec($ch);
+        $err  = curl_error($ch);
+        $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($resp === false) {
+            $this->SendDebug('ApiRequest', 'cURL error: ' . $err, 0);
+            return [];
+        }
+
+        $json = json_decode($resp, true);
+        if (!is_array($json)) {
+            $this->SendDebug('ApiRequest', 'HTTP ' . $code . ' non-JSON: ' . substr($resp, 0, 500), 0);
+            return [];
+        }
+
+        return $json;
+    }
+}
