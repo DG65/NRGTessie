@@ -1,0 +1,43 @@
+{
+  "translations": {
+    "de": {
+      "Latitude": "Breitengrad",
+      "Longitude": "Längengrad",
+      "Odometer": "Wegstrecke gesamt (km)",
+      "RatedRange": "Reichweite (rated, km)",
+      "IdealBatteryRange": "Reichweite (ideal, km)",
+      "EstBatteryRange": "Reichweite (geschätzt, km)",
+      "MilesToArrival": "Reststrecke bis Ziel (km)",
+      "MinutesToArrival": "Restzeit bis Ziel (min)",
+      "VehicleSpeed": "Fahrgeschwindigkeit (km/h)",
+      "CurrentLimitMph": "Geschwindigkeitslimit (km/h)",
+      "GpsHeading": "Fahrtrichtung (°)",
+      "Soc": "Ladestand (SoC, %)",
+      "BatteryLevel": "Ladestand (SoC, %)",
+      "ChargeLimitSoc": "Ladelimit (SoC, %)",
+      "ChargeCurrentRequest": "Ladestrom-Soll (A)",
+      "ChargeCurrentRequestMax": "Ladestrom-Max (A)",
+      "ChargeAmps": "Ladestrom-Ist (A)",
+      "ACChargingPower": "Ladeleistung AC (kW)",
+      "DCChargingPower": "Ladeleistung DC (kW)",
+      "EnergyRemaining": "Restenergie (kWh)",
+      "LifetimeEnergyUsed": "Energieverbrauch gesamt (kWh)",
+      "ChargerVoltage": "Ladespannung (V)",
+      "InsideTemp": "Innenraumtemperatur (°C)",
+      "OutsideTemp": "Außentemperatur (°C)",
+      "HvacLeftTemperatureRequest": "Solltemperatur Fahrer (°C)",
+      "HvacRightTemperatureRequest": "Solltemperatur Beifahrer (°C)",
+      "DefrostMode": "Defrost-Modus",
+      "Locked": "Verriegelung",
+      "SentryMode": "Wächtermodus (Sentry)",
+      "ValetModeEnabled": "Valet-Modus",
+      "ChargePortDoorOpen": "Ladeportklappe offen",
+      "Location": "Position",
+      "VehicleName": "Fahrzeugbezeichnung",
+      "TpmsPressureFl": "Reifendruck vorn links (bar)",
+      "TpmsPressureFr": "Reifendruck vorn rechts (bar)",
+      "TpmsPressureRl": "Reifendruck hinten links (bar)",
+      "TpmsPressureRr": "Reifendruck hinten rechts (bar)"
+    }
+  }
+}
