@@ -1,0 +1,10 @@
+{
+  "CabinOverheatProtectionMode": {
+    "profile": "Tessie.CabinOverheatProtectionMode",
+    "type": "VARIABLETYPE_INTEGER"
+  },
+  "CabinOverheatProtectionTemperatureLimit": {
+    "profile": "Tessie.CabinOverheatProtectionTempLimit",
+    "type": "VARIABLETYPE_INTEGER"
+  }
+}
