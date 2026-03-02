@@ -1,0 +1,576 @@
+{
+  "ACChargingPower": {
+    "observed": {
+      "doubleValue": 2
+    },
+    "profile": "Tessie.kW",
+    "type": "VARIABLETYPE_FLOAT"
+  },
+  "BatteryHeaterOn": {
+    "observed": {
+      "booleanValue": 2
+    },
+    "profile": "~Switch",
+    "type": "VARIABLETYPE_BOOLEAN"
+  },
+  "CabinOverheatProtectionMode": {
+    "observed": {
+      "cabinOverheatProtectionModeValue": 2
+    },
+    "profile": "",
+    "type": "VARIABLETYPE_STRING"
+  },
+  "CabinOverheatProtectionTemperatureLimit": {
+    "observed": {
+      "cabinOverheatProtectionTemperatureLimitValue": 2
+    },
+    "profile": "",
+    "type": "VARIABLETYPE_STRING"
+  },
+  "ChargeAmps": {
+    "observed": {
+      "doubleValue": 2
+    },
+    "profile": "Tessie.AmpsFloat",
+    "type": "VARIABLETYPE_FLOAT"
+  },
+  "ChargeCurrentRequest": {
+    "observed": {
+      "intValue": 2
+    },
+    "profile": "Tessie.Amps",
+    "type": "VARIABLETYPE_INTEGER"
+  },
+  "ChargeCurrentRequestMax": {
+    "observed": {
+      "intValue": 2
+    },
+    "profile": "Tessie.Amps",
+    "type": "VARIABLETYPE_INTEGER"
+  },
+  "ChargeEnableRequest": {
+    "observed": {
+      "booleanValue": 2
+    },
+    "profile": "~Switch",
+    "type": "VARIABLETYPE_BOOLEAN"
+  },
+  "ChargeLimitSoc": {
+    "observed": {
+      "intValue": 2
+    },
+    "profile": "Tessie.PercentInt",
+    "type": "VARIABLETYPE_INTEGER"
+  },
+  "ChargePortDoorOpen": {
+    "observed": {
+      "booleanValue": 2
+    },
+    "profile": "~Switch",
+    "type": "VARIABLETYPE_BOOLEAN"
+  },
+  "ChargePortLatch": {
+    "observed": {
+      "chargePortLatchValue": 2
+    },
+    "profile": "",
+    "type": "VARIABLETYPE_STRING"
+  },
+  "ChargerPhases": {
+    "observed": {
+      "invalid": 2
+    },
+    "profile": "",
+    "type": "VARIABLETYPE_STRING"
+  },
+  "ChargerVoltage": {
+    "observed": {
+      "doubleValue": 2
+    },
+    "profile": "Tessie.Voltage",
+    "type": "VARIABLETYPE_FLOAT"
+  },
+  "ChargingCableType": {
+    "observed": {
+      "invalid": 2
+    },
+    "profile": "",
+    "type": "VARIABLETYPE_STRING"
+  },
+  "ClimateKeeperMode": {
+    "observed": {
+      "climateKeeperModeValue": 2
+    },
+    "profile": "",
+    "type": "VARIABLETYPE_STRING"
+  },
+  "ClimateSeatCoolingFrontLeft": {
+    "observed": {
+      "intValue": 2
+    },
+    "profile": "Tessie.Level0to3",
+    "type": "VARIABLETYPE_INTEGER"
+  },
+  "ClimateSeatCoolingFrontRight": {
+    "observed": {
+      "intValue": 2
+    },
+    "profile": "Tessie.Level0to3",
+    "type": "VARIABLETYPE_INTEGER"
+  },
+  "CurrentLimitMph": {
+    "observed": {
+      "doubleValue": 2
+    },
+    "profile": "Tessie.SpeedKmh",
+    "type": "VARIABLETYPE_FLOAT"
+  },
+  "DCChargingPower": {
+    "observed": {
+      "doubleValue": 2
+    },
+    "profile": "Tessie.kW",
+    "type": "VARIABLETYPE_FLOAT"
+  },
+  "DefrostMode": {
+    "observed": {
+      "defrostModeValue": 2
+    },
+    "profile": "",
+    "type": "VARIABLETYPE_STRING"
+  },
+  "DestinationLocation": {
+    "observed": {
+      "locationValue": 2
+    },
+    "profile": "",
+    "type": "VARIABLETYPE_STRING"
+  },
+  "DestinationName": {
+    "observed": {
+      "invalid": 2
+    },
+    "profile": "",
+    "type": "VARIABLETYPE_STRING"
+  },
+  "DetailedChargeState": {
+    "observed": {
+      "detailedChargeStateValue": 2
+    },
+    "profile": "",
+    "type": "VARIABLETYPE_STRING"
+  },
+  "DoorState": {
+    "observed": {
+      "doorValue": 2
+    },
+    "profile": "",
+    "type": "VARIABLETYPE_STRING"
+  },
+  "DriverSeatOccupied": {
+    "observed": {
+      "booleanValue": 2
+    },
+    "profile": "~Switch",
+    "type": "VARIABLETYPE_BOOLEAN"
+  },
+  "EnergyRemaining": {
+    "observed": {
+      "doubleValue": 2
+    },
+    "profile": "Tessie.kWh",
+    "type": "VARIABLETYPE_FLOAT"
+  },
+  "ExpectedEnergyPercentAtTripArrival": {
+    "observed": {
+      "intValue": 2
+    },
+    "profile": "Tessie.PercentInt",
+    "type": "VARIABLETYPE_INTEGER"
+  },
+  "FastChargerPresent": {
+    "observed": {
+      "booleanValue": 2
+    },
+    "profile": "~Switch",
+    "type": "VARIABLETYPE_BOOLEAN"
+  },
+  "FastChargerType": {
+    "observed": {
+      "invalid": 2
+    },
+    "profile": "",
+    "type": "VARIABLETYPE_STRING"
+  },
+  "FdWindow": {
+    "observed": {
+      "windowStateValue": 2
+    },
+    "profile": "",
+    "type": "VARIABLETYPE_STRING"
+  },
+  "FpWindow": {
+    "observed": {
+      "windowStateValue": 2
+    },
+    "profile": "",
+    "type": "VARIABLETYPE_STRING"
+  },
+  "Gear": {
+    "observed": {
+      "invalid": 2
+    },
+    "profile": "",
+    "type": "VARIABLETYPE_STRING"
+  },
+  "GpsHeading": {
+    "observed": {
+      "doubleValue": 2
+    },
+    "profile": "Tessie.Degrees",
+    "type": "VARIABLETYPE_FLOAT"
+  },
+  "HomelinkNearby": {
+    "observed": {
+      "booleanValue": 2
+    },
+    "profile": "~Switch",
+    "type": "VARIABLETYPE_BOOLEAN"
+  },
+  "HvacLeftTemperatureRequest": {
+    "observed": {
+      "doubleValue": 2
+    },
+    "profile": "Tessie.TempSetC",
+    "type": "VARIABLETYPE_FLOAT"
+  },
+  "HvacPower": {
+    "observed": {
+      "hvacPowerValue": 2
+    },
+    "profile": "",
+    "type": "VARIABLETYPE_STRING"
+  },
+  "HvacSteeringWheelHeatAuto": {
+    "observed": {
+      "booleanValue": 2
+    },
+    "profile": "~Switch",
+    "type": "VARIABLETYPE_BOOLEAN"
+  },
+  "HvacSteeringWheelHeatLevel": {
+    "observed": {
+      "intValue": 2
+    },
+    "profile": "Tessie.Level0to3",
+    "type": "VARIABLETYPE_INTEGER"
+  },
+  "InsideTemp": {
+    "observed": {
+      "doubleValue": 3
+    },
+    "profile": "Tessie.TempC",
+    "type": "VARIABLETYPE_FLOAT"
+  },
+  "LifetimeEnergyUsed": {
+    "observed": {
+      "doubleValue": 2
+    },
+    "profile": "Tessie.kWh",
+    "type": "VARIABLETYPE_FLOAT"
+  },
+  "Location": {
+    "observed": {
+      "locationValue": 2
+    },
+    "profile": "",
+    "type": "VARIABLETYPE_STRING"
+  },
+  "Locked": {
+    "observed": {
+      "booleanValue": 2
+    },
+    "profile": "~Switch",
+    "type": "VARIABLETYPE_BOOLEAN"
+  },
+  "MilesToArrival": {
+    "observed": {
+      "invalid": 2
+    },
+    "profile": "",
+    "type": "VARIABLETYPE_STRING"
+  },
+  "MinutesToArrival": {
+    "observed": {
+      "invalid": 2
+    },
+    "profile": "Tessie.Minutes",
+    "type": "VARIABLETYPE_STRING"
+  },
+  "ModuleTempMax": {
+    "observed": {
+      "doubleValue": 3
+    },
+    "profile": "Tessie.TempC",
+    "type": "VARIABLETYPE_FLOAT"
+  },
+  "ModuleTempMin": {
+    "observed": {
+      "doubleValue": 3
+    },
+    "profile": "Tessie.TempC",
+    "type": "VARIABLETYPE_FLOAT"
+  },
+  "Odometer": {
+    "observed": {
+      "doubleValue": 2
+    },
+    "profile": "Tessie.DistanceKm",
+    "type": "VARIABLETYPE_FLOAT"
+  },
+  "OutsideTemp": {
+    "observed": {
+      "doubleValue": 2
+    },
+    "profile": "Tessie.TempC",
+    "type": "VARIABLETYPE_FLOAT"
+  },
+  "PinToDriveEnabled": {
+    "observed": {
+      "booleanValue": 2
+    },
+    "profile": "~Switch",
+    "type": "VARIABLETYPE_BOOLEAN"
+  },
+  "RatedRange": {
+    "observed": {
+      "doubleValue": 2
+    },
+    "profile": "Tessie.DistanceKm",
+    "type": "VARIABLETYPE_FLOAT"
+  },
+  "RdWindow": {
+    "observed": {
+      "windowStateValue": 2
+    },
+    "profile": "",
+    "type": "VARIABLETYPE_STRING"
+  },
+  "RpWindow": {
+    "observed": {
+      "windowStateValue": 2
+    },
+    "profile": "",
+    "type": "VARIABLETYPE_STRING"
+  },
+  "ScheduledChargingMode": {
+    "observed": {
+      "scheduledChargingModeValue": 2
+    },
+    "profile": "",
+    "type": "VARIABLETYPE_STRING"
+  },
+  "ScheduledChargingStartTime": {
+    "observed": {
+      "invalid": 2
+    },
+    "profile": "",
+    "type": "VARIABLETYPE_STRING"
+  },
+  "SeatHeaterLeft": {
+    "observed": {
+      "intValue": 2
+    },
+    "profile": "Tessie.Level0to3",
+    "type": "VARIABLETYPE_INTEGER"
+  },
+  "SeatHeaterRearCenter": {
+    "observed": {
+      "intValue": 2
+    },
+    "profile": "Tessie.Level0to3",
+    "type": "VARIABLETYPE_INTEGER"
+  },
+  "SeatHeaterRearLeft": {
+    "observed": {
+      "intValue": 2
+    },
+    "profile": "Tessie.Level0to3",
+    "type": "VARIABLETYPE_INTEGER"
+  },
+  "SeatHeaterRearRight": {
+    "observed": {
+      "intValue": 2
+    },
+    "profile": "Tessie.Level0to3",
+    "type": "VARIABLETYPE_INTEGER"
+  },
+  "SeatHeaterRight": {
+    "observed": {
+      "intValue": 2
+    },
+    "profile": "Tessie.Level0to3",
+    "type": "VARIABLETYPE_INTEGER"
+  },
+  "SentryMode": {
+    "observed": {
+      "sentryModeStateValue": 2
+    },
+    "profile": "",
+    "type": "VARIABLETYPE_STRING"
+  },
+  "Soc": {
+    "observed": {
+      "doubleValue": 2
+    },
+    "profile": "Tessie.Percent",
+    "type": "VARIABLETYPE_FLOAT"
+  },
+  "SoftwareUpdateDownloadPercentComplete": {
+    "observed": {
+      "intValue": 2
+    },
+    "profile": "Tessie.PercentInt",
+    "type": "VARIABLETYPE_INTEGER"
+  },
+  "SoftwareUpdateInstallationPercentComplete": {
+    "observed": {
+      "intValue": 2
+    },
+    "profile": "Tessie.PercentInt",
+    "type": "VARIABLETYPE_INTEGER"
+  },
+  "SoftwareUpdateScheduledStartTime": {
+    "observed": {
+      "invalid": 2
+    },
+    "profile": "",
+    "type": "VARIABLETYPE_STRING"
+  },
+  "SoftwareUpdateVersion": {
+    "observed": {
+      "stringValue": 2
+    },
+    "profile": "",
+    "type": "VARIABLETYPE_STRING"
+  },
+  "SpeedLimitMode": {
+    "observed": {
+      "booleanValue": 2
+    },
+    "profile": "~Switch",
+    "type": "VARIABLETYPE_BOOLEAN"
+  },
+  "TimeToFullCharge": {
+    "observed": {
+      "invalid": 2
+    },
+    "profile": "Tessie.Hours",
+    "type": "VARIABLETYPE_STRING"
+  },
+  "TpmsHardWarnings": {
+    "observed": {
+      "invalid": 2
+    },
+    "profile": "",
+    "type": "VARIABLETYPE_STRING"
+  },
+  "TpmsLastSeenPressureTimeFl": {
+    "observed": {
+      "longValue": 2
+    },
+    "profile": "~UnixTimestamp",
+    "type": "VARIABLETYPE_INTEGER"
+  },
+  "TpmsLastSeenPressureTimeFr": {
+    "observed": {
+      "longValue": 2
+    },
+    "profile": "~UnixTimestamp",
+    "type": "VARIABLETYPE_INTEGER"
+  },
+  "TpmsLastSeenPressureTimeRl": {
+    "observed": {
+      "longValue": 2
+    },
+    "profile": "~UnixTimestamp",
+    "type": "VARIABLETYPE_INTEGER"
+  },
+  "TpmsLastSeenPressureTimeRr": {
+    "observed": {
+      "longValue": 2
+    },
+    "profile": "~UnixTimestamp",
+    "type": "VARIABLETYPE_INTEGER"
+  },
+  "TpmsPressureFl": {
+    "observed": {
+      "doubleValue": 2
+    },
+    "profile": "Tessie.PressureBar",
+    "type": "VARIABLETYPE_FLOAT"
+  },
+  "TpmsPressureFr": {
+    "observed": {
+      "doubleValue": 2
+    },
+    "profile": "Tessie.PressureBar",
+    "type": "VARIABLETYPE_FLOAT"
+  },
+  "TpmsPressureRl": {
+    "observed": {
+      "doubleValue": 2
+    },
+    "profile": "Tessie.PressureBar",
+    "type": "VARIABLETYPE_FLOAT"
+  },
+  "TpmsPressureRr": {
+    "observed": {
+      "doubleValue": 2
+    },
+    "profile": "Tessie.PressureBar",
+    "type": "VARIABLETYPE_FLOAT"
+  },
+  "TpmsSoftWarnings": {
+    "observed": {
+      "invalid": 2
+    },
+    "profile": "",
+    "type": "VARIABLETYPE_STRING"
+  },
+  "ValetModeEnabled": {
+    "observed": {
+      "booleanValue": 2
+    },
+    "profile": "~Switch",
+    "type": "VARIABLETYPE_BOOLEAN"
+  },
+  "VehicleName": {
+    "observed": {
+      "stringValue": 2
+    },
+    "profile": "",
+    "type": "VARIABLETYPE_STRING"
+  },
+  "VehicleSpeed": {
+    "observed": {
+      "invalid": 2
+    },
+    "profile": "",
+    "type": "VARIABLETYPE_STRING"
+  },
+  "Version": {
+    "observed": {
+      "stringValue": 2
+    },
+    "profile": "",
+    "type": "VARIABLETYPE_STRING"
+  },
+  "WheelType": {
+    "observed": {
+      "stringValue": 2
+    },
+    "profile": "",
+    "type": "VARIABLETYPE_STRING"
+  }
+}
