@@ -1,10 +1,9 @@
 <?php
 declare(strict_types=1);
-
 class TessieConfigurator extends IPSModule
 {
     private const WS_CLIENT_MODULE_ID = '{D68FD31F-0E90-7019-F16C-1949BD3079EF}';
-    private const VEHICLE_MODULE_ID   = '{3F1F7E31-8BA0-4B8F-9B62-47DAD7A0B6C9}';
+    private const VEHICLE_MODULE_ID = '{3F1F7E31-8BA0-4B8F-9B62-47DAD7A0B6C9}';
     private const API_BASE = 'https://api.tessie.com';
 
     public function Create()
@@ -57,27 +56,29 @@ class TessieConfigurator extends IPSModule
                     continue;
                 }
                 $name = (string)($v['display_name'] ?? $v['name'] ?? $vin);
+
                 $instanceId = $this->findVehicleInstance($vin);
                 $create = $this->buildCreateChain($vin, $name, $token);
+
                 $values[] = [
-                    'name'       => $name,
-                    'address'    => $vin,
+                    'name' => $name,
+                    'address' => $vin,
                     'instanceID' => $instanceId,
-                    'create'     => $create
+                    'create' => $create
                 ];
             }
         }
 
         $form = [
             'elements' => $elements,
-            'actions'  => [
+            'actions' => [
                 [
-                    'type'     => 'Configurator',
-                    'name'     => 'Vehicles',
-                    'caption'  => 'Fahrzeuge',
+                    'type' => 'Configurator',
+                    'name' => 'Vehicles',
+                    'caption' => 'Fahrzeuge',
                     'rowCount' => 12,
-                    'delete'   => true,
-                    'values'   => $values
+                    'delete' => true,
+                    'values' => $values
                 ]
             ]
         ];
@@ -92,7 +93,6 @@ class TessieConfigurator extends IPSModule
         }
 
         $wsInstances = IPS_GetInstanceListByModuleID(self::WS_CLIENT_MODULE_ID);
-
         foreach ($vins as $vin) {
             $wsId = $this->findWSClientForVin($vin, $wsInstances);
             if ($wsId <= 0) {
@@ -100,13 +100,12 @@ class TessieConfigurator extends IPSModule
             }
 
             $desiredUrl = 'wss://streaming.tessie.com/' . rawurlencode($vin) . '?access_token=' . rawurlencode($token);
-
             $desired = [
-                'Active'            => true,
+                'Active' => true,
                 'VerifyCertificate' => true,
-                'Type'              => 0,
-                'URL'               => $desiredUrl,
-                'Headers'           => '[]'
+                'Type' => 0,
+                'URL' => $desiredUrl,
+                'Headers' => '[]'
             ];
 
             $cfg = json_decode(IPS_GetConfiguration($wsId), true);
@@ -158,6 +157,7 @@ class TessieConfigurator extends IPSModule
                 IPS_SetProperty($vehId, 'ApiBase', self::API_BASE);
                 $needApply = true;
             }
+
             if ($needApply) {
                 IPS_ApplyChanges($vehId);
             }
@@ -174,12 +174,13 @@ class TessieConfigurator extends IPSModule
             if (!is_array($cfg)) {
                 continue;
             }
+
             $url = (string)($cfg['URL'] ?? '');
             if ($url === '') {
                 continue;
             }
 
-            // Fix: fehlendes ODER
+            // Fix: ODER statt UND
             if (stripos($url, $needle1) !== false || stripos($url, $needle2) !== false) {
                 return $iid;
             }
@@ -191,31 +192,32 @@ class TessieConfigurator extends IPSModule
     private function buildCreateChain(string $vin, string $name, string $token): array
     {
         $vehicleCfg = [
-            'VIN'     => $vin,
-            'ApiToken'=> $token,
-            'ApiBase' => self::API_BASE
+            'VIN' => $vin,
+            'ApiToken' => $token,
+            'ApiBase' => self::API_BASE,
+            // Kompatibilität: wird vom TessieConfigurator/anderen Tools gelesen
+            'InstanceInterface' => '[]'
         ];
 
         $wsUrl = 'wss://streaming.tessie.com/' . rawurlencode($vin) . '?access_token=' . rawurlencode($token);
-
         $wsCfg = [
-            'Active'            => true,
+            'Active' => true,
             'VerifyCertificate' => true,
-            'Type'              => 0,
-            'URL'               => $wsUrl,
-            'Headers'           => '[]'
+            'Type' => 0,
+            'URL' => $wsUrl,
+            'Headers' => '[]'
         ];
 
         return [
             [
-                'moduleID'      => self::VEHICLE_MODULE_ID,
+                'moduleID' => self::VEHICLE_MODULE_ID,
                 'configuration' => $vehicleCfg,
-                'name'          => $name
+                'name' => $name
             ],
             [
-                'moduleID'      => self::WS_CLIENT_MODULE_ID,
+                'moduleID' => self::WS_CLIENT_MODULE_ID,
                 'configuration' => $wsCfg,
-                'name'          => 'Tessie Telemetrie ' . $vin
+                'name' => 'Tessie Telemetrie ' . $vin
             ]
         ];
     }
@@ -224,10 +226,13 @@ class TessieConfigurator extends IPSModule
     {
         $t = trim($this->ReadPropertyString('Token'));
         if ($t !== '') return $t;
+
         $old = trim($this->ReadPropertyString('ApiToken'));
         if ($old !== '') return $old;
+
         $oldTel = trim($this->ReadPropertyString('TelemetryToken'));
         if ($oldTel !== '') return $oldTel;
+
         return '';
     }
 
@@ -235,9 +240,11 @@ class TessieConfigurator extends IPSModule
     {
         $data = $this->apiRequest($token, 'GET', '/api/1/vehicles');
         $payload = $data['response'] ?? $data;
+
         if (!is_array($payload)) return [];
         if (isset($payload['vehicles']) && is_array($payload['vehicles'])) return $payload['vehicles'];
         if (array_keys($payload) === range(0, count($payload) - 1)) return $payload;
+
         return [];
     }
 
@@ -258,7 +265,7 @@ class TessieConfigurator extends IPSModule
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
 
         $resp = curl_exec($ch);
-        $err  = curl_error($ch);
+        $err = curl_error($ch);
         $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
@@ -284,6 +291,18 @@ class TessieConfigurator extends IPSModule
             if (is_array($cfg) && (string)($cfg['VIN'] ?? '') === $vin) {
                 return $iid;
             }
+
+            // Robust-Fallback: wenn VIN nicht gesetzt ist, kann der Configurator in manchen Versionen
+            // die Property InstanceInterface auswerten. Diese Property kann fehlen -> dann nicht crashen.
+            $json = @IPS_GetProperty($iid, 'InstanceInterface');
+            if ($json === false || $json === '') {
+                $json = '[]';
+            }
+            $iface = json_decode($json, true);
+            if (!is_array($iface)) {
+                $iface = [];
+            }
+            // Optional: hier könnten weitere Kriterien geprüft werden.
         }
         return 0;
     }
