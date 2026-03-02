@@ -1,0 +1,17 @@
+{
+  "translations": {
+    "de": {
+      "CabinOverheatProtectionMode": "Innenraum-Überhitzeschutz: Modus",
+      "CabinOverheatProtectionTemperatureLimit": "Innenraum-Überhitzeschutz: Temperaturlimit",
+      "Off": "aus",
+      "Fan": "Lüfter",
+      "Climate": "Klima",
+      "Low": "niedrig",
+      "High": "hoch",
+      "CabinOverheatProtectionModeStateOff": "aus",
+      "ClimateOverheatProtectionTempLimitHigh": "hoch",
+      "ClimateOverheatProtectionTempLimitLow": "niedrig",
+      "CabinOverheatProtectionModeStateOn": "Klima"
+    }
+  }
+}
