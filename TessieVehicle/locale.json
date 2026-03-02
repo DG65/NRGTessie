@@ -4,14 +4,13 @@
       "CabinOverheatProtectionMode": "Innenraum-Überhitzeschutz: Modus",
       "CabinOverheatProtectionTemperatureLimit": "Innenraum-Überhitzeschutz: Temperaturlimit",
       "Off": "aus",
-      "Fan": "Lüfter",
-      "Climate": "Klima",
+      "On": "ein",
       "Low": "niedrig",
       "High": "hoch",
       "CabinOverheatProtectionModeStateOff": "aus",
+      "CabinOverheatProtectionModeStateOn": "ein",
       "ClimateOverheatProtectionTempLimitHigh": "hoch",
-      "ClimateOverheatProtectionTempLimitLow": "niedrig",
-      "CabinOverheatProtectionModeStateOn": "Klima"
+      "ClimateOverheatProtectionTempLimitLow": "niedrig"
     }
   }
 }

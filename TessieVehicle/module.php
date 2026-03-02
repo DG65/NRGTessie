@@ -30,18 +30,6 @@ class TessieVehicle extends IPSModule
     private const MI_TO_KM   = 1.609344;
     private const MPH_TO_KMH = 1.609344;
 
-
-    // -------------------- Telemetrie: feste Profil-/Typzuordnung (Hotfix) --------------------
-    private const TELEMETRY_PROFILE_MAP = [
-        'CabinOverheatProtectionMode' => 'Tessie.CabinOverheatProtectionMode',
-        'CabinOverheatProtectionTemperatureLimit' => 'Tessie.CabinOverheatProtectionTempLimit'
-    ];
-
-    private const TELEMETRY_TYPE_MAP = [
-        'CabinOverheatProtectionMode' => VARIABLETYPE_INTEGER,
-        'CabinOverheatProtectionTemperatureLimit' => VARIABLETYPE_INTEGER
-    ];
-
     // -------------------- Variable Idents (Status) --------------------
     private const STAT_CHARGING_AMPS_ACTUAL = 'stat_charge_amps_actual';
     private const STAT_CHARGING_AMPS_MAX    = 'stat_charge_amps_max';
@@ -216,6 +204,19 @@ class TessieVehicle extends IPSModule
                 'confirm' => 'Wirklich die Variablenliste und Reihenfolge auf Standard zurücksetzen?',
                 'onClick' => 'TESSIE_ResetVisibleVars(' . $this->InstanceID . ');'
             ],
+
+        [
+            'type'    => 'Button',
+            'caption' => 'Telemetrie: alle einblenden',
+            'onClick' => 'TESSIE_SetAllTelemetryEnabled(' . $this->InstanceID . ', true);'
+        ],
+        [
+            'type'    => 'Button',
+            'caption' => 'Telemetrie: alle ausblenden',
+            'confirm' => 'Wirklich alle Telemetrie-Datenpunkte ausblenden?',
+            'onClick' => 'TESSIE_SetAllTelemetryEnabled(' . $this->InstanceID . ', false);'
+        ],
+
             [
                 'type' => 'Label',
                 'caption' => "Ident/Name sind schreibgeschützt. Du änderst nur 'Anzeigen'. Reihenfolge per Drag & Drop."
@@ -230,6 +231,36 @@ class TessieVehicle extends IPSModule
         IPS_SetProperty($this->InstanceID, self::PROP_VISIBLE_VARS, json_encode($this->getDefaultVisibleVars()));
         IPS_ApplyChanges($this->InstanceID);
     }
+
+    public function SetAllTelemetryEnabled(bool $enabled): void
+    {
+        $list = $this->getVisibleList();
+        $changed = false;
+
+        foreach ($list as &$row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $ident = (string)($row['Ident'] ?? '');
+            if ($ident === '') {
+                continue;
+            }
+            // Nur Telemetrie-Datenpunkte (stat_tel_*)
+            if (strpos($ident, 'stat_tel_') === 0) {
+                if (($row['Enabled'] ?? null) !== $enabled) {
+                    $row['Enabled'] = $enabled;
+                    $changed = true;
+                }
+            }
+        }
+        unset($row);
+
+        if ($changed) {
+            IPS_SetProperty($this->InstanceID, self::PROP_VISIBLE_VARS, json_encode($list));
+            IPS_ApplyChanges($this->InstanceID);
+        }
+    }
+
 
     
     private function getDefaultVisibleVars(): array
@@ -631,16 +662,6 @@ class TessieVehicle extends IPSModule
 
             [$type, $value] = $this->telemetryInferTypeAndValue($val);
 
-            // Feste Typzuordnung (überschreibt Inferenz)
-            if (isset(self::TELEMETRY_TYPE_MAP[$key])) {
-                $type = self::TELEMETRY_TYPE_MAP[$key];
-            }
-
-            // Enum -> Integer (Innenraum-Überhitzeschutz)
-            if ($type === VARIABLETYPE_INTEGER && ($key === 'CabinOverheatProtectionMode' || $key === 'CabinOverheatProtectionTemperatureLimit')) {
-                $value = $this->convertOverheatEnumToInt($key, $val, $value);
-            }
-
             // Einheiten umrechnen (mi->km, mph->km/h)
             $value = $this->convertTelemetryToMetric($key, $type, $value);
 
@@ -687,7 +708,12 @@ class TessieVehicle extends IPSModule
         } elseif ($type === VARIABLETYPE_FLOAT) {
             @SetValueFloat($id, (float)$value);
         } else {
-            @SetValueString($id, (string)$value);
+            $sv = (string)$value;
+            $tv = $this->Translate($sv);
+            if ($tv !== $sv) {
+                $sv = $tv;
+            }
+            @SetValueString($id, $sv);
         }
     }
 
@@ -695,24 +721,11 @@ class TessieVehicle extends IPSModule
     {
         if (array_key_exists('booleanValue', $val)) return [VARIABLETYPE_BOOLEAN, (bool)$val['booleanValue']];
         if (array_key_exists('intValue', $val)) return [VARIABLETYPE_INTEGER, (int)$val['intValue']];
-        if (array_key_exists('longValue', $val)) {
-            $lv = $val['longValue'];
-            if (is_string($lv) && is_numeric($lv)) $lv = (int)$lv;
-            return [VARIABLETYPE_INTEGER, (int)$lv];
-        }
         if (array_key_exists('doubleValue', $val)) return [VARIABLETYPE_FLOAT, (float)$val['doubleValue']];
         if (array_key_exists('stringValue', $val)) {
             $sv = (string)$val['stringValue'];
             if (is_numeric(trim($sv))) return [VARIABLETYPE_FLOAT, (float)$sv];
             return [VARIABLETYPE_STRING, $sv];
-        }
-        foreach ($val as $vk => $vv) {
-            if (is_string($vk) && substr($vk, -5) === 'Value') {
-                if (is_string($vv)) return [VARIABLETYPE_STRING, $vv];
-                if (is_bool($vv)) return [VARIABLETYPE_BOOLEAN, $vv];
-                if (is_int($vv)) return [VARIABLETYPE_INTEGER, $vv];
-                if (is_float($vv)) return [VARIABLETYPE_FLOAT, $vv];
-            }
         }
         return [VARIABLETYPE_STRING, json_encode($val)];
     }
@@ -728,11 +741,7 @@ class TessieVehicle extends IPSModule
     {
         $profile = '';
         if ((bool)$this->ReadPropertyBoolean(self::PROP_AUTO_PROFILE_TELEMETRY_VARS)) {
-            if (isset(self::TELEMETRY_PROFILE_MAP[$key])) {
-                $profile = self::TELEMETRY_PROFILE_MAP[$key];
-            } else {
-                $profile = $this->guessProfileForTelemetryKey($key, $type);
-            }
+            $profile = $this->guessProfileForTelemetryKey($key, $type);
         }
         return ['key' => $key, 'name' => $name, 'type' => $type, 'profile' => $profile];
     }
@@ -836,40 +845,6 @@ class TessieVehicle extends IPSModule
         return null;
     }
 
-
-
-    private function convertOverheatEnumToInt(string $key, array $val, $fallback): int
-    {
-        // Modus: 0=Aus, 1=Lüfter, 2=Klima
-        if ($key === 'CabinOverheatProtectionMode') {
-            $s = (string)($val['cabinOverheatProtectionModeValue'] ?? $fallback ?? '');
-            $ls = strtolower($s);
-            if (strpos($ls, 'off') !== false) {
-                return 0;
-            }
-            if (strpos($ls, 'fan') !== false) {
-                return 1;
-            }
-            // Default: "On" / unbekannt -> Klima
-            return 2;
-        }
-
-        // Temperaturlimit: 0=niedrig, 1=hoch
-        if ($key === 'CabinOverheatProtectionTemperatureLimit') {
-            $s = (string)($val['cabinOverheatProtectionTemperatureLimitValue'] ?? $fallback ?? '');
-            $ls = strtolower($s);
-            if (strpos($ls, 'low') !== false) {
-                return 0;
-            }
-            if (strpos($ls, 'high') !== false) {
-                return 1;
-            }
-            // Default: hoch
-            return 1;
-        }
-
-        return (int)$fallback;
-    }
 
     private function refreshTelemetryRegistryNames(): void
     {
@@ -1013,9 +988,6 @@ class TessieVehicle extends IPSModule
     
     private function guessProfileForTelemetryKey(string $key, int $type): string
     {
-        if (isset(self::TELEMETRY_PROFILE_MAP[$key])) {
-            return self::TELEMETRY_PROFILE_MAP[$key];
-        }
         $k = strtolower($key);
 
         if ($type !== VARIABLETYPE_STRING && (strpos($k, 'soc') !== false || strpos($k, 'percent') !== false)) {
