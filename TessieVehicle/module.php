@@ -72,8 +72,6 @@ class TessieVehicle extends IPSModule
         $this->RegisterPropertyString('ApiToken', '');
         $this->RegisterPropertyString('VIN', '');
         $this->RegisterPropertyString('ApiBase', 'https://api.tessie.com');
-        // Kompatibilität: wird vom TessieConfigurator verwendet
-        $this->RegisterPropertyString('InstanceInterface', '[]');
 
         // Kompatibilität: Property existiert (Telemetrie wird intern verarbeitet)
         $this->RegisterPropertyBoolean('TelemetryEnabled', true);
@@ -206,6 +204,31 @@ class TessieVehicle extends IPSModule
                 'confirm' => 'Wirklich die Variablenliste und Reihenfolge auf Standard zurücksetzen?',
                 'onClick' => 'TESSIE_ResetVisibleVars(' . $this->InstanceID . ');'
             ],
+
+        [
+            'type'    => 'Button',
+            'caption' => 'Telemetrie: alle einblenden',
+            'onClick' => 'TESSIE_SetAllTelemetryEnabled(' . $this->InstanceID . ', true);'
+        ],
+        [
+            'type'    => 'Button',
+            'caption' => 'Telemetrie: alle ausblenden',
+            'confirm' => 'Wirklich alle Telemetrie-Datenpunkte ausblenden?',
+            'onClick' => 'TESSIE_SetAllTelemetryEnabled(' . $this->InstanceID . ', false);'
+        ],
+        [
+            'type'    => 'Button',
+            'caption' => 'Telemetrie: nur wichtige einblenden',
+            'confirm' => 'Nicht wichtige Telemetrie-Datenpunkte werden ausgeblendet. Fortfahren?',
+            'onClick' => 'TESSIE_SetImportantTelemetryEnabled(' . $this->InstanceID . ');'
+        ],
+        [
+            'type'    => 'Button',
+            'caption' => 'Telemetrie: Namen aktualisieren',
+            'confirm' => 'Telemetrie-Variablennamen im Objektbaum anhand locale.json aktualisieren?',
+            'onClick' => 'TESSIE_RenameTelemetryVariables(' . $this->InstanceID . ');'
+        ],
+
             [
                 'type' => 'Label',
                 'caption' => "Ident/Name sind schreibgeschützt. Du änderst nur 'Anzeigen'. Reihenfolge per Drag & Drop."
@@ -220,6 +243,139 @@ class TessieVehicle extends IPSModule
         IPS_SetProperty($this->InstanceID, self::PROP_VISIBLE_VARS, json_encode($this->getDefaultVisibleVars()));
         IPS_ApplyChanges($this->InstanceID);
     }
+
+    public function SetAllTelemetryEnabled(bool $enabled): void
+    {
+        $list = $this->getVisibleList();
+        $changed = false;
+
+        foreach ($list as &$row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+    public function SetImportantTelemetryEnabled(): void
+    {
+        // Whitelist wichtiger Telemetrie-Keys (technisch/neutral)
+        $importantKeys = [
+            'Soc',
+            'ChargeLimitSoc',
+            'ChargeAmps',
+            'ChargeCurrentRequest',
+            'ChargeCurrentRequestMax',
+            'ACChargingPower',
+            'DCChargingPower',
+            'EnergyRemaining',
+            'RatedRange',
+            'Odometer',
+            'InsideTemp',
+            'OutsideTemp',
+            'HvacLeftTemperatureRequest',
+            'CabinOverheatProtectionMode',
+            'CabinOverheatProtectionTemperatureLimit',
+            'Locked',
+            'SentryMode',
+            'ValetModeEnabled',
+            'ChargePortDoorOpen',
+            'Location'
+        ];
+        $important = array_flip($importantKeys);
+
+        $registry = $this->getTelemetryRegistry();
+        $list = $this->getVisibleList();
+        $changed = false;
+
+        foreach ($list as &$row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+    public function RenameTelemetryVariables(): void
+    {
+        $registry = $this->getTelemetryRegistry();
+        if (count($registry) === 0) {
+            return;
+        }
+
+        foreach ($registry as $ident => $meta) {
+            if (!is_string($ident) || strpos($ident, 'stat_tel_') !== 0) {
+                continue;
+            }
+            if (!is_array($meta)) {
+                continue;
+            }
+
+            $key = (string)($meta['key'] ?? '');
+            if ($key === '') {
+                continue;
+            }
+
+            $name = $this->Translate($key);
+
+            if (str_ends_with($ident, '_lat')) {
+                $name .= ' – ' . $this->Translate('Latitude');
+            } elseif (str_ends_with($ident, '_lon')) {
+                $name .= ' – ' . $this->Translate('Longitude');
+            }
+
+            $varId = @IPS_GetObjectIDByIdent($ident, $this->InstanceID);
+            if ($varId > 0) {
+                if (IPS_GetName($varId) !== $name) {
+                    IPS_SetName($varId, $name);
+                }
+            }
+        }
+
+        try {
+            $this->ensureLinkTree(true);
+        } catch (Throwable $e) {
+            // ignorieren
+        }
+    }
+
+            $ident = (string)($row['Ident'] ?? '');
+            if ($ident === '' || strpos($ident, 'stat_tel_') !== 0) {
+                continue;
+            }
+
+            $key = '';
+            if (isset($registry[$ident]) && is_array($registry[$ident])) {
+                $key = (string)($registry[$ident]['key'] ?? '');
+            }
+
+            $enable = ($key !== '' && isset($important[$key]));
+            if (($row['Enabled'] ?? null) !== $enable) {
+                $row['Enabled'] = $enable;
+                $changed = true;
+            }
+        }
+        unset($row);
+
+        if ($changed) {
+            IPS_SetProperty($this->InstanceID, self::PROP_VISIBLE_VARS, json_encode($list));
+            IPS_ApplyChanges($this->InstanceID);
+        }
+    }
+
+            $ident = (string)($row['Ident'] ?? '');
+            if ($ident === '') {
+                continue;
+            }
+            if (strpos($ident, 'stat_tel_') === 0) {
+                if (($row['Enabled'] ?? null) !== $enabled) {
+                    $row['Enabled'] = $enabled;
+                    $changed = true;
+                }
+            }
+        }
+        unset($row);
+
+        if ($changed) {
+            IPS_SetProperty($this->InstanceID, self::PROP_VISIBLE_VARS, json_encode($list));
+            IPS_ApplyChanges($this->InstanceID);
+        }
+    }
+
 
     
     private function getDefaultVisibleVars(): array
