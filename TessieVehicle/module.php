@@ -72,6 +72,8 @@ class TessieVehicle extends IPSModule
         $this->RegisterPropertyString('ApiToken', '');
         $this->RegisterPropertyString('VIN', '');
         $this->RegisterPropertyString('ApiBase', 'https://api.tessie.com');
+        // Kompatibilität: wird vom TessieConfigurator verwendet
+        $this->RegisterPropertyString('InstanceInterface', '[]');
 
         // Kompatibilität: Property existiert (Telemetrie wird intern verarbeitet)
         $this->RegisterPropertyBoolean('TelemetryEnabled', true);
@@ -253,6 +255,25 @@ class TessieVehicle extends IPSModule
             if (!is_array($row)) {
                 continue;
             }
+            $ident = (string)($row['Ident'] ?? '');
+            if ($ident === '') {
+                continue;
+            }
+            // Nur Telemetrie-Datenpunkte (stat_tel_*)
+            if (strpos($ident, 'stat_tel_') === 0) {
+                if (($row['Enabled'] ?? null) !== $enabled) {
+                    $row['Enabled'] = $enabled;
+                    $changed = true;
+                }
+            }
+        }
+        unset($row);
+
+        if ($changed) {
+            IPS_SetProperty($this->InstanceID, self::PROP_VISIBLE_VARS, json_encode($list));
+            IPS_ApplyChanges($this->InstanceID);
+        }
+    }
 
     public function SetImportantTelemetryEnabled(): void
     {
@@ -289,6 +310,29 @@ class TessieVehicle extends IPSModule
             if (!is_array($row)) {
                 continue;
             }
+            $ident = (string)($row['Ident'] ?? '');
+            if ($ident === '' || strpos($ident, 'stat_tel_') !== 0) {
+                continue;
+            }
+
+            $key = '';
+            if (isset($registry[$ident]) && is_array($registry[$ident])) {
+                $key = (string)($registry[$ident]['key'] ?? '');
+            }
+
+            $enable = ($key !== '' && isset($important[$key]));
+            if (($row['Enabled'] ?? null) !== $enable) {
+                $row['Enabled'] = $enable;
+                $changed = true;
+            }
+        }
+        unset($row);
+
+        if ($changed) {
+            IPS_SetProperty($this->InstanceID, self::PROP_VISIBLE_VARS, json_encode($list));
+            IPS_ApplyChanges($this->InstanceID);
+        }
+    }
 
     public function RenameTelemetryVariables(): void
     {
@@ -333,51 +377,6 @@ class TessieVehicle extends IPSModule
         }
     }
 
-            $ident = (string)($row['Ident'] ?? '');
-            if ($ident === '' || strpos($ident, 'stat_tel_') !== 0) {
-                continue;
-            }
-
-            $key = '';
-            if (isset($registry[$ident]) && is_array($registry[$ident])) {
-                $key = (string)($registry[$ident]['key'] ?? '');
-            }
-
-            $enable = ($key !== '' && isset($important[$key]));
-            if (($row['Enabled'] ?? null) !== $enable) {
-                $row['Enabled'] = $enable;
-                $changed = true;
-            }
-        }
-        unset($row);
-
-        if ($changed) {
-            IPS_SetProperty($this->InstanceID, self::PROP_VISIBLE_VARS, json_encode($list));
-            IPS_ApplyChanges($this->InstanceID);
-        }
-    }
-
-            $ident = (string)($row['Ident'] ?? '');
-            if ($ident === '') {
-                continue;
-            }
-            if (strpos($ident, 'stat_tel_') === 0) {
-                if (($row['Enabled'] ?? null) !== $enabled) {
-                    $row['Enabled'] = $enabled;
-                    $changed = true;
-                }
-            }
-        }
-        unset($row);
-
-        if ($changed) {
-            IPS_SetProperty($this->InstanceID, self::PROP_VISIBLE_VARS, json_encode($list));
-            IPS_ApplyChanges($this->InstanceID);
-        }
-    }
-
-
-    
     private function getDefaultVisibleVars(): array
     {
         return [
