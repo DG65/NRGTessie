@@ -4,7 +4,7 @@
   "name": "Tessie for IP-Symcon",
   "url": "https://developer.tessie.com/",
   "compatibility": {
-    "version": "9.0"
+    "version": "8.0"
   },
   "version": "1.1.4",
   "build": 20260226,
