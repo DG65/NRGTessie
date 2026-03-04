@@ -170,10 +170,6 @@ class TessieVehicle extends IPSModule
                 'caption' => 'Links automatisch bereinigen'
             ]
         ];
-
-        $baseList = $this->getVisibleList();
-        $fullList = $this->mergeTelemetryIntoVisibleVars($baseList);
-
         $elements[] = [
             'type' => 'List',
             'name' => 'VisibleVars',
@@ -182,9 +178,7 @@ class TessieVehicle extends IPSModule
             'add' => false,
             'delete' => false,
             'changeOrder' => true,
-            'loadValuesFromConfiguration' => false,
-            'values' => $fullList,
-            'columns' => [
+'columns' => [
                 ['caption' => 'Ident', 'name' => 'Ident', 'width' => '220px', 'save' => true],
                 ['caption' => 'Name',  'name' => 'Name',  'width' => 'auto',  'save' => true],
                 [
@@ -231,7 +225,7 @@ class TessieVehicle extends IPSModule
 
             [
                 'type' => 'Label',
-                'caption' => "Ident/Name sind schreibgeschützt. Du änderst nur 'Anzeigen'. Reihenfolge per Drag & Drop."
+                'caption' => "Ident/Name sind schreibgeschützt. Du änderst nur 'Anzeigen'. Reihenfolge per Drag & Drop (danach Übernehmen)."
             ]
         ];
 
@@ -1347,7 +1341,7 @@ class TessieVehicle extends IPSModule
         if ($oldRootId > 0) {
             $obj = IPS_GetObject($oldRootId);
             if (($obj['ObjectType'] ?? 0) === OBJECTTYPE_CATEGORY) {
-                IPS_DeleteObject($oldRootId);
+                $this->deleteObjectSafe($oldRootId);
             }
         }
     }
@@ -1361,7 +1355,7 @@ class TessieVehicle extends IPSModule
             $ident = IPS_GetIdent($cid);
             if (strpos($ident, self::IDENT_LINK_PREFIX) !== 0) continue;
             if (!isset($keep[$ident])) {
-                IPS_DeleteObject($cid);
+                $this->deleteObjectSafe($cid);
             }
         }
     }
@@ -1403,6 +1397,22 @@ class TessieVehicle extends IPSModule
         return substr($s, 0, 64);
     }
 
+
+    private function deleteObjectSafe(int $objectId): void
+    {
+        if ($objectId <= 0 || !IPS_ObjectExists($objectId)) {
+            return;
+        }
+        if (function_exists('IPS_DeleteObject')) {
+            IPS_DeleteObject($objectId);
+            return;
+        }
+        // Fallback (sollte in aktuellen Versionen nicht nötig sein)
+        if (function_exists('IPS_Delete')) {
+            $this->deleteObjectSafe($objectId);
+        }
+    }
+
     private function deleteManagedLinksForIdent(string $varIdent): void
     {
         // minimaler Delete (wie bisher)
@@ -1430,7 +1440,7 @@ class TessieVehicle extends IPSModule
                 if ($lid > 0 && IPS_ObjectExists($lid)) {
                     $obj = IPS_GetObject($lid);
                     if (($obj['ObjectType'] ?? 0) === OBJECTTYPE_LINK) {
-                        IPS_DeleteObject($lid);
+                        $this->deleteObjectSafe($lid);
                     }
                 }
             }
