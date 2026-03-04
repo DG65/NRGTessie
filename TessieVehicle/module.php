@@ -72,6 +72,8 @@ class TessieVehicle extends IPSModule
         $this->RegisterPropertyString('ApiToken', '');
         $this->RegisterPropertyString('VIN', '');
         $this->RegisterPropertyString('ApiBase', 'https://api.tessie.com');
+        // Kompatibilität: wird vom TessieConfigurator verwendet
+        $this->RegisterPropertyString('InstanceInterface', '[]');
 
         // Kompatibilität: Property existiert (Telemetrie wird intern verarbeitet)
         $this->RegisterPropertyBoolean('TelemetryEnabled', true);
@@ -246,35 +248,17 @@ class TessieVehicle extends IPSModule
 
     public function SetAllTelemetryEnabled(bool $enabled): void
     {
-        // Telemetrie-Einträge sind ggf. noch nicht in der gespeicherten Liste enthalten -> vorab mergen
-        $list = $this->mergeTelemetryIntoVisibleVars($this->getVisibleList());
+        $list = $this->getVisibleList();
         $changed = false;
 
         foreach ($list as &$row) {
             if (!is_array($row)) {
                 continue;
             }
-            $ident = (string)($row['Ident'] ?? '');
-            if ($ident === '') {
-                continue;
-            }
-            if (strpos($ident, 'stat_tel_') === 0) {
-                if (($row['Enabled'] ?? null) !== $enabled) {
-                    $row['Enabled'] = $enabled;
-                    $changed = true;
-                }
-            }
-        }
-        unset($row);
-
-        if ($changed) {
-            IPS_SetProperty($this->InstanceID, self::PROP_VISIBLE_VARS, json_encode($list));
-            IPS_ApplyChanges($this->InstanceID);
-        }
-    }
 
     public function SetImportantTelemetryEnabled(): void
     {
+        // Whitelist wichtiger Telemetrie-Keys (technisch/neutral)
         $importantKeys = [
             'Soc',
             'ChargeLimitSoc',
@@ -300,13 +284,57 @@ class TessieVehicle extends IPSModule
         $important = array_flip($importantKeys);
 
         $registry = $this->getTelemetryRegistry();
-        $list = $this->mergeTelemetryIntoVisibleVars($this->getVisibleList());
+        $list = $this->getVisibleList();
         $changed = false;
 
         foreach ($list as &$row) {
             if (!is_array($row)) {
                 continue;
             }
+
+    public function RenameTelemetryVariables(): void
+    {
+        $registry = $this->getTelemetryRegistry();
+        if (count($registry) === 0) {
+            return;
+        }
+
+        foreach ($registry as $ident => $meta) {
+            if (!is_string($ident) || strpos($ident, 'stat_tel_') !== 0) {
+                continue;
+            }
+            if (!is_array($meta)) {
+                continue;
+            }
+
+            $key = (string)($meta['key'] ?? '');
+            if ($key === '') {
+                continue;
+            }
+
+            $name = $this->Translate($key);
+
+            if (str_ends_with($ident, '_lat')) {
+                $name .= ' – ' . $this->Translate('Latitude');
+            } elseif (str_ends_with($ident, '_lon')) {
+                $name .= ' – ' . $this->Translate('Longitude');
+            }
+
+            $varId = @IPS_GetObjectIDByIdent($ident, $this->InstanceID);
+            if ($varId > 0) {
+                if (IPS_GetName($varId) !== $name) {
+                    IPS_SetName($varId, $name);
+                }
+            }
+        }
+
+        try {
+            $this->ensureLinkTree(true);
+        } catch (Throwable $e) {
+            // ignorieren
+        }
+    }
+
             $ident = (string)($row['Ident'] ?? '');
             if ($ident === '' || strpos($ident, 'stat_tel_') !== 0) {
                 continue;
@@ -331,46 +359,27 @@ class TessieVehicle extends IPSModule
         }
     }
 
-    public function RenameTelemetryVariables(): void
-    {
-        $registry = $this->getTelemetryRegistry();
-        if (count($registry) === 0) {
-            return;
-        }
-
-        foreach ($registry as $ident => $meta) {
-            if (!is_string($ident) || strpos($ident, 'stat_tel_') !== 0) {
+            $ident = (string)($row['Ident'] ?? '');
+            if ($ident === '') {
                 continue;
             }
-            if (!is_array($meta)) {
-                continue;
-            }
-
-            $key = (string)($meta['key'] ?? '');
-            if ($key === '') {
-                continue;
-            }
-
-            $name = $this->Translate($key);
-            if (str_ends_with($ident, '_lat')) {
-                $name .= ' – ' . $this->Translate('Latitude');
-            } elseif (str_ends_with($ident, '_lon')) {
-                $name .= ' – ' . $this->Translate('Longitude');
-            }
-
-            $varId = @IPS_GetObjectIDByIdent($ident, $this->InstanceID);
-            if ($varId > 0 && IPS_GetName($varId) !== $name) {
-                IPS_SetName($varId, $name);
+            if (strpos($ident, 'stat_tel_') === 0) {
+                if (($row['Enabled'] ?? null) !== $enabled) {
+                    $row['Enabled'] = $enabled;
+                    $changed = true;
+                }
             }
         }
+        unset($row);
 
-        try {
-            $this->ensureLinkTree(true);
-        } catch (Throwable $e) {
-            // ignorieren
+        if ($changed) {
+            IPS_SetProperty($this->InstanceID, self::PROP_VISIBLE_VARS, json_encode($list));
+            IPS_ApplyChanges($this->InstanceID);
         }
     }
 
+
+    
     private function getDefaultVisibleVars(): array
     {
         return [
@@ -911,18 +920,6 @@ class TessieVehicle extends IPSModule
         }
         return $posMap;
     }
-    private function applyVariablePositions(array $posMap): void
-    {
-        foreach ($posMap as $ident => $pos) {
-            $varId = @IPS_GetObjectIDByIdent((string)$ident, $this->InstanceID);
-            if ($varId <= 0 || !IPS_ObjectExists($varId)) {
-                continue;
-            }
-            IPS_SetPosition($varId, (int)$pos);
-        }
-    }
-
-
 
     private function safeSetValue(string $ident, $value): void
     {
@@ -1229,10 +1226,7 @@ class TessieVehicle extends IPSModule
 
             $this->MaintainVariable($ident, $name, $type, $profile, $position, $isEnabled);
         }
-    
-        // Positionen im Objektbaum explizit setzen (damit die Reihenfolge der VisibleVars zuverlässig übernommen wird)
-        $this->applyVariablePositions($posMap);
-}
+    }
 
     // Linktree (deine vorhandene Logik, nur Strings sind bereits DE)
     private function ensureLinkTree(bool $forceRename = false): void
