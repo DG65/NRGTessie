@@ -170,6 +170,11 @@ class TessieVehicle extends IPSModule
                 'caption' => 'Links automatisch bereinigen'
             ]
         ];
+
+        $baseList = $this->getVisibleList();
+        $fullList = $this->mergeTelemetryIntoVisibleVars($baseList);
+        $this->persistMergedVisibleVars($fullList);
+
         $elements[] = [
             'type' => 'List',
             'name' => 'VisibleVars',
@@ -857,10 +862,25 @@ class TessieVehicle extends IPSModule
     }
 
 
-    private function getVisibleList(): array
+
+    private function getVisibleListRaw(): array
     {
         $arr = json_decode($this->ReadPropertyString(self::PROP_VISIBLE_VARS), true);
         return is_array($arr) ? $arr : [];
+    }
+
+    private function persistMergedVisibleVars(array $merged): void
+    {
+        $cur = $this->getVisibleListRaw();
+        // Nur speichern, wenn es echte Unterschiede gibt (verhindert unnötige Writes bei jedem Formularaufruf)
+        if (json_encode($cur) !== json_encode($merged)) {
+            IPS_SetProperty($this->InstanceID, self::PROP_VISIBLE_VARS, json_encode($merged));
+        }
+    }
+
+    private function getVisibleList(): array
+    {
+        return $this->getVisibleListRaw();
     }
 
     private function mergeTelemetryIntoVisibleVars(array $list): array
