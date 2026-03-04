@@ -248,32 +248,13 @@ class TessieVehicle extends IPSModule
 
     public function SetAllTelemetryEnabled(bool $enabled): void
     {
-        $list = $this->getVisibleList();
+        $list = $this->mergeTelemetryIntoVisibleVars($this->getVisibleList());
         $changed = false;
 
         foreach ($list as &$row) {
             if (!is_array($row)) {
                 continue;
             }
-            $ident = (string)($row['Ident'] ?? '');
-            if ($ident === '') {
-                continue;
-            }
-            // Nur Telemetrie-Datenpunkte (stat_tel_*)
-            if (strpos($ident, 'stat_tel_') === 0) {
-                if (($row['Enabled'] ?? null) !== $enabled) {
-                    $row['Enabled'] = $enabled;
-                    $changed = true;
-                }
-            }
-        }
-        unset($row);
-
-        if ($changed) {
-            IPS_SetProperty($this->InstanceID, self::PROP_VISIBLE_VARS, json_encode($list));
-            IPS_ApplyChanges($this->InstanceID);
-        }
-    }
 
     public function SetImportantTelemetryEnabled(): void
     {
@@ -303,36 +284,13 @@ class TessieVehicle extends IPSModule
         $important = array_flip($importantKeys);
 
         $registry = $this->getTelemetryRegistry();
-        $list = $this->getVisibleList();
+        $list = $this->mergeTelemetryIntoVisibleVars($this->getVisibleList());
         $changed = false;
 
         foreach ($list as &$row) {
             if (!is_array($row)) {
                 continue;
             }
-            $ident = (string)($row['Ident'] ?? '');
-            if ($ident === '' || strpos($ident, 'stat_tel_') !== 0) {
-                continue;
-            }
-
-            $key = '';
-            if (isset($registry[$ident]) && is_array($registry[$ident])) {
-                $key = (string)($registry[$ident]['key'] ?? '');
-            }
-
-            $enable = ($key !== '' && isset($important[$key]));
-            if (($row['Enabled'] ?? null) !== $enable) {
-                $row['Enabled'] = $enable;
-                $changed = true;
-            }
-        }
-        unset($row);
-
-        if ($changed) {
-            IPS_SetProperty($this->InstanceID, self::PROP_VISIBLE_VARS, json_encode($list));
-            IPS_ApplyChanges($this->InstanceID);
-        }
-    }
 
     public function RenameTelemetryVariables(): void
     {
@@ -377,6 +335,51 @@ class TessieVehicle extends IPSModule
         }
     }
 
+            $ident = (string)($row['Ident'] ?? '');
+            if ($ident === '' || strpos($ident, 'stat_tel_') !== 0) {
+                continue;
+            }
+
+            $key = '';
+            if (isset($registry[$ident]) && is_array($registry[$ident])) {
+                $key = (string)($registry[$ident]['key'] ?? '');
+            }
+
+            $enable = ($key !== '' && isset($important[$key]));
+            if (($row['Enabled'] ?? null) !== $enable) {
+                $row['Enabled'] = $enable;
+                $changed = true;
+            }
+        }
+        unset($row);
+
+        if ($changed) {
+            IPS_SetProperty($this->InstanceID, self::PROP_VISIBLE_VARS, json_encode($list));
+            IPS_ApplyChanges($this->InstanceID);
+        }
+    }
+
+            $ident = (string)($row['Ident'] ?? '');
+            if ($ident === '') {
+                continue;
+            }
+            if (strpos($ident, 'stat_tel_') === 0) {
+                if (($row['Enabled'] ?? null) !== $enabled) {
+                    $row['Enabled'] = $enabled;
+                    $changed = true;
+                }
+            }
+        }
+        unset($row);
+
+        if ($changed) {
+            IPS_SetProperty($this->InstanceID, self::PROP_VISIBLE_VARS, json_encode($list));
+            IPS_ApplyChanges($this->InstanceID);
+        }
+    }
+
+
+    
     private function getDefaultVisibleVars(): array
     {
         return [
@@ -776,6 +779,14 @@ class TessieVehicle extends IPSModule
 
             [$type, $value] = $this->telemetryInferTypeAndValue($val);
 
+            if ($key === 'CabinOverheatProtectionMode') {
+                $type = VARIABLETYPE_INTEGER;
+                $value = $this->mapOverheatMode($val);
+            } elseif ($key === 'CabinOverheatProtectionTemperatureLimit') {
+                $type = VARIABLETYPE_INTEGER;
+                $value = $this->mapOverheatTempLimit($val);
+            }
+
             // Einheiten umrechnen (mi->km, mph->km/h)
             $value = $this->convertTelemetryToMetric($key, $type, $value);
 
@@ -822,7 +833,12 @@ class TessieVehicle extends IPSModule
         } elseif ($type === VARIABLETYPE_FLOAT) {
             @SetValueFloat($id, (float)$value);
         } else {
-            @SetValueString($id, (string)$value);
+            $sv = (string)$value;
+            $tv = $this->Translate($sv);
+            if ($tv !== $sv) {
+                $sv = $tv;
+            }
+            @SetValueString($id, $sv);
         }
     }
 
@@ -835,6 +851,14 @@ class TessieVehicle extends IPSModule
             $sv = (string)$val['stringValue'];
             if (is_numeric(trim($sv))) return [VARIABLETYPE_FLOAT, (float)$sv];
             return [VARIABLETYPE_STRING, $sv];
+        }
+        foreach ($val as $vk => $vv) {
+            if (is_string($vk) && substr($vk, -5) === 'Value') {
+                if (is_string($vv)) return [VARIABLETYPE_STRING, $vv];
+                if (is_bool($vv)) return [VARIABLETYPE_BOOLEAN, $vv];
+                if (is_int($vv)) return [VARIABLETYPE_INTEGER, $vv];
+                if (is_float($vv)) return [VARIABLETYPE_FLOAT, $vv];
+            }
         }
         return [VARIABLETYPE_STRING, json_encode($val)];
     }
@@ -954,6 +978,31 @@ class TessieVehicle extends IPSModule
         return null;
     }
 
+
+
+    private function mapOverheatMode(array $val): int
+    {
+        $s = (string)($val['cabinOverheatProtectionModeValue'] ?? '');
+        if ($s === 'CabinOverheatProtectionModeStateOff') {
+            return 0;
+        }
+        if ($s === 'CabinOverheatProtectionModeStateFanOnly') {
+            return 1;
+        }
+        return 2; // On (Klima)
+    }
+
+    private function mapOverheatTempLimit(array $val): int
+    {
+        $s = (string)($val['cabinOverheatProtectionTemperatureLimitValue'] ?? '');
+        if ($s === 'ClimateOverheatProtectionTempLimitLow') {
+            return 0;
+        }
+        if ($s === 'ClimateOverheatProtectionTempLimitMedium') {
+            return 1;
+        }
+        return 2; // High
+    }
 
     private function refreshTelemetryRegistryNames(): void
     {
@@ -1092,11 +1141,35 @@ class TessieVehicle extends IPSModule
             IPS_SetVariableProfileIcon('Tessie.Degrees', 'Compass');
         }
 
+        // Innenraum-Überhitzeschutz (Enum -> Integer, kontextreiche Labels über locale.json)
+        if (!IPS_VariableProfileExists('Tessie.CabinOverheatProtectionMode')) {
+            IPS_CreateVariableProfile('Tessie.CabinOverheatProtectionMode', VARIABLETYPE_INTEGER);
+        }
+        IPS_SetVariableProfileValues('Tessie.CabinOverheatProtectionMode', 0, 2, 1);
+        IPS_SetVariableProfileDigits('Tessie.CabinOverheatProtectionMode', 0);
+        IPS_SetVariableProfileIcon('Tessie.CabinOverheatProtectionMode', 'Shield');
+        IPS_SetVariableProfileAssociation('Tessie.CabinOverheatProtectionMode', 0, $this->Translate('CabinOverheatProtectionModeStateOff'), '', 0xAAAAAA);
+        IPS_SetVariableProfileAssociation('Tessie.CabinOverheatProtectionMode', 1, $this->Translate('CabinOverheatProtectionModeStateFanOnly'), '', 0x66CCFF);
+        IPS_SetVariableProfileAssociation('Tessie.CabinOverheatProtectionMode', 2, $this->Translate('CabinOverheatProtectionModeStateOn'), '', 0xFFCC66);
+
+        if (!IPS_VariableProfileExists('Tessie.CabinOverheatProtectionTempLimit')) {
+            IPS_CreateVariableProfile('Tessie.CabinOverheatProtectionTempLimit', VARIABLETYPE_INTEGER);
+        }
+        IPS_SetVariableProfileValues('Tessie.CabinOverheatProtectionTempLimit', 0, 2, 1);
+        IPS_SetVariableProfileDigits('Tessie.CabinOverheatProtectionTempLimit', 0);
+        IPS_SetVariableProfileIcon('Tessie.CabinOverheatProtectionTempLimit', 'Temperature');
+        IPS_SetVariableProfileAssociation('Tessie.CabinOverheatProtectionTempLimit', 0, $this->Translate('ClimateOverheatProtectionTempLimitLow'), '', 0x66CCFF);
+        IPS_SetVariableProfileAssociation('Tessie.CabinOverheatProtectionTempLimit', 1, $this->Translate('ClimateOverheatProtectionTempLimitMedium'), '', 0xFFCC66);
+        IPS_SetVariableProfileAssociation('Tessie.CabinOverheatProtectionTempLimit', 2, $this->Translate('ClimateOverheatProtectionTempLimitHigh'), '', 0xFF6666);
+
+
     }
 
     
     private function guessProfileForTelemetryKey(string $key, int $type): string
     {
+        if ($key === 'CabinOverheatProtectionMode') return 'Tessie.CabinOverheatProtectionMode';
+        if ($key === 'CabinOverheatProtectionTemperatureLimit') return 'Tessie.CabinOverheatProtectionTempLimit';
         $k = strtolower($key);
 
         if ($type !== VARIABLETYPE_STRING && (strpos($k, 'soc') !== false || strpos($k, 'percent') !== false)) {
