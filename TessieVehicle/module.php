@@ -108,9 +108,21 @@ class TessieVehicle extends IPSModule
         $this->RegisterAttributeString(self::ATTR_TELEMETRY_REGISTRY, json_encode(new stdClass()));
     }
 
+
+    private function ensureVisibleVarsMerged(): void
+    {
+        $base = $this->getVisibleList();
+        $merged = $this->mergeTelemetryIntoVisibleVars($base);
+        // Nur schreiben, wenn sich etwas ändert (Reihenfolge der vorhandenen Einträge bleibt erhalten)
+        if (json_encode($base) !== json_encode($merged)) {
+            IPS_SetProperty($this->InstanceID, self::PROP_VISIBLE_VARS, json_encode($merged));
+        }
+    }
+
     public function ApplyChanges()
     {
         parent::ApplyChanges();
+        $this->ensureVisibleVarsMerged();
 
         $interval = (int)$this->ReadPropertyInteger('UpdateInterval');
         if ($interval < 0) {
