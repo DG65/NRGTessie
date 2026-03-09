@@ -207,9 +207,7 @@ class TessieVehicle extends IPSModule
             'add' => false,
             'delete' => false,
             'changeOrder' => true,
-            'loadValuesFromConfiguration' => false,
-            'values' => $fullList,
-            'columns' => [
+'columns' => [
                 ['caption' => 'Ident', 'name' => 'Ident', 'width' => '220px', 'save' => true],
                 ['caption' => 'Name',  'name' => 'Name',  'width' => 'auto',  'save' => true],
                 [
@@ -252,7 +250,7 @@ class TessieVehicle extends IPSModule
 
             [
                 'type' => 'Label',
-                'caption' => "Ident/Name sind schreibgeschützt. Du änderst nur 'Anzeigen'. Reihenfolge per Drag & Drop."
+                'caption' => "Ident/Name sind schreibgeschützt. Du änderst nur 'Anzeigen'. Reihenfolge per Drag & Drop (danach Übernehmen)."
             ]
         ];
 
@@ -1394,7 +1392,7 @@ class TessieVehicle extends IPSModule
         }
         // Fallback nur falls vorhanden
         if (function_exists('IPS_Delete')) {
-            $this->deleteObjectSafe($objectId);
+            IPS_Delete($objectId);
         }
     }
 
