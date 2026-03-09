@@ -140,52 +140,9 @@ class TessieVehicle extends IPSModule
         $this->SetStatus(102);
     }
 
-
-    private function translateVisibleVarsForForm(array $list): array
-    {
-        $registry = $this->getTelemetryRegistry();
-        foreach ($list as &$row) {
-            if (!is_array($row)) {
-                continue;
-            }
-            $ident = (string)($row['Ident'] ?? '');
-            if ($ident === '') {
-                continue;
-            }
-
-            $oldName = (string)($row['Name'] ?? '');
-            $newName = $oldName;
-
-            // Telemetrie: Name bevorzugt aus Registry (dort wird er über locale.json abgeleitet)
-            if (isset($registry[$ident]) && is_array($registry[$ident])) {
-                $newName = (string)($registry[$ident]['name'] ?? $oldName);
-                if ($newName === '' && isset($registry[$ident]['key'])) {
-                    $newName = $this->Translate((string)$registry[$ident]['key']);
-                }
-                if (str_ends_with($ident, '_lat')) {
-                    $newName .= ' – ' . $this->Translate('Latitude');
-                } elseif (str_ends_with($ident, '_lon')) {
-                    $newName .= ' – ' . $this->Translate('Longitude');
-                }
-            } else {
-                // Core/sonstiges: gespeicherten Namen (oder Ident) über locale.json übersetzen
-                $base = ($oldName !== '') ? $oldName : $ident;
-                $newName = $this->Translate($base);
-            }
-
-            if ($newName !== '') {
-                $row['Name'] = $newName;
-            }
-        }
-        unset($row);
-        return $list;
-    }
-
     // Dynamisches Formular: eine Liste "Anzuzeigende Variablen" inkl. Telemetrie-Einträgen
     public function GetConfigurationForm()
     {
-        // Sicherstellen, dass Registry-Namen aus locale.json aktuell sind
-        $this->refreshTelemetryRegistryNames();
         $elements = [
             [
                 'type' => 'NumberSpinner',
@@ -218,7 +175,29 @@ class TessieVehicle extends IPSModule
 
         $baseList = $this->getVisibleList();
         $fullList = $this->mergeTelemetryIntoVisibleVars($baseList);
-        $fullListTranslated = $this->translateVisibleVarsForForm($fullList);
+
+        // Toggle-Button: Telemetrie global ein-/ausblenden (deaktiviert, wenn keine Telemetrie-Einträge vorhanden sind)
+        $hasTelemetry = false;
+        $allTelemetryOn = true;
+        foreach ($fullList as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $ident = (string)($row['Ident'] ?? '');
+            if (strpos($ident, 'stat_tel_') !== 0) {
+                continue;
+            }
+            $hasTelemetry = true;
+            if (!(bool)($row['Enabled'] ?? false)) {
+                $allTelemetryOn = false;
+                break;
+            }
+        }
+        if (!$hasTelemetry) {
+            $allTelemetryOn = false;
+        }
+        $toggleCaption = $allTelemetryOn ? 'Telemetrie: alle ausblenden' : 'Telemetrie: alle einblenden';
+        $toggleConfirm = $allTelemetryOn ? 'Wirklich alle Telemetrie-Datenpunkte ausblenden?' : '';
 
         $elements[] = [
             'type' => 'List',
@@ -229,7 +208,7 @@ class TessieVehicle extends IPSModule
             'delete' => false,
             'changeOrder' => true,
             'loadValuesFromConfiguration' => false,
-            'values' => $fullListTranslated,
+            'values' => $fullList,
             'columns' => [
                 ['caption' => 'Ident', 'name' => 'Ident', 'width' => '220px', 'save' => true],
                 ['caption' => 'Name',  'name' => 'Name',  'width' => 'auto',  'save' => true],
@@ -251,26 +230,29 @@ class TessieVehicle extends IPSModule
                 'onClick' => 'TESSIE_ResetVisibleVars(' . $this->InstanceID . ');'
             ],
 
-        [
+                [
             'type'    => 'Button',
-            'caption' => 'Telemetrie: alle einblenden',
-            'onClick' => 'TESSIE_SetAllTelemetryEnabled(' . $this->InstanceID . ', true);'
+            'caption' => $toggleCaption,
+            'confirm' => $toggleConfirm,
+            'enabled' => $hasTelemetry,
+            'onClick' => 'TESSIE_ToggleAllTelemetry(' . $this->InstanceID . ');'
         ],
-        [
-            'type'    => 'Button',
-            'caption' => 'Telemetrie: alle ausblenden',
-            'confirm' => 'Wirklich alle Telemetrie-Datenpunkte ausblenden?',
-            'onClick' => 'TESSIE_SetAllTelemetryEnabled(' . $this->InstanceID . ', false);'
-        ],
-        [
+[
             'type'    => 'Button',
             'caption' => 'Telemetrie: nur wichtige einblenden',
             'confirm' => 'Nicht wichtige Telemetrie-Datenpunkte werden ausgeblendet. Fortfahren?',
             'onClick' => 'TESSIE_SetImportantTelemetryEnabled(' . $this->InstanceID . ');'
         ],
         [
+            'type'    => 'Button',
+            'caption' => 'Telemetrie: Namen aktualisieren',
+            'confirm' => 'Telemetrie-Variablennamen im Objektbaum anhand locale.json aktualisieren?',
+            'onClick' => 'TESSIE_RenameTelemetryVariables(' . $this->InstanceID . ');'
+        ],
+
+            [
                 'type' => 'Label',
-                'caption' => "Ident/Name sind schreibgeschützt. Du änderst nur 'Anzeigen'. Reihenfolge per Drag & Drop. (Namen werden aus locale.json im Formular angezeigt.)"
+                'caption' => "Ident/Name sind schreibgeschützt. Du änderst nur 'Anzeigen'. Reihenfolge per Drag & Drop."
             ]
         ];
 
@@ -282,6 +264,37 @@ class TessieVehicle extends IPSModule
         IPS_SetProperty($this->InstanceID, self::PROP_VISIBLE_VARS, json_encode($this->getDefaultVisibleVars()));
         IPS_ApplyChanges($this->InstanceID);
     }
+
+    public function ToggleAllTelemetry(): void
+    {
+        // Telemetrie-Einträge sind ggf. noch nicht in der gespeicherten Liste enthalten -> vorab mergen
+        $list = $this->mergeTelemetryIntoVisibleVars($this->getVisibleList());
+
+        $hasTelemetry = false;
+        $allOn = true;
+
+        foreach ($list as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $ident = (string)($row['Ident'] ?? '');
+            if (strpos($ident, 'stat_tel_') !== 0) {
+                continue;
+            }
+            $hasTelemetry = true;
+            if (!(bool)($row['Enabled'] ?? false)) {
+                $allOn = false;
+                break;
+            }
+        }
+
+        if (!$hasTelemetry) {
+            return;
+        }
+
+        $this->SetAllTelemetryEnabled(!$allOn);
+    }
+
 
     public function SetAllTelemetryEnabled(bool $enabled): void
     {
@@ -1369,6 +1382,22 @@ class TessieVehicle extends IPSModule
         return array_values(array_unique($purposes));
     }
 
+
+    private function deleteObjectSafe(int $objectId): void
+    {
+        if ($objectId <= 0 || !IPS_ObjectExists($objectId)) {
+            return;
+        }
+        if (function_exists('IPS_DeleteObject')) {
+            IPS_DeleteObject($objectId);
+            return;
+        }
+        // Fallback nur falls vorhanden
+        if (function_exists('IPS_Delete')) {
+            $this->deleteObjectSafe($objectId);
+        }
+    }
+
     private function cleanupOldRootIfNeeded(int $currentLinksParent): void
     {
         $last = (int)$this->ReadAttributeInteger(self::ATTR_LAST_LINKS_LOCATION);
@@ -1379,7 +1408,7 @@ class TessieVehicle extends IPSModule
         if ($oldRootId > 0) {
             $obj = IPS_GetObject($oldRootId);
             if (($obj['ObjectType'] ?? 0) === OBJECTTYPE_CATEGORY) {
-                IPS_Delete($oldRootId);
+                $this->deleteObjectSafe($oldRootId);
             }
         }
     }
@@ -1393,7 +1422,7 @@ class TessieVehicle extends IPSModule
             $ident = IPS_GetIdent($cid);
             if (strpos($ident, self::IDENT_LINK_PREFIX) !== 0) continue;
             if (!isset($keep[$ident])) {
-                IPS_Delete($cid);
+                $this->deleteObjectSafe($cid);
             }
         }
     }
@@ -1462,7 +1491,7 @@ class TessieVehicle extends IPSModule
                 if ($lid > 0 && IPS_ObjectExists($lid)) {
                     $obj = IPS_GetObject($lid);
                     if (($obj['ObjectType'] ?? 0) === OBJECTTYPE_LINK) {
-                        IPS_Delete($lid);
+                        $this->deleteObjectSafe($lid);
                     }
                 }
             }
