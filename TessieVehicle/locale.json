@@ -109,17 +109,17 @@
       "ClimateOverheatProtectionTempLimitLow": "Innenraum-Überhitzeschutz: Temperaturlimit niedrig",
       "ClimateOverheatProtectionTempLimitMedium": "Innenraum-Überhitzeschutz: Temperaturlimit mittel",
       "ClimateOverheatProtectionTempLimitHigh": "Innenraum-Überhitzeschutz: Temperaturlimit hoch",
-      "DriverSeatOccupied": "Fahrersitz besetzt"
-      "MediaNowPlayingDuration": "Gesamtdauer des aktuell wiedergegebenen Titels"
-      "MediaNowPlayingElapsed": "Verstrichene Zeit des aktuell wiedergegebenen Mediums"
-      "MediaAudioVolume": "Medienlautstärke"
-      "MediaPlaybackSource": "Aktive Medienquelle"
-      "MediaAudioVolumeIncrement": "Schrittweite der Medienlautstärke"
-      "MediaPlaybackStatus": "Status der Medienwiedergabe"
-      "MediaNowPlayingAlbum": "Album des aktuell wiedergegebenen Titels"
-      "MediaNowPlayingStation": "Aktuelle Station"
-      "MediaNowPlayingArtist": "Interpret des aktuell wiedergegebenen Titels"
-      "MediaAudioVolumeMax": "Maximale Medienlautstärke"
+      "DriverSeatOccupied": "Fahrersitz besetzt",
+      "MediaNowPlayingDuration": "Gesamtdauer des aktuell wiedergegebenen Titels",
+      "MediaNowPlayingElapsed": "Verstrichene Zeit des aktuell wiedergegebenen Mediums",
+      "MediaAudioVolume": "Medienlautstärke",
+      "MediaPlaybackSource": "Aktive Medienquelle",
+      "MediaAudioVolumeIncrement": "Schrittweite der Medienlautstärke",
+      "MediaPlaybackStatus": "Status der Medienwiedergabe",
+      "MediaNowPlayingAlbum": "Album des aktuell wiedergegebenen Titels",
+      "MediaNowPlayingStation": "Aktuelle Station",
+      "MediaNowPlayingArtist": "Interpret des aktuell wiedergegebenen Titels",
+      "MediaAudioVolumeMax": "Maximale Medienlautstärke",
       "MediaNowPlayingTitle": "Aktueller Titel"
       }
    }
