@@ -113,7 +113,7 @@ class TessieVehicle extends IPSModule
     {
         $base = $this->getVisibleList();
         $merged = $this->mergeTelemetryIntoVisibleVars($base);
-        // Nur schreiben, wenn sich etwas ändert (Reihenfolge der vorhandenen Einträge bleibt erhalten)
+        // Nur schreiben, wenn sich etwas ändert (Reihenfolge bleibt erhalten)
         if (json_encode($base) !== json_encode($merged)) {
             IPS_SetProperty($this->InstanceID, self::PROP_VISIBLE_VARS, json_encode($merged));
         }
