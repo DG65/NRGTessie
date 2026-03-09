@@ -131,7 +131,6 @@ class TessieVehicle extends IPSModule
             $oldName = (string)($row['Name'] ?? '');
             $newName = $oldName;
 
-            // Telemetrie: Name aus Registry (wird in refreshTelemetryRegistryNames() aus locale.json abgeleitet)
             if (isset($registry[$ident]) && is_array($registry[$ident])) {
                 $newName = (string)($registry[$ident]['name'] ?? $oldName);
                 if ($newName === '' && isset($registry[$ident]['key'])) {
@@ -143,7 +142,6 @@ class TessieVehicle extends IPSModule
                     $newName .= ' – ' . $this->Translate('Longitude');
                 }
             } else {
-                // Core/sonstiges: gespeicherten Namen (oder Ident) über locale.json übersetzen
                 $base = ($oldName !== '') ? $oldName : $ident;
                 $newName = $this->Translate($base);
             }
@@ -195,10 +193,54 @@ class TessieVehicle extends IPSModule
         $this->SetStatus(102);
     }
 
+
+    private function translateVisibleVarsForForm(array $list): array
+    {
+        $registry = $this->getTelemetryRegistry();
+        foreach ($list as &$row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $ident = (string)($row['Ident'] ?? '');
+            if ($ident === '') {
+                continue;
+            }
+
+            $oldName = (string)($row['Name'] ?? '');
+            $newName = $oldName;
+
+            // Telemetrie: Name bevorzugt aus Registry
+            if (isset($registry[$ident]) && is_array($registry[$ident])) {
+                $newName = (string)($registry[$ident]['name'] ?? $oldName);
+                if ($newName === '' && isset($registry[$ident]['key'])) {
+                    $newName = $this->Translate((string)$registry[$ident]['key']);
+                }
+                if (str_ends_with($ident, '_lat')) {
+                    $newName .= ' – ' . $this->Translate('Latitude');
+                } elseif (str_ends_with($ident, '_lon')) {
+                    $newName .= ' – ' . $this->Translate('Longitude');
+                }
+            } else {
+                // Core/sonstiges: gespeicherten Namen (oder Ident) über locale.json übersetzen
+                $base = ($oldName !== '') ? $oldName : $ident;
+                $newName = $this->Translate($base);
+            }
+
+            if ($newName !== '') {
+                $row['Name'] = $newName;
+            }
+        }
+        unset($row);
+        return $list;
+    }
+
     // Dynamisches Formular: eine Liste "Anzuzeigende Variablen" inkl. Telemetrie-Einträgen
     public function GetConfigurationForm()
     {
         $elements = [
+        // Sicherstellen, dass Registry-Namen aus locale.json aktuell sind
+        $this->refreshTelemetryRegistryNames();
+
             [
                 'type' => 'NumberSpinner',
                 'name' => 'UpdateInterval',
@@ -230,6 +272,7 @@ class TessieVehicle extends IPSModule
 
         $baseList = $this->getVisibleList();
         $fullList = $this->mergeTelemetryIntoVisibleVars($baseList);
+        $fullListTranslated = $this->translateVisibleVarsForForm($fullList);
 
         $elements[] = [
             'type' => 'List',
@@ -240,7 +283,7 @@ class TessieVehicle extends IPSModule
             'delete' => false,
             'changeOrder' => true,
             'loadValuesFromConfiguration' => false,
-            'values' => $fullList,
+            'values' => $fullListTranslated,
             'columns' => [
                 ['caption' => 'Ident', 'name' => 'Ident', 'width' => '220px', 'save' => true],
                 ['caption' => 'Name',  'name' => 'Name',  'width' => 'auto',  'save' => true],
