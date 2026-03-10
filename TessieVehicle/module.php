@@ -25,6 +25,15 @@ class TessieVehicle extends IPSModule
     private const ACT_CLOSE_CHARGE_PORT      = 'act_close_charge_port';
     private const ACT_VENT_WINDOWS           = 'act_vent_windows';
     private const ACT_CLOSE_WINDOWS          = 'act_close_windows';
+    private const ACT_CLIMATE_KEEPER_MODE               = 'act_climate_keeper_mode';
+    private const ACT_COP_ENABLED               = 'act_cop_enabled';
+    private const ACT_COP_FAN_ONLY               = 'act_cop_fan_only';
+    private const ACT_COP_TEMP               = 'act_cop_temp';
+    private const ACT_BIO_DEFENSE               = 'act_bio_defense';
+    private const ACT_HOMELINK               = 'act_homelink';
+    private const ACT_FRONT_TRUNK               = 'act_front_trunk';
+    private const ACT_REAR_TRUNK               = 'act_rear_trunk';
+
 
     // -------------------- Umrechnung (Einheiten) --------------------
     private const MI_TO_KM   = 1.609344;
@@ -445,7 +454,17 @@ class TessieVehicle extends IPSModule
             ['Ident' => self::ACT_CLOSE_WINDOWS,        'Name' => 'Fenster schließen',               'Enabled' => true],
 
             ['Ident' => self::ACT_CLIMATE,              'Name' => 'Klima',                           'Enabled' => true],
-            ['Ident' => self::ACT_TEMP_DRIVER,          'Name' => 'Solltemperatur Fahrer (°C)',      'Enabled' => true],
+            
+            ['Ident' => self::ACT_CLIMATE_KEEPER_MODE, 'Name' => 'Climate Keeper Mode', 'Enabled' => true],
+            ['Ident' => self::ACT_COP_ENABLED, 'Name' => 'Innenraum-Überhitzeschutz', 'Enabled' => true],
+            ['Ident' => self::ACT_COP_FAN_ONLY, 'Name' => 'Innenraum-Überhitzeschutz: nur Lüfter', 'Enabled' => true],
+            ['Ident' => self::ACT_COP_TEMP, 'Name' => 'Innenraum-Überhitzeschutz: Temperaturlimit', 'Enabled' => true],
+            ['Ident' => self::ACT_BIO_DEFENSE, 'Name' => 'Bio Defense Mode', 'Enabled' => true],
+            ['Ident' => self::ACT_HOMELINK, 'Name' => 'HomeLink auslösen', 'Enabled' => false],
+            ['Ident' => self::ACT_FRONT_TRUNK, 'Name' => 'Front-Trunk öffnen', 'Enabled' => false],
+            ['Ident' => self::ACT_REAR_TRUNK, 'Name' => 'Rear-Trunk öffnen/schließen', 'Enabled' => false],
+
+['Ident' => self::ACT_TEMP_DRIVER,          'Name' => 'Solltemperatur Fahrer (°C)',      'Enabled' => true],
             ['Ident' => self::ACT_TEMP_PASSENGER,       'Name' => 'Solltemperatur Beifahrer (°C)',   'Enabled' => true],
             ['Ident' => self::ACT_DEFROST,              'Name' => 'Max Defrost',                      'Enabled' => true],
             ['Ident' => self::ACT_STEERING_WHEEL_HEATER,'Name' => 'Lenkradheizung',                  'Enabled' => true],
@@ -649,6 +668,66 @@ class TessieVehicle extends IPSModule
                 }
                 $this->safeSetValue(self::ACT_CLOSE_WINDOWS, false);
                 break;
+            case self::ACT_CLIMATE_KEEPER_MODE:
+                $mode = (int)$Value;
+                if ($mode < 0) $mode = 0;
+                if ($mode > 3) $mode = 3;
+                $this->sendCommand($vin, $token, 'set_climate_keeper_mode', ['mode' => $mode]);
+                $this->safeSetValue(self::ACT_CLIMATE_KEEPER_MODE, $mode);
+                break;
+
+            case self::ACT_COP_ENABLED:
+                $on = (bool)$Value;
+                $fanOnlyId = @IPS_GetObjectIDByIdent(self::ACT_COP_FAN_ONLY, $this->InstanceID);
+                $fanOnly = ($fanOnlyId > 0) ? (bool)@GetValueBoolean($fanOnlyId) : false;
+                $this->sendCommand($vin, $token, 'set_cabin_overheat_protection', ['on' => $on, 'fan_only' => $fanOnly]);
+                $this->safeSetValue(self::ACT_COP_ENABLED, $on);
+                break;
+
+            case self::ACT_COP_FAN_ONLY:
+                $fanOnly = (bool)$Value;
+                $onId = @IPS_GetObjectIDByIdent(self::ACT_COP_ENABLED, $this->InstanceID);
+                $on = ($onId > 0) ? (bool)@GetValueBoolean($onId) : true;
+                $this->sendCommand($vin, $token, 'set_cabin_overheat_protection', ['on' => $on, 'fan_only' => $fanOnly]);
+                $this->safeSetValue(self::ACT_COP_FAN_ONLY, $fanOnly);
+                break;
+
+            case self::ACT_COP_TEMP:
+                $lvl = (int)$Value;
+                if ($lvl < 1) $lvl = 1;
+                if ($lvl > 3) $lvl = 3;
+                $this->sendCommand($vin, $token, 'set_cop_temp', ['cop_temp' => $lvl]);
+                $this->safeSetValue(self::ACT_COP_TEMP, $lvl);
+                break;
+
+            case self::ACT_BIO_DEFENSE:
+                $on = (bool)$Value;
+                $this->sendCommand($vin, $token, 'set_bioweapon_mode', ['on' => $on]);
+                $this->safeSetValue(self::ACT_BIO_DEFENSE, $on);
+                break;
+
+            case self::ACT_HOMELINK:
+                if ((bool)$Value) {
+                    $this->sendCommand($vin, $token, 'trigger_homelink');
+                }
+                $this->safeSetValue(self::ACT_HOMELINK, false);
+                break;
+
+            case self::ACT_FRONT_TRUNK:
+                if ((bool)$Value) {
+                    $this->sendCommand($vin, $token, 'activate_front_trunk');
+                }
+                $this->safeSetValue(self::ACT_FRONT_TRUNK, false);
+                break;
+
+            case self::ACT_REAR_TRUNK:
+                if ((bool)$Value) {
+                    $this->sendCommand($vin, $token, 'activate_rear_trunk');
+                }
+                $this->safeSetValue(self::ACT_REAR_TRUNK, false);
+                break;
+
+
 
 
             default:
@@ -784,6 +863,21 @@ class TessieVehicle extends IPSModule
                 continue;
             }
 
+
+            if ($key === 'ClimateKeeperMode') {
+                $n = $this->telemetryGetNumber($val);
+                if ($n !== null) {
+                    $this->safeSetValueIfExists(self::ACT_CLIMATE_KEEPER_MODE, (int)round($n));
+                }
+                continue;
+            }
+            if ($key === 'CabinOverheatProtectionTemperatureLimit') {
+                $n = $this->telemetryGetNumber($val);
+                if ($n !== null) {
+                    $this->safeSetValueIfExists(self::ACT_COP_TEMP, (int)round($n));
+                }
+                continue;
+            }
             if ($key === 'ValetModeEnabled') {
                 $b = $this->telemetryGetBool($val);
                 if ($b !== null) $this->safeSetValueIfExists(self::ACT_VALET_MODE, $b);
@@ -973,18 +1067,6 @@ class TessieVehicle extends IPSModule
         }
         return $posMap;
     }
-    private function applyVariablePositions(array $posMap): void
-    {
-        foreach ($posMap as $ident => $pos) {
-            $varId = @IPS_GetObjectIDByIdent((string)$ident, $this->InstanceID);
-            if ($varId <= 0 || !IPS_ObjectExists($varId)) {
-                continue;
-            }
-            IPS_SetPosition($varId, (int)$pos);
-        }
-    }
-
-
 
     private function safeSetValue(string $ident, $value): void
     {
@@ -1160,7 +1242,23 @@ class TessieVehicle extends IPSModule
             IPS_SetVariableProfileIcon('Tessie.Degrees', 'Compass');
         }
 
-    }
+    
+        if (!IPS_VariableProfileExists('Tessie.ClimateKeeperMode')) {
+            IPS_CreateVariableProfile('Tessie.ClimateKeeperMode', VARIABLETYPE_INTEGER);
+            IPS_SetVariableProfileIcon('Tessie.ClimateKeeperMode', 'Climate');
+            IPS_SetVariableProfileAssociation('Tessie.ClimateKeeperMode', 0, $this->Translate('Off'), '', 0xAAAAAA);
+            IPS_SetVariableProfileAssociation('Tessie.ClimateKeeperMode', 1, $this->Translate('Keep'), '', 0x66CCFF);
+            IPS_SetVariableProfileAssociation('Tessie.ClimateKeeperMode', 2, $this->Translate('Dog'), '', 0x66FF66);
+            IPS_SetVariableProfileAssociation('Tessie.ClimateKeeperMode', 3, $this->Translate('Camp'), '', 0xFFCC66);
+        }
+        if (!IPS_VariableProfileExists('Tessie.COPTemp')) {
+            IPS_CreateVariableProfile('Tessie.COPTemp', VARIABLETYPE_INTEGER);
+            IPS_SetVariableProfileIcon('Tessie.COPTemp', 'Temperature');
+            IPS_SetVariableProfileAssociation('Tessie.COPTemp', 1, $this->Translate('Low'), '', 0x66CCFF);
+            IPS_SetVariableProfileAssociation('Tessie.COPTemp', 2, $this->Translate('Medium'), '', 0xFFCC66);
+            IPS_SetVariableProfileAssociation('Tessie.COPTemp', 3, $this->Translate('High'), '', 0xFF6666);
+        }
+}
 
     
     private function guessProfileForTelemetryKey(string $key, int $type): string
@@ -1220,6 +1318,31 @@ class TessieVehicle extends IPSModule
 
         $this->MaintainVariable(self::ACT_CLIMATE, 'Klima', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_CLIMATE), $keep(self::ACT_CLIMATE));
         if ($keep(self::ACT_CLIMATE)) $this->EnableAction(self::ACT_CLIMATE);
+
+
+        $this->MaintainVariable(self::ACT_CLIMATE_KEEPER_MODE, 'Climate Keeper Mode', VARIABLETYPE_INTEGER, 'Tessie.ClimateKeeperMode', $pos(self::ACT_CLIMATE_KEEPER_MODE), $keep(self::ACT_CLIMATE_KEEPER_MODE));
+        if ($keep(self::ACT_CLIMATE_KEEPER_MODE)) $this->EnableAction(self::ACT_CLIMATE_KEEPER_MODE);
+
+        $this->MaintainVariable(self::ACT_COP_ENABLED, 'Innenraum-Überhitzeschutz', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_COP_ENABLED), $keep(self::ACT_COP_ENABLED));
+        if ($keep(self::ACT_COP_ENABLED)) $this->EnableAction(self::ACT_COP_ENABLED);
+
+        $this->MaintainVariable(self::ACT_COP_FAN_ONLY, 'Innenraum-Überhitzeschutz: nur Lüfter', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_COP_FAN_ONLY), $keep(self::ACT_COP_FAN_ONLY));
+        if ($keep(self::ACT_COP_FAN_ONLY)) $this->EnableAction(self::ACT_COP_FAN_ONLY);
+
+        $this->MaintainVariable(self::ACT_COP_TEMP, 'Innenraum-Überhitzeschutz: Temperaturlimit', VARIABLETYPE_INTEGER, 'Tessie.COPTemp', $pos(self::ACT_COP_TEMP), $keep(self::ACT_COP_TEMP));
+        if ($keep(self::ACT_COP_TEMP)) $this->EnableAction(self::ACT_COP_TEMP);
+
+        $this->MaintainVariable(self::ACT_BIO_DEFENSE, 'Bio Defense Mode', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_BIO_DEFENSE), $keep(self::ACT_BIO_DEFENSE));
+        if ($keep(self::ACT_BIO_DEFENSE)) $this->EnableAction(self::ACT_BIO_DEFENSE);
+
+        $this->MaintainVariable(self::ACT_HOMELINK, 'HomeLink auslösen', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_HOMELINK), $keep(self::ACT_HOMELINK));
+        if ($keep(self::ACT_HOMELINK)) $this->EnableAction(self::ACT_HOMELINK);
+
+        $this->MaintainVariable(self::ACT_FRONT_TRUNK, 'Front-Trunk öffnen', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_FRONT_TRUNK), $keep(self::ACT_FRONT_TRUNK));
+        if ($keep(self::ACT_FRONT_TRUNK)) $this->EnableAction(self::ACT_FRONT_TRUNK);
+
+        $this->MaintainVariable(self::ACT_REAR_TRUNK, 'Rear-Trunk öffnen/schließen', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_REAR_TRUNK), $keep(self::ACT_REAR_TRUNK));
+        if ($keep(self::ACT_REAR_TRUNK)) $this->EnableAction(self::ACT_REAR_TRUNK);
 
         $this->MaintainVariable(self::ACT_START_CHARGING, 'Laden', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_START_CHARGING), $keep(self::ACT_START_CHARGING));
         if ($keep(self::ACT_START_CHARGING)) $this->EnableAction(self::ACT_START_CHARGING);
@@ -1291,10 +1414,7 @@ class TessieVehicle extends IPSModule
 
             $this->MaintainVariable($ident, $name, $type, $profile, $position, $isEnabled);
         }
-    
-        // Positionen der Variablen im Objektbaum explizit setzen (damit Drag&Drop aus VisibleVars sicher wirkt)
-        $this->applyVariablePositions($posMap);
-}
+    }
 
     // Linktree (deine vorhandene Logik, nur Strings sind bereits DE)
     private function ensureLinkTree(bool $forceRename = false): void
