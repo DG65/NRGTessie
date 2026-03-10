@@ -973,6 +973,18 @@ class TessieVehicle extends IPSModule
         }
         return $posMap;
     }
+    private function applyVariablePositions(array $posMap): void
+    {
+        foreach ($posMap as $ident => $pos) {
+            $varId = @IPS_GetObjectIDByIdent((string)$ident, $this->InstanceID);
+            if ($varId <= 0 || !IPS_ObjectExists($varId)) {
+                continue;
+            }
+            IPS_SetPosition($varId, (int)$pos);
+        }
+    }
+
+
 
     private function safeSetValue(string $ident, $value): void
     {
@@ -1279,7 +1291,10 @@ class TessieVehicle extends IPSModule
 
             $this->MaintainVariable($ident, $name, $type, $profile, $position, $isEnabled);
         }
-    }
+    
+        // Positionen der Variablen im Objektbaum explizit setzen (damit Drag&Drop aus VisibleVars sicher wirkt)
+        $this->applyVariablePositions($posMap);
+}
 
     // Linktree (deine vorhandene Logik, nur Strings sind bereits DE)
     private function ensureLinkTree(bool $forceRename = false): void
