@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.0.4] - 2026-06-14
+### Behoben
+- Datenpunkte ließen sich weiterhin nicht per Drag & Drop sortieren. Ursache: bei der Angleichung an HeishaMon war `loadValuesFromConfiguration: false` gesetzt, wodurch die Liste rein aus berechneten Werten statt aus der Property gefüllt wurde - die geänderte Reihenfolge konnte so nicht gespeichert werden. Jetzt `true`: die Liste ist property-gestützt (Reihenfolge wird gespeichert), die berechneten Spalten Name/Gruppe/Empfangen werden weiterhin ergänzt.
+
 ## [2.0.3] – 2026-06-14
 ### Behoben
 - Datenpunkte ließen sich nicht per Drag & Drop sortieren und einige Variablen hatten Position 0. Ursache: die gespeicherte Liste war unvollständig (neue Kern-Variablen aus Updates fehlten). Neu: eine vollständige „effektive Liste" (Defaults + Telemetrie) als Basis für Anzeige, Position und Aktiv-Status; Spaltenkonfiguration an HeishaMon angeglichen (nur Ident wird persistiert).

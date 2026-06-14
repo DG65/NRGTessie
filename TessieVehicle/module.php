@@ -267,7 +267,9 @@ $registry = $this->getTelemetryRegistry();
                 'add' => false,
                 'delete' => false,
                 'changeOrder' => true,
-                'loadValuesFromConfiguration' => false,
+                // true: Liste wird aus der Property gefüllt -> Drag&Drop-Reihenfolge wird gespeichert.
+                // Nicht-editierbare Spalten (Name/Gruppe/Empfangen) werden danach aus 'values' ergänzt.
+                'loadValuesFromConfiguration' => true,
                 'columns' => [
                     ['caption' => 'Aktiv',     'name' => 'Enabled',   'width' => '80px',  'add' => true, 'edit' => ['type' => 'CheckBox']],
                     ['caption' => 'Name',      'name' => 'Name',      'width' => 'auto',  'add' => ''],
