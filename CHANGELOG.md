@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.0.2] – 2026-06-14
+### Hinzugefügt
+- Datenpunkt-Liste: Spalte **Empfangen** (zeigt „Ja", sobald die Variable einen Wert erhalten hat) — analog HeishaMon.
+
 ## [2.0.1] – 2026-06-14
 ### Geändert
 - Instanzkonfiguration optisch an das HeishaMon-Modul angeglichen: Intro-/Erklärtexte, Datenpunkt-Liste mit Spalten **Aktiv | Name | Gruppe | Ident** (Checkbox zuerst, neue Gruppen-Spalte = Domäne) und die Link-Einstellungen gebündelt im aufklappbaren Bereich **Linkstruktur**.

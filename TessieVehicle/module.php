@@ -215,6 +215,8 @@ $registry = $this->getTelemetryRegistry();
             $ident = (string)($row['Ident'] ?? '');
             $row['Name']   = $this->Translate((string)($row['Name'] ?? $ident));
             $row['Gruppe'] = $this->purposeForIdent($ident, $registry);
+            $vid = @IPS_GetObjectIDByIdent($ident, $this->InstanceID);
+            $row['Empfangen'] = ($vid > 0 && (int)(@IPS_GetVariable($vid)['VariableUpdated'] ?? 0) > 0) ? 'Ja' : '';
         }
         unset($row);
 
@@ -266,8 +268,9 @@ $registry = $this->getTelemetryRegistry();
                         'edit' => ['type' => 'CheckBox']
                     ],
                     ['caption' => 'Name',   'name' => 'Name',   'width' => 'auto',  'save' => true],
-                    ['caption' => 'Gruppe', 'name' => 'Gruppe', 'width' => '170px'],
-                    ['caption' => 'Ident',  'name' => 'Ident',  'width' => '320px', 'save' => true]
+                    ['caption' => 'Gruppe',    'name' => 'Gruppe',    'width' => '170px'],
+                    ['caption' => 'Ident',     'name' => 'Ident',     'width' => '300px', 'save' => true],
+                    ['caption' => 'Empfangen', 'name' => 'Empfangen', 'width' => '110px']
                 ],
                 'values' => $fullList
             ],
