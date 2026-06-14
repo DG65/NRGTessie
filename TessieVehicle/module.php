@@ -48,11 +48,10 @@ class TessieVehicle extends IPSModule
     private const TIMER_UPDATE = 'UpdateTimer';
 
     // -------------------- Kategorien (Links) --------------------
-    private const PURPOSE_ACTIONS  = 'Aktionen';
-    private const PURPOSE_STATUS   = 'Status';
     private const PURPOSE_CHARGING = 'Laden';
     private const PURPOSE_CLIMATE  = 'Klima';
     private const PURPOSE_SECURITY = 'Sicherheit';
+    private const PURPOSE_OTHER    = 'Sonstiges';
 
     // -------------------- Attribute --------------------
     private const ATTR_VEHICLE_NAME        = 'VehicleName';
@@ -1313,92 +1312,92 @@ class TessieVehicle extends IPSModule
         }
 
         // Core Variablen
-        $this->MaintainVariable(self::ACT_LOCKED, 'Verriegelt', VARIABLETYPE_BOOLEAN, '~Lock', $pos(self::ACT_LOCKED), $keep(self::ACT_LOCKED));
+        $this->MaintainVariable(self::ACT_LOCKED, 'Verriegelt', VARIABLETYPE_BOOLEAN, '~Lock', $pos(self::ACT_LOCKED), true);
         if ($keep(self::ACT_LOCKED)) $this->EnableAction(self::ACT_LOCKED);
 
-        $this->MaintainVariable(self::ACT_CLIMATE, 'Klima', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_CLIMATE), $keep(self::ACT_CLIMATE));
+        $this->MaintainVariable(self::ACT_CLIMATE, 'Klima', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_CLIMATE), true);
         if ($keep(self::ACT_CLIMATE)) $this->EnableAction(self::ACT_CLIMATE);
 
 
-        $this->MaintainVariable(self::ACT_CLIMATE_KEEPER_MODE, 'Climate Keeper Mode', VARIABLETYPE_INTEGER, 'Tessie.ClimateKeeperMode', $pos(self::ACT_CLIMATE_KEEPER_MODE), $keep(self::ACT_CLIMATE_KEEPER_MODE));
+        $this->MaintainVariable(self::ACT_CLIMATE_KEEPER_MODE, 'Climate Keeper Mode', VARIABLETYPE_INTEGER, 'Tessie.ClimateKeeperMode', $pos(self::ACT_CLIMATE_KEEPER_MODE), true);
         if ($keep(self::ACT_CLIMATE_KEEPER_MODE)) $this->EnableAction(self::ACT_CLIMATE_KEEPER_MODE);
 
-        $this->MaintainVariable(self::ACT_COP_ENABLED, 'Innenraum-Überhitzeschutz', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_COP_ENABLED), $keep(self::ACT_COP_ENABLED));
+        $this->MaintainVariable(self::ACT_COP_ENABLED, 'Innenraum-Überhitzeschutz', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_COP_ENABLED), true);
         if ($keep(self::ACT_COP_ENABLED)) $this->EnableAction(self::ACT_COP_ENABLED);
 
-        $this->MaintainVariable(self::ACT_COP_FAN_ONLY, 'Innenraum-Überhitzeschutz: nur Lüfter', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_COP_FAN_ONLY), $keep(self::ACT_COP_FAN_ONLY));
+        $this->MaintainVariable(self::ACT_COP_FAN_ONLY, 'Innenraum-Überhitzeschutz: nur Lüfter', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_COP_FAN_ONLY), true);
         if ($keep(self::ACT_COP_FAN_ONLY)) $this->EnableAction(self::ACT_COP_FAN_ONLY);
 
-        $this->MaintainVariable(self::ACT_COP_TEMP, 'Innenraum-Überhitzeschutz: Temperaturlimit', VARIABLETYPE_INTEGER, 'Tessie.COPTemp', $pos(self::ACT_COP_TEMP), $keep(self::ACT_COP_TEMP));
+        $this->MaintainVariable(self::ACT_COP_TEMP, 'Innenraum-Überhitzeschutz: Temperaturlimit', VARIABLETYPE_INTEGER, 'Tessie.COPTemp', $pos(self::ACT_COP_TEMP), true);
         if ($keep(self::ACT_COP_TEMP)) $this->EnableAction(self::ACT_COP_TEMP);
 
-        $this->MaintainVariable(self::ACT_BIO_DEFENSE, 'Bio Defense Mode', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_BIO_DEFENSE), $keep(self::ACT_BIO_DEFENSE));
+        $this->MaintainVariable(self::ACT_BIO_DEFENSE, 'Bio Defense Mode', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_BIO_DEFENSE), true);
         if ($keep(self::ACT_BIO_DEFENSE)) $this->EnableAction(self::ACT_BIO_DEFENSE);
 
-        $this->MaintainVariable(self::ACT_HOMELINK, 'HomeLink auslösen', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_HOMELINK), $keep(self::ACT_HOMELINK));
+        $this->MaintainVariable(self::ACT_HOMELINK, 'HomeLink auslösen', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_HOMELINK), true);
         if ($keep(self::ACT_HOMELINK)) $this->EnableAction(self::ACT_HOMELINK);
 
-        $this->MaintainVariable(self::ACT_FRONT_TRUNK, 'Front-Trunk öffnen', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_FRONT_TRUNK), $keep(self::ACT_FRONT_TRUNK));
+        $this->MaintainVariable(self::ACT_FRONT_TRUNK, 'Front-Trunk öffnen', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_FRONT_TRUNK), true);
         if ($keep(self::ACT_FRONT_TRUNK)) $this->EnableAction(self::ACT_FRONT_TRUNK);
 
-        $this->MaintainVariable(self::ACT_REAR_TRUNK, 'Rear-Trunk öffnen/schließen', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_REAR_TRUNK), $keep(self::ACT_REAR_TRUNK));
+        $this->MaintainVariable(self::ACT_REAR_TRUNK, 'Rear-Trunk öffnen/schließen', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_REAR_TRUNK), true);
         if ($keep(self::ACT_REAR_TRUNK)) $this->EnableAction(self::ACT_REAR_TRUNK);
 
-        $this->MaintainVariable(self::ACT_START_CHARGING, 'Laden', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_START_CHARGING), $keep(self::ACT_START_CHARGING));
+        $this->MaintainVariable(self::ACT_START_CHARGING, 'Laden', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_START_CHARGING), true);
         if ($keep(self::ACT_START_CHARGING)) $this->EnableAction(self::ACT_START_CHARGING);
 
-        $this->MaintainVariable(self::ACT_CHARGE_LIMIT, 'Ladelimit (%)', VARIABLETYPE_INTEGER, 'Tessie.PercentInt', $pos(self::ACT_CHARGE_LIMIT), $keep(self::ACT_CHARGE_LIMIT));
+        $this->MaintainVariable(self::ACT_CHARGE_LIMIT, 'Ladelimit (%)', VARIABLETYPE_INTEGER, 'Tessie.PercentInt', $pos(self::ACT_CHARGE_LIMIT), true);
         if ($keep(self::ACT_CHARGE_LIMIT)) $this->EnableAction(self::ACT_CHARGE_LIMIT);
 
-        $this->MaintainVariable(self::ACT_CHARGING_AMPS_REQUEST, 'Ladestrom Soll (A)', VARIABLETYPE_INTEGER, 'Tessie.Amps', $pos(self::ACT_CHARGING_AMPS_REQUEST), $keep(self::ACT_CHARGING_AMPS_REQUEST));
+        $this->MaintainVariable(self::ACT_CHARGING_AMPS_REQUEST, 'Ladestrom Soll (A)', VARIABLETYPE_INTEGER, 'Tessie.Amps', $pos(self::ACT_CHARGING_AMPS_REQUEST), true);
         if ($keep(self::ACT_CHARGING_AMPS_REQUEST)) $this->EnableAction(self::ACT_CHARGING_AMPS_REQUEST);
 
-        $this->MaintainVariable(self::ACT_FLASH, 'Licht blinken', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_FLASH), $keep(self::ACT_FLASH));
+        $this->MaintainVariable(self::ACT_FLASH, 'Licht blinken', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_FLASH), true);
         if ($keep(self::ACT_FLASH)) $this->EnableAction(self::ACT_FLASH);
 
-        $this->MaintainVariable(self::ACT_HONK, 'Hupe', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_HONK), $keep(self::ACT_HONK));
+        $this->MaintainVariable(self::ACT_HONK, 'Hupe', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_HONK), true);
         if ($keep(self::ACT_HONK)) $this->EnableAction(self::ACT_HONK);
 
-        $this->MaintainVariable(self::ACT_SENTRY_MODE, 'Sentry Mode', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_SENTRY_MODE), $keep(self::ACT_SENTRY_MODE));
+        $this->MaintainVariable(self::ACT_SENTRY_MODE, 'Sentry Mode', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_SENTRY_MODE), true);
         if ($keep(self::ACT_SENTRY_MODE)) $this->EnableAction(self::ACT_SENTRY_MODE);
 
-        $this->MaintainVariable(self::ACT_VALET_MODE, 'Valet-Modus', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_VALET_MODE), $keep(self::ACT_VALET_MODE));
+        $this->MaintainVariable(self::ACT_VALET_MODE, 'Valet-Modus', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_VALET_MODE), true);
         if ($keep(self::ACT_VALET_MODE)) $this->EnableAction(self::ACT_VALET_MODE);
 
-        $this->MaintainVariable(self::ACT_VENT_WINDOWS, 'Fenster lüften', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_VENT_WINDOWS), $keep(self::ACT_VENT_WINDOWS));
+        $this->MaintainVariable(self::ACT_VENT_WINDOWS, 'Fenster lüften', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_VENT_WINDOWS), true);
         if ($keep(self::ACT_VENT_WINDOWS)) $this->EnableAction(self::ACT_VENT_WINDOWS);
 
-        $this->MaintainVariable(self::ACT_CLOSE_WINDOWS, 'Fenster schließen', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_CLOSE_WINDOWS), $keep(self::ACT_CLOSE_WINDOWS));
+        $this->MaintainVariable(self::ACT_CLOSE_WINDOWS, 'Fenster schließen', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_CLOSE_WINDOWS), true);
         if ($keep(self::ACT_CLOSE_WINDOWS)) $this->EnableAction(self::ACT_CLOSE_WINDOWS);
 
-        $this->MaintainVariable(self::ACT_DEFROST, 'Max Defrost', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_DEFROST), $keep(self::ACT_DEFROST));
+        $this->MaintainVariable(self::ACT_DEFROST, 'Max Defrost', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_DEFROST), true);
         if ($keep(self::ACT_DEFROST)) $this->EnableAction(self::ACT_DEFROST);
 
-        $this->MaintainVariable(self::ACT_STEERING_WHEEL_HEATER, 'Lenkradheizung', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_STEERING_WHEEL_HEATER), $keep(self::ACT_STEERING_WHEEL_HEATER));
+        $this->MaintainVariable(self::ACT_STEERING_WHEEL_HEATER, 'Lenkradheizung', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_STEERING_WHEEL_HEATER), true);
         if ($keep(self::ACT_STEERING_WHEEL_HEATER)) $this->EnableAction(self::ACT_STEERING_WHEEL_HEATER);
 
-        $this->MaintainVariable(self::ACT_TEMP_DRIVER, 'Solltemperatur Fahrer (°C)', VARIABLETYPE_FLOAT, 'Tessie.TempSetC', $pos(self::ACT_TEMP_DRIVER), $keep(self::ACT_TEMP_DRIVER));
+        $this->MaintainVariable(self::ACT_TEMP_DRIVER, 'Solltemperatur Fahrer (°C)', VARIABLETYPE_FLOAT, 'Tessie.TempSetC', $pos(self::ACT_TEMP_DRIVER), true);
         if ($keep(self::ACT_TEMP_DRIVER)) $this->EnableAction(self::ACT_TEMP_DRIVER);
 
-        $this->MaintainVariable(self::ACT_TEMP_PASSENGER, 'Solltemperatur Beifahrer (°C)', VARIABLETYPE_FLOAT, 'Tessie.TempSetC', $pos(self::ACT_TEMP_PASSENGER), $keep(self::ACT_TEMP_PASSENGER));
+        $this->MaintainVariable(self::ACT_TEMP_PASSENGER, 'Solltemperatur Beifahrer (°C)', VARIABLETYPE_FLOAT, 'Tessie.TempSetC', $pos(self::ACT_TEMP_PASSENGER), true);
         if ($keep(self::ACT_TEMP_PASSENGER)) $this->EnableAction(self::ACT_TEMP_PASSENGER);
 
-        $this->MaintainVariable(self::ACT_SEAT_HEAT_DRIVER, 'Sitzheizung Fahrer', VARIABLETYPE_INTEGER, 'Tessie.SeatHeatLevel', $pos(self::ACT_SEAT_HEAT_DRIVER), $keep(self::ACT_SEAT_HEAT_DRIVER));
+        $this->MaintainVariable(self::ACT_SEAT_HEAT_DRIVER, 'Sitzheizung Fahrer', VARIABLETYPE_INTEGER, 'Tessie.SeatHeatLevel', $pos(self::ACT_SEAT_HEAT_DRIVER), true);
         if ($keep(self::ACT_SEAT_HEAT_DRIVER)) $this->EnableAction(self::ACT_SEAT_HEAT_DRIVER);
 
-        $this->MaintainVariable(self::ACT_SEAT_HEAT_PASSENGER, 'Sitzheizung Beifahrer', VARIABLETYPE_INTEGER, 'Tessie.SeatHeatLevel', $pos(self::ACT_SEAT_HEAT_PASSENGER), $keep(self::ACT_SEAT_HEAT_PASSENGER));
+        $this->MaintainVariable(self::ACT_SEAT_HEAT_PASSENGER, 'Sitzheizung Beifahrer', VARIABLETYPE_INTEGER, 'Tessie.SeatHeatLevel', $pos(self::ACT_SEAT_HEAT_PASSENGER), true);
         if ($keep(self::ACT_SEAT_HEAT_PASSENGER)) $this->EnableAction(self::ACT_SEAT_HEAT_PASSENGER);
 
-        $this->MaintainVariable(self::ACT_OPEN_CHARGE_PORT, 'Ladeport öffnen/entriegeln', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_OPEN_CHARGE_PORT), $keep(self::ACT_OPEN_CHARGE_PORT));
+        $this->MaintainVariable(self::ACT_OPEN_CHARGE_PORT, 'Ladeport öffnen/entriegeln', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_OPEN_CHARGE_PORT), true);
         if ($keep(self::ACT_OPEN_CHARGE_PORT)) $this->EnableAction(self::ACT_OPEN_CHARGE_PORT);
 
-        $this->MaintainVariable(self::ACT_CLOSE_CHARGE_PORT, 'Ladeport schließen', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_CLOSE_CHARGE_PORT), $keep(self::ACT_CLOSE_CHARGE_PORT));
+        $this->MaintainVariable(self::ACT_CLOSE_CHARGE_PORT, 'Ladeport schließen', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_CLOSE_CHARGE_PORT), true);
         if ($keep(self::ACT_CLOSE_CHARGE_PORT)) $this->EnableAction(self::ACT_CLOSE_CHARGE_PORT);
 
 
-        $this->MaintainVariable(self::STAT_CHARGING_AMPS_ACTUAL, 'Ladestrom Ist (A)', VARIABLETYPE_FLOAT, 'Tessie.AmpsFloat', $pos(self::STAT_CHARGING_AMPS_ACTUAL), $keep(self::STAT_CHARGING_AMPS_ACTUAL));
-        $this->MaintainVariable(self::STAT_CHARGING_AMPS_MAX, 'Ladestrom Max (A)', VARIABLETYPE_INTEGER, 'Tessie.Amps', $pos(self::STAT_CHARGING_AMPS_MAX), $keep(self::STAT_CHARGING_AMPS_MAX));
-        $this->MaintainVariable(self::STAT_AC_CHARGING_POWER, 'AC Ladeleistung (kW)', VARIABLETYPE_FLOAT, 'Tessie.kW', $pos(self::STAT_AC_CHARGING_POWER), $keep(self::STAT_AC_CHARGING_POWER));
+        $this->MaintainVariable(self::STAT_CHARGING_AMPS_ACTUAL, 'Ladestrom Ist (A)', VARIABLETYPE_FLOAT, 'Tessie.AmpsFloat', $pos(self::STAT_CHARGING_AMPS_ACTUAL), true);
+        $this->MaintainVariable(self::STAT_CHARGING_AMPS_MAX, 'Ladestrom Max (A)', VARIABLETYPE_INTEGER, 'Tessie.Amps', $pos(self::STAT_CHARGING_AMPS_MAX), true);
+        $this->MaintainVariable(self::STAT_AC_CHARGING_POWER, 'AC Ladeleistung (kW)', VARIABLETYPE_FLOAT, 'Tessie.kW', $pos(self::STAT_AC_CHARGING_POWER), true);
 
         // Telemetrie-Variablen aus Registry (nur wenn User aktiviert)
         $registry = $this->getTelemetryRegistry();
@@ -1412,7 +1411,22 @@ class TessieVehicle extends IPSModule
             $profile = (string)($meta['profile'] ?? '');
             $position = $posMap[$ident] ?? 0;
 
-            $this->MaintainVariable($ident, $name, $type, $profile, $position, $isEnabled);
+            // Neu nur anlegen, solange aktiviert; bereits vorhandene bleiben erhalten
+            // und werden unten ggf. ausgeblendet (so bleiben Objekt-ID und Archivdaten erhalten)
+            $exists = @IPS_GetObjectIDByIdent($ident, $this->InstanceID) > 0;
+            if (!$exists && !$isEnabled) continue;
+            $this->MaintainVariable($ident, $name, $type, $profile, $position, true);
+        }
+
+        // Abgewählte Variablen ausblenden statt löschen (Objekt-ID und Archivdaten bleiben erhalten)
+        foreach ($posMap as $ident => $pos) {
+            $vid = @IPS_GetObjectIDByIdent($ident, $this->InstanceID);
+            if ($vid <= 0) continue;
+            $hidden = !($enabled[$ident] ?? true);
+            $obj = IPS_GetObject($vid);
+            if (($obj['ObjectIsHidden'] ?? false) != $hidden) {
+                IPS_SetHidden($vid, $hidden);
+            }
         }
     }
 
@@ -1446,85 +1460,126 @@ class TessieVehicle extends IPSModule
             IPS_SetName($rootId, $rootName);
         }
 
-        $purposes = [self::PURPOSE_ACTIONS, self::PURPOSE_STATUS, self::PURPOSE_CHARGING, self::PURPOSE_CLIMATE, self::PURPOSE_SECURITY];
-        $purposeIds = [];
+        // Reine Domänen-Gruppierung: jede Variable genau einmal.
+        // Kategorien werden erst angelegt, wenn sie wirklich einen Link bekommen.
+        $purposes = [self::PURPOSE_CHARGING, self::PURPOSE_CLIMATE, self::PURPOSE_SECURITY, self::PURPOSE_OTHER];
+        $validPurposeIdents = [];
         foreach ($purposes as $p) {
-            $pid = $this->ensureCategoryUnder($rootId, $p, self::IDENT_PURP_PREFIX . $this->makeIdent($p));
-            $purposeIds[$p] = $pid;
+            $validPurposeIdents[self::IDENT_PURP_PREFIX . $this->makeIdent($p)] = true;
+        }
+
+        // Veraltete Purpose-Kategorien aus früheren Versionen entfernen (z.B. Aktionen/Status)
+        if ((bool)$this->ReadPropertyBoolean('CleanupLinks')) {
+            foreach (IPS_GetChildrenIDs($rootId) as $cid) {
+                $obj = IPS_GetObject($cid);
+                if (($obj['ObjectType'] ?? 0) !== OBJECTTYPE_CATEGORY) continue;
+                $cident = IPS_GetIdent($cid);
+                if (strpos($cident, self::IDENT_PURP_PREFIX) !== 0) continue;
+                if (isset($validPurposeIdents[$cident])) continue;
+                foreach (IPS_GetChildrenIDs($cid) as $sub) {
+                    $this->deleteObjectSafe($sub);
+                }
+                $this->deleteObjectSafe($cid);
+            }
         }
 
         $desired = [];
+        $purposeIds = [];
 
-        $createLink = function(string $purpose, string $linkIdent, string $varIdent) use (&$desired, $purposeIds, $enabled, $posMap) {
+        $createLink = function(string $purpose, string $varIdent) use (&$desired, &$purposeIds, $enabled, $posMap, $rootId) {
             if (isset($enabled[$varIdent]) && !$enabled[$varIdent]) return;
             $varId = @IPS_GetObjectIDByIdent($varIdent, $this->InstanceID);
             if ($varId <= 0) return;
+            if (!isset($purposeIds[$purpose])) {
+                $purposeIds[$purpose] = $this->ensureCategoryUnder($rootId, $purpose, self::IDENT_PURP_PREFIX . $this->makeIdent($purpose));
+            }
+            $pid = $purposeIds[$purpose];
+            $linkIdent = self::IDENT_LINK_PREFIX . $this->makeIdent($varIdent);
             $pos = $posMap[$varIdent] ?? 999999;
-            $this->ensureLinkUnder($purposeIds[$purpose], $varId, $linkIdent, IPS_GetName($varId), $pos);
-            $desired[$purposeIds[$purpose]][] = $linkIdent;
+            $this->ensureLinkUnder($pid, $varId, $linkIdent, IPS_GetName($varId), $pos);
+            $desired[$pid][] = $linkIdent;
         };
 
-        foreach ($posMap as $ident => $pos) {
-            if (strpos($ident, 'act_') === 0) {
-                $createLink(self::PURPOSE_ACTIONS, self::IDENT_LINK_PREFIX . 'ACT_' . $ident, $ident);
-            }
-        }
-        foreach ($posMap as $ident => $pos) {
-            if (strpos($ident, 'stat_') === 0) {
-                $createLink(self::PURPOSE_STATUS, self::IDENT_LINK_PREFIX . 'STAT_' . $ident, $ident);
-            }
-        }
-
-                $domain = [
-            self::PURPOSE_CHARGING => [self::ACT_START_CHARGING, self::ACT_CHARGE_LIMIT, self::ACT_CHARGING_AMPS_REQUEST, self::ACT_OPEN_CHARGE_PORT, self::ACT_CLOSE_CHARGE_PORT, self::STAT_CHARGING_AMPS_ACTUAL, self::STAT_CHARGING_AMPS_MAX, self::STAT_AC_CHARGING_POWER],
-            self::PURPOSE_CLIMATE => [self::ACT_CLIMATE, self::ACT_TEMP_DRIVER, self::ACT_TEMP_PASSENGER, self::ACT_DEFROST, self::ACT_STEERING_WHEEL_HEATER, self::ACT_SEAT_HEAT_DRIVER, self::ACT_SEAT_HEAT_PASSENGER],
-            self::PURPOSE_SECURITY => [self::ACT_LOCKED, self::ACT_SENTRY_MODE, self::ACT_VALET_MODE, self::ACT_FLASH, self::ACT_HONK, self::ACT_VENT_WINDOWS, self::ACT_CLOSE_WINDOWS]
-        ];
-        foreach ($posMap as $ident => $pos) {
-            foreach ($domain as $purpose => $identsInDomain) {
-                if (!in_array($ident, $identsInDomain, true)) continue;
-                $createLink($purpose, self::IDENT_LINK_PREFIX . 'DOM_' . $this->makeIdent($purpose) . '_' . $ident, $ident);
-            }
-        }
-
-        // Telemetrie-Links nach Schlüssel klassifizieren
+        // Jede sichtbare Variable genau einer Domäne zuordnen
         $registry = $this->getTelemetryRegistry();
-        foreach ($registry as $ident => $meta) {
-            if (!is_string($ident) || $ident === '') continue;
-            if (strpos($ident, 'stat_tel_') !== 0) continue;
-            if (!isset($enabled[$ident]) || !$enabled[$ident]) continue;
-
-            $key = is_array($meta) ? (string)($meta['key'] ?? $meta['name'] ?? $ident) : $ident;
-            $purps = $this->classifyTelemetryKeyToPurposes($key);
-            foreach ($purps as $purpose) {
-                $createLink($purpose, self::IDENT_LINK_PREFIX . 'TELDOM_' . $this->makeIdent($purpose) . '_' . $ident, $ident);
-            }
+        foreach ($posMap as $ident => $pos) {
+            $createLink($this->purposeForIdent($ident, $registry), $ident);
         }
 
         if ((bool)$this->ReadPropertyBoolean('CleanupLinks')) {
-            foreach ($purposeIds as $pid) {
-                $keep = $desired[$pid] ?? [];
-                $this->cleanupLinksUnder($pid, $keep);
+            foreach ($purposes as $p) {
+                $pid = @IPS_GetObjectIDByIdent(self::IDENT_PURP_PREFIX . $this->makeIdent($p), $rootId);
+                if ($pid <= 0) continue;
+                $this->cleanupLinksUnder($pid, $desired[$pid] ?? []);
+                // leer gewordene Domänen-Kategorie entfernen
+                if (count(IPS_GetChildrenIDs($pid)) === 0) {
+                    $this->deleteObjectSafe($pid);
+                }
             }
         }
 
         $this->WriteAttributeInteger(self::ATTR_LAST_LINKS_LOCATION, $linksParent);
     }
 
-    private function classifyTelemetryKeyToPurposes(string $key): array
+    // Domäne einer Variable für die Linkbaum-Gruppierung (genau eine pro Variable)
+    private function purposeForIdent(string $ident, array $registry): string
+    {
+        static $coreMap = null;
+        if ($coreMap === null) {
+            $coreMap = [
+                self::ACT_START_CHARGING        => self::PURPOSE_CHARGING,
+                self::ACT_CHARGE_LIMIT          => self::PURPOSE_CHARGING,
+                self::ACT_CHARGING_AMPS_REQUEST => self::PURPOSE_CHARGING,
+                self::ACT_OPEN_CHARGE_PORT      => self::PURPOSE_CHARGING,
+                self::ACT_CLOSE_CHARGE_PORT     => self::PURPOSE_CHARGING,
+                self::STAT_CHARGING_AMPS_ACTUAL => self::PURPOSE_CHARGING,
+                self::STAT_CHARGING_AMPS_MAX    => self::PURPOSE_CHARGING,
+                self::STAT_AC_CHARGING_POWER    => self::PURPOSE_CHARGING,
+                self::ACT_CLIMATE               => self::PURPOSE_CLIMATE,
+                self::ACT_CLIMATE_KEEPER_MODE   => self::PURPOSE_CLIMATE,
+                self::ACT_COP_ENABLED           => self::PURPOSE_CLIMATE,
+                self::ACT_COP_FAN_ONLY          => self::PURPOSE_CLIMATE,
+                self::ACT_COP_TEMP              => self::PURPOSE_CLIMATE,
+                self::ACT_BIO_DEFENSE           => self::PURPOSE_CLIMATE,
+                self::ACT_TEMP_DRIVER           => self::PURPOSE_CLIMATE,
+                self::ACT_TEMP_PASSENGER        => self::PURPOSE_CLIMATE,
+                self::ACT_DEFROST               => self::PURPOSE_CLIMATE,
+                self::ACT_STEERING_WHEEL_HEATER => self::PURPOSE_CLIMATE,
+                self::ACT_SEAT_HEAT_DRIVER      => self::PURPOSE_CLIMATE,
+                self::ACT_SEAT_HEAT_PASSENGER   => self::PURPOSE_CLIMATE,
+                self::ACT_LOCKED                => self::PURPOSE_SECURITY,
+                self::ACT_SENTRY_MODE           => self::PURPOSE_SECURITY,
+                self::ACT_VALET_MODE            => self::PURPOSE_SECURITY,
+                self::ACT_FLASH                 => self::PURPOSE_SECURITY,
+                self::ACT_HONK                  => self::PURPOSE_SECURITY,
+                self::ACT_VENT_WINDOWS          => self::PURPOSE_SECURITY,
+                self::ACT_CLOSE_WINDOWS         => self::PURPOSE_SECURITY
+            ];
+        }
+        if (isset($coreMap[$ident])) {
+            return $coreMap[$ident];
+        }
+        if (strpos($ident, 'stat_tel_') === 0) {
+            $meta = $registry[$ident] ?? null;
+            $key = is_array($meta) ? (string)($meta['key'] ?? $meta['name'] ?? $ident) : $ident;
+            return $this->classifyTelemetryKeyToPurpose($key);
+        }
+        return self::PURPOSE_OTHER;
+    }
+
+    private function classifyTelemetryKeyToPurpose(string $key): string
     {
         $k = strtolower($key);
-        $purposes = [];
         if (strpos($k, 'charge') !== false || strpos($k, 'charging') !== false || strpos($k, 'battery') !== false || strpos($k, 'soc') !== false || strpos($k, 'energy') !== false || strpos($k, 'range') !== false || strpos($k, 'pack') !== false) {
-            $purposes[] = self::PURPOSE_CHARGING;
+            return self::PURPOSE_CHARGING;
         }
         if (strpos($k, 'hvac') !== false || strpos($k, 'temp') !== false || strpos($k, 'climate') !== false || strpos($k, 'cabin') !== false || strpos($k, 'seat') !== false || strpos($k, 'defrost') !== false) {
-            $purposes[] = self::PURPOSE_CLIMATE;
+            return self::PURPOSE_CLIMATE;
         }
         if (strpos($k, 'lock') !== false || strpos($k, 'door') !== false || strpos($k, 'window') !== false || strpos($k, 'sentry') !== false || strpos($k, 'pin') !== false || strpos($k, 'valet') !== false || strpos($k, 'alarm') !== false) {
-            $purposes[] = self::PURPOSE_SECURITY;
+            return self::PURPOSE_SECURITY;
         }
-        return array_values(array_unique($purposes));
+        return self::PURPOSE_OTHER;
     }
 
 
@@ -1619,25 +1674,17 @@ class TessieVehicle extends IPSModule
         $rootId = @IPS_GetObjectIDByIdent($rootIdent, $linksParent);
         if ($rootId <= 0 || !IPS_ObjectExists($rootId)) return;
 
-        $purposeNames = [self::PURPOSE_ACTIONS, self::PURPOSE_STATUS, self::PURPOSE_CHARGING, self::PURPOSE_CLIMATE, self::PURPOSE_SECURITY];
+        $linkIdent = self::IDENT_LINK_PREFIX . $this->makeIdent($varIdent);
+        $purposeNames = [self::PURPOSE_CHARGING, self::PURPOSE_CLIMATE, self::PURPOSE_SECURITY, self::PURPOSE_OTHER];
         foreach ($purposeNames as $p) {
             $pid = @IPS_GetObjectIDByIdent(self::IDENT_PURP_PREFIX . $this->makeIdent($p), $rootId);
             if ($pid <= 0) continue;
 
-            $idents = [
-                self::IDENT_LINK_PREFIX . 'ACT_' . $varIdent,
-                self::IDENT_LINK_PREFIX . 'STAT_' . $varIdent,
-                self::IDENT_LINK_PREFIX . 'DOM_' . $this->makeIdent($p) . '_' . $varIdent,
-                self::IDENT_LINK_PREFIX . 'TELDOM_' . $this->makeIdent($p) . '_' . $varIdent
-            ];
-
-            foreach ($idents as $lidIdent) {
-                $lid = @IPS_GetObjectIDByIdent($lidIdent, $pid);
-                if ($lid > 0 && IPS_ObjectExists($lid)) {
-                    $obj = IPS_GetObject($lid);
-                    if (($obj['ObjectType'] ?? 0) === OBJECTTYPE_LINK) {
-                        $this->deleteObjectSafe($lid);
-                    }
+            $lid = @IPS_GetObjectIDByIdent($linkIdent, $pid);
+            if ($lid > 0 && IPS_ObjectExists($lid)) {
+                $obj = IPS_GetObject($lid);
+                if (($obj['ObjectType'] ?? 0) === OBJECTTYPE_LINK) {
+                    $this->deleteObjectSafe($lid);
                 }
             }
         }
@@ -1690,6 +1737,11 @@ class TessieVehicle extends IPSModule
         $json = json_decode($resp, true);
         if (!is_array($json)) {
             $this->SendDebug('API-Anfrage', 'HTTP ' . $code . ' – keine JSON-Antwort: ' . substr($resp, 0, 500), 0);
+            return [];
+        }
+        if ($code >= 400) {
+            $this->SendDebug('API-Anfrage', 'HTTP ' . $code . ' ' . $methodUpper . ' ' . $path . ': ' . substr($resp, 0, 500), 0);
+            $this->LogMessage('Tessie API HTTP ' . $code . ' bei ' . $methodUpper . ' ' . $path, KL_WARNING);
             return [];
         }
         return $json;
