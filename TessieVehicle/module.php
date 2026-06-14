@@ -983,8 +983,23 @@ class TessieVehicle extends IPSModule
         if (array_key_exists('stringValue', $val)) {
             $sv = (string)$val['stringValue'];
             if (is_numeric(trim($sv))) return [VARIABLETYPE_FLOAT, (float)$sv];
-            return [VARIABLETYPE_STRING, $sv];
+            return [VARIABLETYPE_STRING, $this->Translate($sv)];
         }
+
+        // Generischer Tesla-Wert-/Enum-Wrapper, z.B. {"defrostModeValue":"DefrostModeStateOff"}:
+        // ersten Schlüssel auf "...Value" mit skalarem Inhalt auspacken. Enum-Strings werden
+        // über die locale.json lesbar gemacht (Translate gibt sonst den Originaltext zurück).
+        foreach ($val as $k => $inner) {
+            if (!is_string($k) || substr($k, -5) !== 'Value') continue;
+            if (is_bool($inner)) return [VARIABLETYPE_BOOLEAN, $inner];
+            if (is_int($inner)) return [VARIABLETYPE_INTEGER, $inner];
+            if (is_float($inner)) return [VARIABLETYPE_FLOAT, $inner];
+            if (is_string($inner)) {
+                if (is_numeric(trim($inner))) return [VARIABLETYPE_FLOAT, (float)$inner];
+                return [VARIABLETYPE_STRING, $this->Translate($inner)];
+            }
+        }
+
         return [VARIABLETYPE_STRING, json_encode($val)];
     }
 
