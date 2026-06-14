@@ -923,7 +923,7 @@ class TessieVehicle extends IPSModule
                 continue;
             }
 
-            [$type, $value] = $this->telemetryInferTypeAndValue($val);
+            [$type, $value] = $this->telemetryInferTypeAndValue($key, $val);
 
             // Einheiten umrechnen (mi->km, mph->km/h)
             $value = $this->convertTelemetryToMetric($key, $type, $value);
@@ -975,32 +975,70 @@ class TessieVehicle extends IPSModule
         }
     }
 
-    private function telemetryInferTypeAndValue(array $val): array
+    private function telemetryInferTypeAndValue(string $key, array $val): array
     {
-        if (array_key_exists('booleanValue', $val)) return [VARIABLETYPE_BOOLEAN, (bool)$val['booleanValue']];
-        if (array_key_exists('intValue', $val)) return [VARIABLETYPE_INTEGER, (int)$val['intValue']];
-        if (array_key_exists('doubleValue', $val)) return [VARIABLETYPE_FLOAT, (float)$val['doubleValue']];
-        if (array_key_exists('stringValue', $val)) {
-            $sv = (string)$val['stringValue'];
-            if (is_numeric(trim($sv))) return [VARIABLETYPE_FLOAT, (float)$sv];
-            return [VARIABLETYPE_STRING, $this->Translate($sv)];
+        // Tesla meldet fehlende/ungültige Werte als {"invalid":true}
+        if (array_key_exists('invalid', $val)) {
+            return [VARIABLETYPE_STRING, ''];
         }
 
-        // Generischer Tesla-Wert-/Enum-Wrapper, z.B. {"defrostModeValue":"DefrostModeStateOff"}:
-        // ersten Schlüssel auf "...Value" mit skalarem Inhalt auspacken. Enum-Strings werden
-        // über die locale.json lesbar gemacht (Translate gibt sonst den Originaltext zurück).
+        if (array_key_exists('booleanValue', $val)) return [VARIABLETYPE_BOOLEAN, (bool)$val['booleanValue']];
+        if (array_key_exists('intValue', $val)) return $this->telemetryScalar($key, $val['intValue']);
+        if (array_key_exists('longValue', $val)) return $this->telemetryScalar($key, $val['longValue']);
+        if (array_key_exists('doubleValue', $val)) return [VARIABLETYPE_FLOAT, (float)$val['doubleValue']];
+        if (array_key_exists('floatValue', $val)) return [VARIABLETYPE_FLOAT, (float)$val['floatValue']];
+        if (array_key_exists('stringValue', $val)) return $this->telemetryScalar($key, $val['stringValue']);
+
+        // Generischer Tesla-Wrapper: erster Schlüssel auf "...Value"
         foreach ($val as $k => $inner) {
             if (!is_string($k) || substr($k, -5) !== 'Value') continue;
-            if (is_bool($inner)) return [VARIABLETYPE_BOOLEAN, $inner];
-            if (is_int($inner)) return [VARIABLETYPE_INTEGER, $inner];
-            if (is_float($inner)) return [VARIABLETYPE_FLOAT, $inner];
-            if (is_string($inner)) {
-                if (is_numeric(trim($inner))) return [VARIABLETYPE_FLOAT, (float)$inner];
-                return [VARIABLETYPE_STRING, $this->Translate($inner)];
+
+            // Verschachteltes Objekt, z.B. {"doorValue":{"DriverFront":false,...}}:
+            // boolesche Map -> lesbare Liste der aktiven/offenen Einträge (leer = nichts aktiv)
+            if (is_array($inner)) {
+                $allBool = true;
+                $active = [];
+                foreach ($inner as $sub => $state) {
+                    if (!is_bool($state)) { $allBool = false; break; }
+                    if ($state) $active[] = $this->Translate((string)$sub);
+                }
+                if ($allBool) {
+                    return [VARIABLETYPE_STRING, implode(', ', $active)];
+                }
+                continue;
             }
+
+            return $this->telemetryScalar($key, $inner);
         }
 
         return [VARIABLETYPE_STRING, json_encode($val)];
+    }
+
+    // Einen skalaren Telemetrie-Wert in [Typ, Wert] übersetzen: Enum-Strings über
+    // locale.json lesbar, große Zeitstempel (Schlüssel enthält "time") als Datum.
+    private function telemetryScalar(string $key, $inner): array
+    {
+        if (is_bool($inner)) {
+            return [VARIABLETYPE_BOOLEAN, $inner];
+        }
+        $isTime = stripos($key, 'time') !== false;
+        if (is_int($inner) || is_float($inner)) {
+            if ($isTime && (float)$inner > 1000000000) {
+                return [VARIABLETYPE_STRING, date('d.m.Y H:i', (int)$inner)];
+            }
+            return [is_int($inner) ? VARIABLETYPE_INTEGER : VARIABLETYPE_FLOAT, $inner];
+        }
+        $s = trim((string)$inner);
+        if (is_numeric($s)) {
+            if ($isTime && (float)$s > 1000000000) {
+                return [VARIABLETYPE_STRING, date('d.m.Y H:i', (int)$s)];
+            }
+            if (strpos($s, '.') === false && stripos($s, 'e') === false) {
+                return [VARIABLETYPE_INTEGER, (int)$s];
+            }
+            return [VARIABLETYPE_FLOAT, (float)$s];
+        }
+        return [VARIABLETYPE_STRING, $this->Translate((string)$inner)];
     }
 
     private function getTelemetryRegistry(): array
