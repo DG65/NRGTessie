@@ -25,7 +25,7 @@ Präfix der öffentlichen Funktionen: `TESSIE`.
 
 ## Voraussetzungen
 
-- IP-Symcon ab Version 8.0
+- IP-Symcon ab Version 9.0
 - Ein [Tessie](https://tessie.com/)-Konto mit **API-Token** (deckt REST und Telemetrie ab)
 
 ## Installation

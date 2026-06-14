@@ -147,7 +147,6 @@ class TessieVehicle extends IPSModule
             }
         }
 
-        $this->ensureProfiles();
         $this->refreshTelemetryRegistryNames();
         $this->ensureVariables();
 
@@ -1291,124 +1290,56 @@ class TessieVehicle extends IPSModule
         }
     }
 
-    private function ensureProfiles(): void
+    // -------- Presentations (IPS 9.0) statt Variablenprofile --------
+    private function presSwitch(string $on, string $off): array
     {
-        if (!IPS_VariableProfileExists('Tessie.PercentInt')) {
-            IPS_CreateVariableProfile('Tessie.PercentInt', VARIABLETYPE_INTEGER);
-            IPS_SetVariableProfileText('Tessie.PercentInt', '', ' %');
-            IPS_SetVariableProfileValues('Tessie.PercentInt', 0, 100, 1);
-            IPS_SetVariableProfileDigits('Tessie.PercentInt', 0);
-            IPS_SetVariableProfileIcon('Tessie.PercentInt', 'Intensity');
-        }
-        if (!IPS_VariableProfileExists('Tessie.Amps')) {
-            IPS_CreateVariableProfile('Tessie.Amps', VARIABLETYPE_INTEGER);
-            IPS_SetVariableProfileText('Tessie.Amps', '', ' A');
-            IPS_SetVariableProfileValues('Tessie.Amps', 0, 48, 1);
-            IPS_SetVariableProfileDigits('Tessie.Amps', 0);
-            IPS_SetVariableProfileIcon('Tessie.Amps', 'Electricity');
-        }
-        if (!IPS_VariableProfileExists('Tessie.AmpsFloat')) {
-            IPS_CreateVariableProfile('Tessie.AmpsFloat', VARIABLETYPE_FLOAT);
-            IPS_SetVariableProfileText('Tessie.AmpsFloat', '', ' A');
-            IPS_SetVariableProfileValues('Tessie.AmpsFloat', 0, 48, 0);
-            IPS_SetVariableProfileDigits('Tessie.AmpsFloat', 1);
-            IPS_SetVariableProfileIcon('Tessie.AmpsFloat', 'Electricity');
-        }
-        if (!IPS_VariableProfileExists('Tessie.kW')) {
-            IPS_CreateVariableProfile('Tessie.kW', VARIABLETYPE_FLOAT);
-            IPS_SetVariableProfileText('Tessie.kW', '', ' kW');
-            IPS_SetVariableProfileValues('Tessie.kW', 0, 30, 0);
-            IPS_SetVariableProfileDigits('Tessie.kW', 2);
-            IPS_SetVariableProfileIcon('Tessie.kW', 'Electricity');
-        }
+        return ['PRESENTATION' => VARIABLE_PRESENTATION_SWITCH, 'CAPTION_ON' => $on, 'CAPTION_OFF' => $off];
+    }
 
-        if (!IPS_VariableProfileExists('Tessie.SpeedKmh')) {
-            IPS_CreateVariableProfile('Tessie.SpeedKmh', VARIABLETYPE_FLOAT);
-            IPS_SetVariableProfileText('Tessie.SpeedKmh', '', ' km/h');
-            IPS_SetVariableProfileDigits('Tessie.SpeedKmh', 1);
-            IPS_SetVariableProfileIcon('Tessie.SpeedKmh', 'Speed');
-        }
+    private function presSlider(float $min, float $max, float $step, string $suffix, int $digits): array
+    {
+        return ['PRESENTATION' => VARIABLE_PRESENTATION_SLIDER, 'MIN' => $min, 'MAX' => $max, 'STEP_SIZE' => $step, 'SUFFIX' => $suffix, 'DIGITS' => $digits];
+    }
 
-        if (!IPS_VariableProfileExists('Tessie.DistanceKm')) {
-            IPS_CreateVariableProfile('Tessie.DistanceKm', VARIABLETYPE_FLOAT);
-            IPS_SetVariableProfileText('Tessie.DistanceKm', '', ' km');
-            IPS_SetVariableProfileDigits('Tessie.DistanceKm', 1);
-            IPS_SetVariableProfileIcon('Tessie.DistanceKm', 'Distance');
-        }
+    private function presValue(string $suffix = '', int $digits = 0): array
+    {
+        return ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'SUFFIX' => $suffix, 'DIGITS' => $digits];
+    }
 
-        if (!IPS_VariableProfileExists('Tessie.TempC')) {
-            IPS_CreateVariableProfile('Tessie.TempC', VARIABLETYPE_FLOAT);
-            IPS_SetVariableProfileText('Tessie.TempC', '', ' °C');
-            IPS_SetVariableProfileDigits('Tessie.TempC', 1);
-            IPS_SetVariableProfileIcon('Tessie.TempC', 'Temperature');
+    private function presEnum(array $map): array
+    {
+        $options = [];
+        foreach ($map as $v => $caption) {
+            $options[] = ['Value' => $v, 'Caption' => $caption, 'IconActive' => false, 'Icon' => '', 'ColorActive' => false, 'ColorValue' => -1];
         }
+        return ['PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION, 'OPTIONS' => json_encode($options)];
+    }
 
-        if (!IPS_VariableProfileExists('Tessie.TempSetC')) {
-            IPS_CreateVariableProfile('Tessie.TempSetC', VARIABLETYPE_FLOAT);
-            IPS_SetVariableProfileText('Tessie.TempSetC', '', ' °C');
-            IPS_SetVariableProfileValues('Tessie.TempSetC', 15, 28, 0.5);
-            IPS_SetVariableProfileDigits('Tessie.TempSetC', 1);
-            IPS_SetVariableProfileIcon('Tessie.TempSetC', 'Temperature');
+    // Bildet die früheren Variablenprofile auf IPS-9.0-Presentations ab.
+    // $settable steuert Eingabe-Darstellung (Slider) vs. reine Anzeige (Wert).
+    private function presFor(string $profile, bool $settable): array
+    {
+        switch ($profile) {
+            case '~Lock':                    return $this->presSwitch('Verriegelt', 'Entriegelt');
+            case '~Switch':                  return $this->presSwitch('An', 'Aus');
+            case 'Tessie.PercentInt':        return $settable ? $this->presSlider(0, 100, 1, ' %', 0) : $this->presValue(' %', 0);
+            case 'Tessie.Amps':              return $settable ? $this->presSlider(0, 48, 1, ' A', 0) : $this->presValue(' A', 0);
+            case 'Tessie.AmpsFloat':         return $this->presValue(' A', 1);
+            case 'Tessie.kW':                return $this->presValue(' kW', 2);
+            case 'Tessie.kWh':               return $this->presValue(' kWh', 2);
+            case 'Tessie.Voltage':           return $this->presValue(' V', 1);
+            case 'Tessie.PressureBar':       return $this->presValue(' bar', 2);
+            case 'Tessie.Degrees':           return $this->presValue(' °', 1);
+            case 'Tessie.SpeedKmh':          return $this->presValue(' km/h', 1);
+            case 'Tessie.DistanceKm':        return $this->presValue(' km', 1);
+            case 'Tessie.TempC':             return $this->presValue(' °C', 1);
+            case 'Tessie.TempSetC':          return $settable ? $this->presSlider(15, 28, 0.5, ' °C', 1) : $this->presValue(' °C', 1);
+            case 'Tessie.SeatHeatLevel':     return $this->presEnum([0 => 'Aus', 1 => 'Niedrig', 2 => 'Mittel', 3 => 'Hoch']);
+            case 'Tessie.ClimateKeeperMode': return $this->presEnum([0 => 'Aus', 1 => 'Behalten', 2 => 'Hund', 3 => 'Camping']);
+            case 'Tessie.COPTemp':           return $this->presEnum([1 => 'Niedrig', 2 => 'Mittel', 3 => 'Hoch']);
+            default:                         return $this->presValue('', 0);
         }
-
-        if (!IPS_VariableProfileExists('Tessie.SeatHeatLevel')) {
-            IPS_CreateVariableProfile('Tessie.SeatHeatLevel', VARIABLETYPE_INTEGER);
-            IPS_SetVariableProfileValues('Tessie.SeatHeatLevel', 0, 3, 1);
-            IPS_SetVariableProfileDigits('Tessie.SeatHeatLevel', 0);
-            IPS_SetVariableProfileIcon('Tessie.SeatHeatLevel', 'Flame');
-            IPS_SetVariableProfileAssociation('Tessie.SeatHeatLevel', 0, 'Aus', '', 0xAAAAAA);
-            IPS_SetVariableProfileAssociation('Tessie.SeatHeatLevel', 1, 'Niedrig', '', 0x66CCFF);
-            IPS_SetVariableProfileAssociation('Tessie.SeatHeatLevel', 2, 'Mittel', '', 0xFFCC66);
-            IPS_SetVariableProfileAssociation('Tessie.SeatHeatLevel', 3, 'Hoch', '', 0xFF6666);
-        }
-
-        if (!IPS_VariableProfileExists('Tessie.kWh')) {
-            IPS_CreateVariableProfile('Tessie.kWh', VARIABLETYPE_FLOAT);
-            IPS_SetVariableProfileText('Tessie.kWh', '', ' kWh');
-            IPS_SetVariableProfileDigits('Tessie.kWh', 2);
-            IPS_SetVariableProfileIcon('Tessie.kWh', 'Energy');
-        }
-
-        if (!IPS_VariableProfileExists('Tessie.Voltage')) {
-            IPS_CreateVariableProfile('Tessie.Voltage', VARIABLETYPE_FLOAT);
-            IPS_SetVariableProfileText('Tessie.Voltage', '', ' V');
-            IPS_SetVariableProfileDigits('Tessie.Voltage', 1);
-            IPS_SetVariableProfileIcon('Tessie.Voltage', 'Electricity');
-        }
-
-        if (!IPS_VariableProfileExists('Tessie.PressureBar')) {
-            IPS_CreateVariableProfile('Tessie.PressureBar', VARIABLETYPE_FLOAT);
-            IPS_SetVariableProfileText('Tessie.PressureBar', '', ' bar');
-            IPS_SetVariableProfileDigits('Tessie.PressureBar', 2);
-            IPS_SetVariableProfileIcon('Tessie.PressureBar', 'Gauge');
-        }
-
-        if (!IPS_VariableProfileExists('Tessie.Degrees')) {
-            IPS_CreateVariableProfile('Tessie.Degrees', VARIABLETYPE_FLOAT);
-            IPS_SetVariableProfileText('Tessie.Degrees', '', ' °');
-            IPS_SetVariableProfileDigits('Tessie.Degrees', 1);
-            IPS_SetVariableProfileIcon('Tessie.Degrees', 'Compass');
-        }
-
-    
-        if (!IPS_VariableProfileExists('Tessie.ClimateKeeperMode')) {
-            IPS_CreateVariableProfile('Tessie.ClimateKeeperMode', VARIABLETYPE_INTEGER);
-            IPS_SetVariableProfileIcon('Tessie.ClimateKeeperMode', 'Climate');
-        }
-        // Assoziationen außerhalb der Existenz-Sperre, damit bestehende Profile mit aktualisiert werden
-        IPS_SetVariableProfileAssociation('Tessie.ClimateKeeperMode', 0, 'Aus', '', 0xAAAAAA);
-        IPS_SetVariableProfileAssociation('Tessie.ClimateKeeperMode', 1, 'Behalten', '', 0x66CCFF);
-        IPS_SetVariableProfileAssociation('Tessie.ClimateKeeperMode', 2, 'Hund', '', 0x66FF66);
-        IPS_SetVariableProfileAssociation('Tessie.ClimateKeeperMode', 3, 'Camping', '', 0xFFCC66);
-
-        if (!IPS_VariableProfileExists('Tessie.COPTemp')) {
-            IPS_CreateVariableProfile('Tessie.COPTemp', VARIABLETYPE_INTEGER);
-            IPS_SetVariableProfileIcon('Tessie.COPTemp', 'Temperature');
-        }
-        IPS_SetVariableProfileAssociation('Tessie.COPTemp', 1, 'Niedrig', '', 0x66CCFF);
-        IPS_SetVariableProfileAssociation('Tessie.COPTemp', 2, 'Mittel', '', 0xFFCC66);
-        IPS_SetVariableProfileAssociation('Tessie.COPTemp', 3, 'Hoch', '', 0xFF6666);
-}
+    }
 
     
     private function guessProfileForTelemetryKey(string $key, int $type): string
@@ -1463,92 +1394,92 @@ class TessieVehicle extends IPSModule
         }
 
         // Core Variablen
-        $this->MaintainVariable(self::ACT_LOCKED, 'Verriegelt', VARIABLETYPE_BOOLEAN, '~Lock', $pos(self::ACT_LOCKED), true);
+        $this->MaintainVariable(self::ACT_LOCKED, 'Verriegelt', VARIABLETYPE_BOOLEAN, $this->presFor('~Lock', true), $pos(self::ACT_LOCKED), true);
         if ($keep(self::ACT_LOCKED)) $this->EnableAction(self::ACT_LOCKED);
 
-        $this->MaintainVariable(self::ACT_CLIMATE, 'Klima', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_CLIMATE), true);
+        $this->MaintainVariable(self::ACT_CLIMATE, 'Klima', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_CLIMATE), true);
         if ($keep(self::ACT_CLIMATE)) $this->EnableAction(self::ACT_CLIMATE);
 
 
-        $this->MaintainVariable(self::ACT_CLIMATE_KEEPER_MODE, 'Climate Keeper Mode', VARIABLETYPE_INTEGER, 'Tessie.ClimateKeeperMode', $pos(self::ACT_CLIMATE_KEEPER_MODE), true);
+        $this->MaintainVariable(self::ACT_CLIMATE_KEEPER_MODE, 'Climate Keeper Mode', VARIABLETYPE_INTEGER, $this->presFor('Tessie.ClimateKeeperMode', true), $pos(self::ACT_CLIMATE_KEEPER_MODE), true);
         if ($keep(self::ACT_CLIMATE_KEEPER_MODE)) $this->EnableAction(self::ACT_CLIMATE_KEEPER_MODE);
 
-        $this->MaintainVariable(self::ACT_COP_ENABLED, 'Innenraum-Überhitzeschutz', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_COP_ENABLED), true);
+        $this->MaintainVariable(self::ACT_COP_ENABLED, 'Innenraum-Überhitzeschutz', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_COP_ENABLED), true);
         if ($keep(self::ACT_COP_ENABLED)) $this->EnableAction(self::ACT_COP_ENABLED);
 
-        $this->MaintainVariable(self::ACT_COP_FAN_ONLY, 'Innenraum-Überhitzeschutz: nur Lüfter', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_COP_FAN_ONLY), true);
+        $this->MaintainVariable(self::ACT_COP_FAN_ONLY, 'Innenraum-Überhitzeschutz: nur Lüfter', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_COP_FAN_ONLY), true);
         if ($keep(self::ACT_COP_FAN_ONLY)) $this->EnableAction(self::ACT_COP_FAN_ONLY);
 
-        $this->MaintainVariable(self::ACT_COP_TEMP, 'Innenraum-Überhitzeschutz: Temperaturlimit', VARIABLETYPE_INTEGER, 'Tessie.COPTemp', $pos(self::ACT_COP_TEMP), true);
+        $this->MaintainVariable(self::ACT_COP_TEMP, 'Innenraum-Überhitzeschutz: Temperaturlimit', VARIABLETYPE_INTEGER, $this->presFor('Tessie.COPTemp', true), $pos(self::ACT_COP_TEMP), true);
         if ($keep(self::ACT_COP_TEMP)) $this->EnableAction(self::ACT_COP_TEMP);
 
-        $this->MaintainVariable(self::ACT_BIO_DEFENSE, 'Bio Defense Mode', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_BIO_DEFENSE), true);
+        $this->MaintainVariable(self::ACT_BIO_DEFENSE, 'Bio Defense Mode', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_BIO_DEFENSE), true);
         if ($keep(self::ACT_BIO_DEFENSE)) $this->EnableAction(self::ACT_BIO_DEFENSE);
 
-        $this->MaintainVariable(self::ACT_HOMELINK, 'HomeLink auslösen', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_HOMELINK), true);
+        $this->MaintainVariable(self::ACT_HOMELINK, 'HomeLink auslösen', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_HOMELINK), true);
         if ($keep(self::ACT_HOMELINK)) $this->EnableAction(self::ACT_HOMELINK);
 
-        $this->MaintainVariable(self::ACT_FRONT_TRUNK, 'Front-Trunk öffnen', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_FRONT_TRUNK), true);
+        $this->MaintainVariable(self::ACT_FRONT_TRUNK, 'Front-Trunk öffnen', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_FRONT_TRUNK), true);
         if ($keep(self::ACT_FRONT_TRUNK)) $this->EnableAction(self::ACT_FRONT_TRUNK);
 
-        $this->MaintainVariable(self::ACT_REAR_TRUNK, 'Rear-Trunk öffnen/schließen', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_REAR_TRUNK), true);
+        $this->MaintainVariable(self::ACT_REAR_TRUNK, 'Rear-Trunk öffnen/schließen', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_REAR_TRUNK), true);
         if ($keep(self::ACT_REAR_TRUNK)) $this->EnableAction(self::ACT_REAR_TRUNK);
 
-        $this->MaintainVariable(self::ACT_START_CHARGING, 'Laden', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_START_CHARGING), true);
+        $this->MaintainVariable(self::ACT_START_CHARGING, 'Laden', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_START_CHARGING), true);
         if ($keep(self::ACT_START_CHARGING)) $this->EnableAction(self::ACT_START_CHARGING);
 
-        $this->MaintainVariable(self::ACT_CHARGE_LIMIT, 'Ladelimit (%)', VARIABLETYPE_INTEGER, 'Tessie.PercentInt', $pos(self::ACT_CHARGE_LIMIT), true);
+        $this->MaintainVariable(self::ACT_CHARGE_LIMIT, 'Ladelimit (%)', VARIABLETYPE_INTEGER, $this->presFor('Tessie.PercentInt', true), $pos(self::ACT_CHARGE_LIMIT), true);
         if ($keep(self::ACT_CHARGE_LIMIT)) $this->EnableAction(self::ACT_CHARGE_LIMIT);
 
-        $this->MaintainVariable(self::ACT_CHARGING_AMPS_REQUEST, 'Ladestrom Soll (A)', VARIABLETYPE_INTEGER, 'Tessie.Amps', $pos(self::ACT_CHARGING_AMPS_REQUEST), true);
+        $this->MaintainVariable(self::ACT_CHARGING_AMPS_REQUEST, 'Ladestrom Soll (A)', VARIABLETYPE_INTEGER, $this->presFor('Tessie.Amps', true), $pos(self::ACT_CHARGING_AMPS_REQUEST), true);
         if ($keep(self::ACT_CHARGING_AMPS_REQUEST)) $this->EnableAction(self::ACT_CHARGING_AMPS_REQUEST);
 
-        $this->MaintainVariable(self::ACT_FLASH, 'Licht blinken', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_FLASH), true);
+        $this->MaintainVariable(self::ACT_FLASH, 'Licht blinken', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_FLASH), true);
         if ($keep(self::ACT_FLASH)) $this->EnableAction(self::ACT_FLASH);
 
-        $this->MaintainVariable(self::ACT_HONK, 'Hupe', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_HONK), true);
+        $this->MaintainVariable(self::ACT_HONK, 'Hupe', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_HONK), true);
         if ($keep(self::ACT_HONK)) $this->EnableAction(self::ACT_HONK);
 
-        $this->MaintainVariable(self::ACT_SENTRY_MODE, 'Sentry Mode', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_SENTRY_MODE), true);
+        $this->MaintainVariable(self::ACT_SENTRY_MODE, 'Sentry Mode', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_SENTRY_MODE), true);
         if ($keep(self::ACT_SENTRY_MODE)) $this->EnableAction(self::ACT_SENTRY_MODE);
 
-        $this->MaintainVariable(self::ACT_VALET_MODE, 'Valet-Modus', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_VALET_MODE), true);
+        $this->MaintainVariable(self::ACT_VALET_MODE, 'Valet-Modus', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_VALET_MODE), true);
         if ($keep(self::ACT_VALET_MODE)) $this->EnableAction(self::ACT_VALET_MODE);
 
-        $this->MaintainVariable(self::ACT_VENT_WINDOWS, 'Fenster lüften', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_VENT_WINDOWS), true);
+        $this->MaintainVariable(self::ACT_VENT_WINDOWS, 'Fenster lüften', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_VENT_WINDOWS), true);
         if ($keep(self::ACT_VENT_WINDOWS)) $this->EnableAction(self::ACT_VENT_WINDOWS);
 
-        $this->MaintainVariable(self::ACT_CLOSE_WINDOWS, 'Fenster schließen', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_CLOSE_WINDOWS), true);
+        $this->MaintainVariable(self::ACT_CLOSE_WINDOWS, 'Fenster schließen', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_CLOSE_WINDOWS), true);
         if ($keep(self::ACT_CLOSE_WINDOWS)) $this->EnableAction(self::ACT_CLOSE_WINDOWS);
 
-        $this->MaintainVariable(self::ACT_DEFROST, 'Max Defrost', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_DEFROST), true);
+        $this->MaintainVariable(self::ACT_DEFROST, 'Max Defrost', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_DEFROST), true);
         if ($keep(self::ACT_DEFROST)) $this->EnableAction(self::ACT_DEFROST);
 
-        $this->MaintainVariable(self::ACT_STEERING_WHEEL_HEATER, 'Lenkradheizung', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_STEERING_WHEEL_HEATER), true);
+        $this->MaintainVariable(self::ACT_STEERING_WHEEL_HEATER, 'Lenkradheizung', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_STEERING_WHEEL_HEATER), true);
         if ($keep(self::ACT_STEERING_WHEEL_HEATER)) $this->EnableAction(self::ACT_STEERING_WHEEL_HEATER);
 
-        $this->MaintainVariable(self::ACT_TEMP_DRIVER, 'Solltemperatur Fahrer (°C)', VARIABLETYPE_FLOAT, 'Tessie.TempSetC', $pos(self::ACT_TEMP_DRIVER), true);
+        $this->MaintainVariable(self::ACT_TEMP_DRIVER, 'Solltemperatur Fahrer (°C)', VARIABLETYPE_FLOAT, $this->presFor('Tessie.TempSetC', true), $pos(self::ACT_TEMP_DRIVER), true);
         if ($keep(self::ACT_TEMP_DRIVER)) $this->EnableAction(self::ACT_TEMP_DRIVER);
 
-        $this->MaintainVariable(self::ACT_TEMP_PASSENGER, 'Solltemperatur Beifahrer (°C)', VARIABLETYPE_FLOAT, 'Tessie.TempSetC', $pos(self::ACT_TEMP_PASSENGER), true);
+        $this->MaintainVariable(self::ACT_TEMP_PASSENGER, 'Solltemperatur Beifahrer (°C)', VARIABLETYPE_FLOAT, $this->presFor('Tessie.TempSetC', true), $pos(self::ACT_TEMP_PASSENGER), true);
         if ($keep(self::ACT_TEMP_PASSENGER)) $this->EnableAction(self::ACT_TEMP_PASSENGER);
 
-        $this->MaintainVariable(self::ACT_SEAT_HEAT_DRIVER, 'Sitzheizung Fahrer', VARIABLETYPE_INTEGER, 'Tessie.SeatHeatLevel', $pos(self::ACT_SEAT_HEAT_DRIVER), true);
+        $this->MaintainVariable(self::ACT_SEAT_HEAT_DRIVER, 'Sitzheizung Fahrer', VARIABLETYPE_INTEGER, $this->presFor('Tessie.SeatHeatLevel', true), $pos(self::ACT_SEAT_HEAT_DRIVER), true);
         if ($keep(self::ACT_SEAT_HEAT_DRIVER)) $this->EnableAction(self::ACT_SEAT_HEAT_DRIVER);
 
-        $this->MaintainVariable(self::ACT_SEAT_HEAT_PASSENGER, 'Sitzheizung Beifahrer', VARIABLETYPE_INTEGER, 'Tessie.SeatHeatLevel', $pos(self::ACT_SEAT_HEAT_PASSENGER), true);
+        $this->MaintainVariable(self::ACT_SEAT_HEAT_PASSENGER, 'Sitzheizung Beifahrer', VARIABLETYPE_INTEGER, $this->presFor('Tessie.SeatHeatLevel', true), $pos(self::ACT_SEAT_HEAT_PASSENGER), true);
         if ($keep(self::ACT_SEAT_HEAT_PASSENGER)) $this->EnableAction(self::ACT_SEAT_HEAT_PASSENGER);
 
-        $this->MaintainVariable(self::ACT_OPEN_CHARGE_PORT, 'Ladeport öffnen/entriegeln', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_OPEN_CHARGE_PORT), true);
+        $this->MaintainVariable(self::ACT_OPEN_CHARGE_PORT, 'Ladeport öffnen/entriegeln', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_OPEN_CHARGE_PORT), true);
         if ($keep(self::ACT_OPEN_CHARGE_PORT)) $this->EnableAction(self::ACT_OPEN_CHARGE_PORT);
 
-        $this->MaintainVariable(self::ACT_CLOSE_CHARGE_PORT, 'Ladeport schließen', VARIABLETYPE_BOOLEAN, '~Switch', $pos(self::ACT_CLOSE_CHARGE_PORT), true);
+        $this->MaintainVariable(self::ACT_CLOSE_CHARGE_PORT, 'Ladeport schließen', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_CLOSE_CHARGE_PORT), true);
         if ($keep(self::ACT_CLOSE_CHARGE_PORT)) $this->EnableAction(self::ACT_CLOSE_CHARGE_PORT);
 
 
-        $this->MaintainVariable(self::STAT_CHARGING_AMPS_ACTUAL, 'Ladestrom Ist (A)', VARIABLETYPE_FLOAT, 'Tessie.AmpsFloat', $pos(self::STAT_CHARGING_AMPS_ACTUAL), true);
-        $this->MaintainVariable(self::STAT_CHARGING_AMPS_MAX, 'Ladestrom Max (A)', VARIABLETYPE_INTEGER, 'Tessie.Amps', $pos(self::STAT_CHARGING_AMPS_MAX), true);
-        $this->MaintainVariable(self::STAT_AC_CHARGING_POWER, 'AC Ladeleistung (kW)', VARIABLETYPE_FLOAT, 'Tessie.kW', $pos(self::STAT_AC_CHARGING_POWER), true);
+        $this->MaintainVariable(self::STAT_CHARGING_AMPS_ACTUAL, 'Ladestrom Ist (A)', VARIABLETYPE_FLOAT, $this->presFor('Tessie.AmpsFloat', false), $pos(self::STAT_CHARGING_AMPS_ACTUAL), true);
+        $this->MaintainVariable(self::STAT_CHARGING_AMPS_MAX, 'Ladestrom Max (A)', VARIABLETYPE_INTEGER, $this->presFor('Tessie.Amps', false), $pos(self::STAT_CHARGING_AMPS_MAX), true);
+        $this->MaintainVariable(self::STAT_AC_CHARGING_POWER, 'AC Ladeleistung (kW)', VARIABLETYPE_FLOAT, $this->presFor('Tessie.kW', false), $pos(self::STAT_AC_CHARGING_POWER), true);
 
         // Telemetrie-Variablen aus Registry (nur wenn User aktiviert)
         $registry = $this->getTelemetryRegistry();
@@ -1569,7 +1500,7 @@ class TessieVehicle extends IPSModule
             // und werden unten ggf. ausgeblendet (so bleiben Objekt-ID und Archivdaten erhalten)
             $exists = @IPS_GetObjectIDByIdent($ident, $this->InstanceID) > 0;
             if (!$exists && !$isEnabled) continue;
-            $this->MaintainVariable($ident, $name, $type, $profile, $position, true);
+            $this->MaintainVariable($ident, $name, $type, $this->presFor($profile, false), $position, true);
         }
 
         // Abgewählte Variablen ausblenden statt löschen (Objekt-ID und Archivdaten bleiben erhalten);

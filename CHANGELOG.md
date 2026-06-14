@@ -2,6 +2,14 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.0.0] – 2026-06-14
+### Geändert
+- **Variablendarstellung auf IPS-9.0-Presentations umgestellt** (Switch/Slider/Enumeration/Value) statt Variablenprofile. Enum-Beschriftungen deutsch (z. B. Climate Keeper, Sitzheizung, Überhitzeschutz-Limit).
+- Mindest-Kompatibilität auf IP-Symcon **9.0** angehoben.
+### Entfernt
+- Ungenutzte Altlasten aus dem Repository (doppelte `module.php` im Wurzelverzeichnis, Referenzdateien `telemetry_maps.php` / `telemetry_profiles.json`).
+- `ensureProfiles()` (durch Presentations ersetzt).
+
 ## [1.2.7] – 2026-06-14
 ### Hinzugefügt
 - Generischer Klartext-Fallback für unbekannte Enum-/Code-Werte ohne `locale.json`-Eintrag (CamelCase → Wörter, z. B. `Apollo19CapKit` → „Apollo 19 Cap Kit").
