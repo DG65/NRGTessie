@@ -1370,18 +1370,20 @@ class TessieVehicle extends IPSModule
         if (!IPS_VariableProfileExists('Tessie.ClimateKeeperMode')) {
             IPS_CreateVariableProfile('Tessie.ClimateKeeperMode', VARIABLETYPE_INTEGER);
             IPS_SetVariableProfileIcon('Tessie.ClimateKeeperMode', 'Climate');
-            IPS_SetVariableProfileAssociation('Tessie.ClimateKeeperMode', 0, $this->Translate('Off'), '', 0xAAAAAA);
-            IPS_SetVariableProfileAssociation('Tessie.ClimateKeeperMode', 1, $this->Translate('Keep'), '', 0x66CCFF);
-            IPS_SetVariableProfileAssociation('Tessie.ClimateKeeperMode', 2, $this->Translate('Dog'), '', 0x66FF66);
-            IPS_SetVariableProfileAssociation('Tessie.ClimateKeeperMode', 3, $this->Translate('Camp'), '', 0xFFCC66);
         }
+        // Assoziationen außerhalb der Existenz-Sperre, damit bestehende Profile mit aktualisiert werden
+        IPS_SetVariableProfileAssociation('Tessie.ClimateKeeperMode', 0, 'Aus', '', 0xAAAAAA);
+        IPS_SetVariableProfileAssociation('Tessie.ClimateKeeperMode', 1, 'Behalten', '', 0x66CCFF);
+        IPS_SetVariableProfileAssociation('Tessie.ClimateKeeperMode', 2, 'Hund', '', 0x66FF66);
+        IPS_SetVariableProfileAssociation('Tessie.ClimateKeeperMode', 3, 'Camping', '', 0xFFCC66);
+
         if (!IPS_VariableProfileExists('Tessie.COPTemp')) {
             IPS_CreateVariableProfile('Tessie.COPTemp', VARIABLETYPE_INTEGER);
             IPS_SetVariableProfileIcon('Tessie.COPTemp', 'Temperature');
-            IPS_SetVariableProfileAssociation('Tessie.COPTemp', 1, $this->Translate('Low'), '', 0x66CCFF);
-            IPS_SetVariableProfileAssociation('Tessie.COPTemp', 2, $this->Translate('Medium'), '', 0xFFCC66);
-            IPS_SetVariableProfileAssociation('Tessie.COPTemp', 3, $this->Translate('High'), '', 0xFF6666);
         }
+        IPS_SetVariableProfileAssociation('Tessie.COPTemp', 1, 'Niedrig', '', 0x66CCFF);
+        IPS_SetVariableProfileAssociation('Tessie.COPTemp', 2, 'Mittel', '', 0xFFCC66);
+        IPS_SetVariableProfileAssociation('Tessie.COPTemp', 3, 'Hoch', '', 0xFF6666);
 }
 
     
