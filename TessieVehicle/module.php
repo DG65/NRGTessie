@@ -157,7 +157,41 @@ class TessieVehicle extends IPSModule
             $this->LogMessage('ensureLinkTree fehlgeschlagen: ' . $e->getMessage(), KL_WARNING);
         }
 
+        // Bereits gespeicherte Roh-JSON-Telemetriewerte (z.B. von vor einem Update oder
+        // selten gesendete/stale Datenpunkte) nachträglich lesbar machen
+        $this->migrateTelemetryValues();
+
         $this->SetStatus(102);
+    }
+
+    // Einmalige/idempotente Nachbesserung: gespeicherte Telemetriewerte, die noch als
+    // Roh-JSON ({"...Value":...}) vorliegen, erneut durch den Parser schicken. Greift nur
+    // bei String-Variablen mit JSON-Inhalt; bereits lesbare Werte bleiben unberührt.
+    private function migrateTelemetryValues(): void
+    {
+        $registry = $this->getTelemetryRegistry();
+        foreach ($registry as $ident => $meta) {
+            if (!is_string($ident) || $ident === '' || !is_array($meta)) continue;
+
+            $vid = @IPS_GetObjectIDByIdent($ident, $this->InstanceID);
+            if ($vid <= 0) continue;
+            if ((IPS_GetVariable($vid)['VariableType'] ?? null) !== VARIABLETYPE_STRING) continue;
+
+            $cur = (string)GetValue($vid);
+            $trim = ltrim($cur);
+            if ($trim === '' || ($trim[0] !== '{' && $trim[0] !== '[')) continue;
+
+            $decoded = json_decode($cur, true);
+            if (!is_array($decoded)) continue;
+
+            $key = (string)($meta['key'] ?? $ident);
+            [$type, $value] = $this->telemetryInferTypeAndValue($key, $decoded);
+
+            // Wenn der Parser den Wert nicht deuten kann, gibt er erneut JSON zurück -> nicht überschreiben
+            if (is_string($value) && $value === json_encode($decoded)) continue;
+
+            $this->safeSetValueIfExists($ident, $value);
+        }
     }
 
     // Dynamisches Formular: eine Liste "Anzuzeigende Variablen" inkl. Telemetrie-Einträgen
