@@ -205,11 +205,37 @@ class TessieVehicle extends IPSModule
     // Dynamisches Formular: eine Liste "Anzuzeigende Variablen" inkl. Telemetrie-Einträgen
     public function GetConfigurationForm()
     {
+$registry = $this->getTelemetryRegistry();
+
+        $fullList = $this->mergeTelemetryIntoVisibleVars($this->getVisibleList());
+
+        // Anzeige-Spalten je Zeile: Name übersetzen, Gruppe = Domäne (wie im Linkbaum)
+        foreach ($fullList as &$row) {
+            if (!is_array($row)) continue;
+            $ident = (string)($row['Ident'] ?? '');
+            $row['Name']   = $this->Translate((string)($row['Name'] ?? $ident));
+            $row['Gruppe'] = $this->purposeForIdent($ident, $registry);
+        }
+        unset($row);
+
+        // Status für den Telemetrie-Sammel-Button
+        $hasTelemetry = false;
+        $allTelemetryOn = true;
+        foreach ($fullList as $row) {
+            if (!is_array($row) || strpos((string)($row['Ident'] ?? ''), 'stat_tel_') !== 0) continue;
+            $hasTelemetry = true;
+            if (!(bool)($row['Enabled'] ?? false)) { $allTelemetryOn = false; break; }
+        }
+        if (!$hasTelemetry) $allTelemetryOn = false;
+        $toggleCaption = $allTelemetryOn ? 'Telemetrie: alle ausblenden' : 'Telemetrie: alle einblenden';
+        $toggleConfirm = $allTelemetryOn ? 'Wirklich alle Telemetrie-Datenpunkte ausblenden?' : '';
+
         $elements = [
             [
                 'type' => 'NumberSpinner',
                 'name' => 'UpdateInterval',
                 'caption' => 'Update Intervall (Sekunden)',
+                'suffix' => ' s',
                 'minimum' => 0,
                 'maximum' => 3600
             ],
@@ -219,65 +245,59 @@ class TessieVehicle extends IPSModule
                 'caption' => 'Ablageort Instanz (optional)'
             ],
             [
-                'type' => 'SelectCategory',
-                'name' => 'LinksLocation',
-                'caption' => 'Ablageort Links (Root Kategorie)'
+                'type' => 'Label',
+                'caption' => 'Telemetrie-Variablen werden automatisch angelegt, sobald das Fahrzeug die entsprechenden Daten sendet.'
             ],
             [
-                'type' => 'CheckBox',
-                'name' => 'CreateLinks',
-                'caption' => 'Links anlegen/aktualisieren'
+                'type' => 'List',
+                'name' => 'VisibleVars',
+                'caption' => 'Datenpunkte',
+                'rowCount' => 15,
+                'add' => false,
+                'delete' => false,
+                'changeOrder' => true,
+                'loadValuesFromConfiguration' => false,
+                'columns' => [
+                    [
+                        'caption' => 'Aktiv',
+                        'name' => 'Enabled',
+                        'width' => '80px',
+                        'save' => true,
+                        'edit' => ['type' => 'CheckBox']
+                    ],
+                    ['caption' => 'Name',   'name' => 'Name',   'width' => 'auto',  'save' => true],
+                    ['caption' => 'Gruppe', 'name' => 'Gruppe', 'width' => '170px'],
+                    ['caption' => 'Ident',  'name' => 'Ident',  'width' => '320px', 'save' => true]
+                ],
+                'values' => $fullList
             ],
             [
-                'type' => 'CheckBox',
-                'name' => 'CleanupLinks',
-                'caption' => 'Links automatisch bereinigen'
-            ]
-        ];
-
-        $baseList = $this->getVisibleList();
-        $fullList = $this->mergeTelemetryIntoVisibleVars($baseList);
-
-        // Toggle-Button: Telemetrie global ein-/ausblenden (deaktiviert, wenn keine Telemetrie-Einträge vorhanden sind)
-        $hasTelemetry = false;
-        $allTelemetryOn = true;
-        foreach ($fullList as $row) {
-            if (!is_array($row)) {
-                continue;
-            }
-            $ident = (string)($row['Ident'] ?? '');
-            if (strpos($ident, 'stat_tel_') !== 0) {
-                continue;
-            }
-            $hasTelemetry = true;
-            if (!(bool)($row['Enabled'] ?? false)) {
-                $allTelemetryOn = false;
-                break;
-            }
-        }
-        if (!$hasTelemetry) {
-            $allTelemetryOn = false;
-        }
-        $toggleCaption = $allTelemetryOn ? 'Telemetrie: alle ausblenden' : 'Telemetrie: alle einblenden';
-        $toggleConfirm = $allTelemetryOn ? 'Wirklich alle Telemetrie-Datenpunkte ausblenden?' : '';
-
-        $elements[] = [
-            'type' => 'List',
-            'name' => 'VisibleVars',
-            'caption' => 'Anzuzeigende Variablen',
-            'rowCount' => 12,
-            'add' => false,
-            'delete' => false,
-            'changeOrder' => true,
-'columns' => [
-                ['caption' => 'Ident', 'name' => 'Ident', 'width' => '220px', 'save' => true],
-                ['caption' => 'Name',  'name' => 'Name',  'width' => 'auto',  'save' => true],
-                [
-                    'caption' => 'Anzeigen',
-                    'name' => 'Enabled',
-                    'width' => '90px',
-                    'save' => true,
-                    'edit' => ['type' => 'CheckBox']
+                'type' => 'Label',
+                'caption' => 'Deaktivierte Datenpunkte werden ausgeblendet - Objekt-ID und Archivdaten bleiben erhalten. Neue Telemetrie wird nur angelegt, solange aktiviert. Zeilen per Drag & Drop sortieren - Variablen und Links folgen der Reihenfolge.'
+            ],
+            [
+                'type' => 'ExpansionPanel',
+                'caption' => 'Linkstruktur',
+                'items' => [
+                    [
+                        'type' => 'Label',
+                        'caption' => 'Erzeugt am gewählten Zielort einen gruppierten Kategoriebaum (Laden, Klima, Sicherheit, Sonstiges) mit Links auf alle aktiven Datenpunkte. Links deaktivierter Datenpunkte werden automatisch entfernt.'
+                    ],
+                    [
+                        'type' => 'CheckBox',
+                        'name' => 'CreateLinks',
+                        'caption' => 'Linkstruktur erzeugen'
+                    ],
+                    [
+                        'type' => 'SelectCategory',
+                        'name' => 'LinksLocation',
+                        'caption' => 'Zielkategorie'
+                    ],
+                    [
+                        'type' => 'CheckBox',
+                        'name' => 'CleanupLinks',
+                        'caption' => 'Links automatisch bereinigen'
+                    ]
                 ]
             ]
         ];
@@ -289,30 +309,28 @@ class TessieVehicle extends IPSModule
                 'confirm' => 'Wirklich die Variablenliste und Reihenfolge auf Standard zurücksetzen?',
                 'onClick' => 'TESSIE_ResetVisibleVars(' . $this->InstanceID . ');'
             ],
-
-                [
-            'type'    => 'Button',
-            'caption' => $toggleCaption,
-            'confirm' => $toggleConfirm,
-            'enabled' => $hasTelemetry,
-            'onClick' => 'TESSIE_ToggleAllTelemetry(' . $this->InstanceID . ');'
-        ],
-[
-            'type'    => 'Button',
-            'caption' => 'Telemetrie: nur wichtige einblenden',
-            'confirm' => 'Nicht wichtige Telemetrie-Datenpunkte werden ausgeblendet. Fortfahren?',
-            'onClick' => 'TESSIE_SetImportantTelemetryEnabled(' . $this->InstanceID . ');'
-        ],
-        [
-            'type'    => 'Button',
-            'caption' => 'Telemetrie: Namen aktualisieren',
-            'confirm' => 'Telemetrie-Variablennamen im Objektbaum anhand locale.json aktualisieren?',
-            'onClick' => 'TESSIE_RenameTelemetryVariables(' . $this->InstanceID . ');'
-        ],
-
+            [
+                'type'    => 'Button',
+                'caption' => $toggleCaption,
+                'confirm' => $toggleConfirm,
+                'enabled' => $hasTelemetry,
+                'onClick' => 'TESSIE_ToggleAllTelemetry(' . $this->InstanceID . ');'
+            ],
+            [
+                'type'    => 'Button',
+                'caption' => 'Telemetrie: nur wichtige einblenden',
+                'confirm' => 'Nicht wichtige Telemetrie-Datenpunkte werden ausgeblendet. Fortfahren?',
+                'onClick' => 'TESSIE_SetImportantTelemetryEnabled(' . $this->InstanceID . ');'
+            ],
+            [
+                'type'    => 'Button',
+                'caption' => 'Telemetrie: Namen aktualisieren',
+                'confirm' => 'Telemetrie-Variablennamen im Objektbaum anhand locale.json aktualisieren?',
+                'onClick' => 'TESSIE_RenameTelemetryVariables(' . $this->InstanceID . ');'
+            ],
             [
                 'type' => 'Label',
-                'caption' => "Ident/Name sind schreibgeschützt. Du änderst nur 'Anzeigen'. Reihenfolge per Drag & Drop (danach Übernehmen)."
+                'caption' => "Name/Ident sind schreibgeschützt - du änderst nur 'Aktiv'. Reihenfolge per Drag & Drop (danach Übernehmen)."
             ]
         ];
 
