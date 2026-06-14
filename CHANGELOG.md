@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.0.3] – 2026-06-14
+### Behoben
+- Datenpunkte ließen sich nicht per Drag & Drop sortieren und einige Variablen hatten Position 0. Ursache: die gespeicherte Liste war unvollständig (neue Kern-Variablen aus Updates fehlten). Neu: eine vollständige „effektive Liste" (Defaults + Telemetrie) als Basis für Anzeige, Position und Aktiv-Status; Spaltenkonfiguration an HeishaMon angeglichen (nur Ident wird persistiert).
+
 ## [2.0.2] – 2026-06-14
 ### Hinzugefügt
 - Datenpunkt-Liste: Spalte **Empfangen** (zeigt „Ja", sobald die Variable einen Wert erhalten hat) — analog HeishaMon.

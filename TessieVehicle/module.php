@@ -119,10 +119,9 @@ class TessieVehicle extends IPSModule
 
     private function ensureVisibleVarsMerged(): void
     {
-        $base = $this->getVisibleList();
-        $merged = $this->mergeTelemetryIntoVisibleVars($base);
+        $merged = $this->getEffectiveList();
         // Nur schreiben, wenn sich etwas ändert (Reihenfolge bleibt erhalten)
-        if (json_encode($base) !== json_encode($merged)) {
+        if (json_encode($this->getVisibleList()) !== json_encode($merged)) {
             IPS_SetProperty($this->InstanceID, self::PROP_VISIBLE_VARS, json_encode($merged));
         }
     }
@@ -207,13 +206,23 @@ class TessieVehicle extends IPSModule
     {
 $registry = $this->getTelemetryRegistry();
 
-        $fullList = $this->mergeTelemetryIntoVisibleVars($this->getVisibleList());
+        $fullList = $this->getEffectiveList();
+
+        // Kanonische Namen (Defaults + Telemetrie), damit die Anzeige nicht von
+        // gespeicherten Spalten abhängt (nur Aktiv/Ident werden persistiert)
+        $names = [];
+        foreach ($this->getDefaultVisibleVars() as $d) {
+            $names[(string)($d['Ident'] ?? '')] = (string)($d['Name'] ?? '');
+        }
+        foreach ($registry as $tid => $m) {
+            if (is_array($m)) $names[(string)$tid] = (string)($m['name'] ?? $tid);
+        }
 
         // Anzeige-Spalten je Zeile: Name übersetzen, Gruppe = Domäne (wie im Linkbaum)
         foreach ($fullList as &$row) {
             if (!is_array($row)) continue;
             $ident = (string)($row['Ident'] ?? '');
-            $row['Name']   = $this->Translate((string)($row['Name'] ?? $ident));
+            $row['Name']   = $this->Translate($names[$ident] ?? (string)($row['Name'] ?? $ident));
             $row['Gruppe'] = $this->purposeForIdent($ident, $registry);
             $vid = @IPS_GetObjectIDByIdent($ident, $this->InstanceID);
             $row['Empfangen'] = ($vid > 0 && (int)(@IPS_GetVariable($vid)['VariableUpdated'] ?? 0) > 0) ? 'Ja' : '';
@@ -260,17 +269,11 @@ $registry = $this->getTelemetryRegistry();
                 'changeOrder' => true,
                 'loadValuesFromConfiguration' => false,
                 'columns' => [
-                    [
-                        'caption' => 'Aktiv',
-                        'name' => 'Enabled',
-                        'width' => '80px',
-                        'save' => true,
-                        'edit' => ['type' => 'CheckBox']
-                    ],
-                    ['caption' => 'Name',   'name' => 'Name',   'width' => 'auto',  'save' => true],
-                    ['caption' => 'Gruppe',    'name' => 'Gruppe',    'width' => '170px'],
-                    ['caption' => 'Ident',     'name' => 'Ident',     'width' => '300px', 'save' => true],
-                    ['caption' => 'Empfangen', 'name' => 'Empfangen', 'width' => '110px']
+                    ['caption' => 'Aktiv',     'name' => 'Enabled',   'width' => '80px',  'add' => true, 'edit' => ['type' => 'CheckBox']],
+                    ['caption' => 'Name',      'name' => 'Name',      'width' => 'auto',  'add' => ''],
+                    ['caption' => 'Gruppe',    'name' => 'Gruppe',    'width' => '170px', 'add' => ''],
+                    ['caption' => 'Ident',     'name' => 'Ident',     'width' => '300px', 'add' => '', 'save' => true],
+                    ['caption' => 'Empfangen', 'name' => 'Empfangen', 'width' => '110px', 'add' => '']
                 ],
                 'values' => $fullList
             ],
@@ -1186,6 +1189,29 @@ $registry = $this->getTelemetryRegistry();
         return is_array($arr) ? $arr : [];
     }
 
+    // Vollständige Liste: gespeicherte Reihenfolge + fehlende Kern-Standardvariablen
+    // (z.B. nach einem Modul-Update neu hinzugekommene) + Telemetrie. Basis für
+    // Anzeige und Positions-/Aktiv-Zuordnung, unabhängig davon, was gerade gespeichert ist.
+    private function getEffectiveList(): array
+    {
+        $base = $this->getVisibleList();
+        $present = [];
+        foreach ($base as $row) {
+            if (is_array($row)) {
+                $id = (string)($row['Ident'] ?? '');
+                if ($id !== '') $present[$id] = true;
+            }
+        }
+        foreach ($this->getDefaultVisibleVars() as $def) {
+            $id = (string)($def['Ident'] ?? '');
+            if ($id !== '' && !isset($present[$id])) {
+                $base[] = $def;
+                $present[$id] = true;
+            }
+        }
+        return $this->mergeTelemetryIntoVisibleVars($base);
+    }
+
     private function mergeTelemetryIntoVisibleVars(array $list): array
     {
         $registry = $this->getTelemetryRegistry();
@@ -1213,7 +1239,7 @@ $registry = $this->getTelemetryRegistry();
     private function getEnabledMap(): array
     {
         $map = [];
-        foreach ($this->getVisibleList() as $row) {
+        foreach ($this->getEffectiveList() as $row) {
             if (!is_array($row)) continue;
             $ident = (string)($row['Ident'] ?? '');
             if ($ident === '') continue;
@@ -1226,7 +1252,7 @@ $registry = $this->getTelemetryRegistry();
     {
         $posMap = [];
         $pos = $step;
-        foreach ($this->getVisibleList() as $row) {
+        foreach ($this->getEffectiveList() as $row) {
             if (!is_array($row)) continue;
             $ident = (string)($row['Ident'] ?? '');
             if ($ident === '') continue;
