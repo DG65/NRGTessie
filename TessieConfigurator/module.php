@@ -108,10 +108,7 @@ class TessieConfigurator extends IPSModule
                 'Headers' => '[]'
             ];
 
-            $cfg = json_decode(IPS_GetConfiguration($wsId), true);
-            if (!is_array($cfg)) {
-                $cfg = [];
-            }
+            $cfg = $this->readInstanceConfig($wsId);
 
             $needApply = false;
             foreach ($desired as $k => $v) {
@@ -143,10 +140,7 @@ class TessieConfigurator extends IPSModule
                 continue;
             }
 
-            $cfg = json_decode(IPS_GetConfiguration($vehId), true);
-            if (!is_array($cfg)) {
-                $cfg = [];
-            }
+            $cfg = $this->readInstanceConfig($vehId);
 
             $needApply = false;
             if (($cfg['ApiToken'] ?? '') !== $token) {
@@ -170,8 +164,8 @@ class TessieConfigurator extends IPSModule
         $needle2 = 'streaming.tessie.com/' . rawurlencode($vin);
 
         foreach ($wsInstances as $iid) {
-            $cfg = json_decode(IPS_GetConfiguration($iid), true);
-            if (!is_array($cfg)) {
+            $cfg = $this->readInstanceConfig($iid);
+            if (count($cfg) === 0) {
                 continue;
             }
 
@@ -283,26 +277,26 @@ class TessieConfigurator extends IPSModule
         return $json;
     }
 
+    // Liest die Instanz-Konfiguration sicher; IPS_GetConfiguration kann (z.B. während
+    // einer Instanz-Erstellung) null/false liefern -> dann leeres Array statt Fatal.
+    private function readInstanceConfig(int $instanceID): array
+    {
+        $raw = @IPS_GetConfiguration($instanceID);
+        if (!is_string($raw) || $raw === '') {
+            return [];
+        }
+        $cfg = json_decode($raw, true);
+        return is_array($cfg) ? $cfg : [];
+    }
+
     private function findVehicleInstance(string $vin): int
     {
         $instances = IPS_GetInstanceListByModuleID(self::VEHICLE_MODULE_ID);
         foreach ($instances as $iid) {
-            $cfg = json_decode(IPS_GetConfiguration($iid), true);
-            if (is_array($cfg) && (string)($cfg['VIN'] ?? '') === $vin) {
+            $cfg = $this->readInstanceConfig($iid);
+            if ((string)($cfg['VIN'] ?? '') === $vin) {
                 return $iid;
             }
-
-            // Robust-Fallback: wenn VIN nicht gesetzt ist, kann der Configurator in manchen Versionen
-            // die Property InstanceInterface auswerten. Diese Property kann fehlen -> dann nicht crashen.
-            $json = @IPS_GetProperty($iid, 'InstanceInterface');
-            if ($json === false || $json === '') {
-                $json = '[]';
-            }
-            $iface = json_decode($json, true);
-            if (!is_array($iface)) {
-                $iface = [];
-            }
-            // Optional: hier könnten weitere Kriterien geprüft werden.
         }
         return 0;
     }

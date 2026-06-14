@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.0.5] - 2026-06-14
+### Behoben
+- Configurator: Fatal `json_decode(): Argument #1 must be string` beim Anlegen/Sync von Fahrzeugen, wenn `IPS_GetConfiguration()` waehrend einer Instanz-Erstellung null lieferte. Alle Konfig-Zugriffe laufen jetzt ueber einen abgesicherten Helfer (readInstanceConfig). Toter `IPS_GetProperty('InstanceInterface')`-Fallback entfernt (verursachte die Warnung "InstanceInterface is not available").
+
 ## [2.0.4] - 2026-06-14
 ### Behoben
 - Datenpunkte ließen sich weiterhin nicht per Drag & Drop sortieren. Ursache: bei der Angleichung an HeishaMon war `loadValuesFromConfiguration: false` gesetzt, wodurch die Liste rein aus berechneten Werten statt aus der Property gefüllt wurde - die geänderte Reihenfolge konnte so nicht gespeichert werden. Jetzt `true`: die Liste ist property-gestützt (Reihenfolge wird gespeichert), die berechneten Spalten Name/Gruppe/Empfangen werden weiterhin ergänzt.
