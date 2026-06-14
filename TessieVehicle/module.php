@@ -194,8 +194,8 @@ class TessieVehicle extends IPSModule
 
                 $this->safeSetValueIfExists($ident, $value);
             } else {
-                // Klartext-Enum (z.B. WheelType "Induction20Black") nachträglich übersetzen
-                $t = $this->Translate($cur);
+                // Klartext-Enum (z.B. WheelType "Induction20Black") nachträglich lesbar machen
+                $t = $this->readableEnumString($cur);
                 if ($t !== '' && $t !== $cur) {
                     $this->safeSetValueIfExists($ident, $t);
                 }
@@ -1096,7 +1096,31 @@ class TessieVehicle extends IPSModule
             }
             return [VARIABLETYPE_FLOAT, (float)$s];
         }
-        return [VARIABLETYPE_STRING, $this->Translate((string)$inner)];
+        return [VARIABLETYPE_STRING, $this->readableEnumString((string)$inner)];
+    }
+
+    // Enum-/Code-String lesbar machen: zuerst locale.json, sonst generischer Fallback
+    private function readableEnumString(string $s): string
+    {
+        $t = $this->Translate($s);
+        if ($t !== $s) {
+            return $t;
+        }
+        return $this->prettifyCode($s);
+    }
+
+    // Fallback für unbekannte CamelCase-/Code-Werte ohne locale-Eintrag:
+    // "Induction20Black" -> "Induction 20 Black", "Apollo19CapKit" -> "Apollo 19 Cap Kit".
+    // Nur einzelne Tokens (keine Leerzeichen, nur Buchstaben/Ziffern) werden zerlegt.
+    private function prettifyCode(string $s): string
+    {
+        if ($s === '' || !preg_match('/^[A-Za-z][A-Za-z0-9]*$/', $s)) {
+            return $s;
+        }
+        $r = preg_replace('/(?<=[a-z0-9])(?=[A-Z])/', ' ', $s);
+        $r = preg_replace('/(?<=[A-Za-z])(?=[0-9])/', ' ', (string)$r);
+        $r = preg_replace('/(?<=[0-9])(?=[A-Za-z])/', ' ', (string)$r);
+        return (string)$r;
     }
 
     // Ersten skalaren String-Wert aus einem Telemetrie-Wrapper holen (stringValue oder *Value)
@@ -1538,6 +1562,9 @@ class TessieVehicle extends IPSModule
             $profile = (string)($meta['profile'] ?? '');
             $position = $posMap[$ident] ?? 0;
 
+            // Über Aktions-Variablen abgebildete Keys nicht als Telemetrie-Duplikat pflegen
+            if ($this->isSupersededTelemetryIdent($ident, $registry)) continue;
+
             // Neu nur anlegen, solange aktiviert; bereits vorhandene bleiben erhalten
             // und werden unten ggf. ausgeblendet (so bleiben Objekt-ID und Archivdaten erhalten)
             $exists = @IPS_GetObjectIDByIdent($ident, $this->InstanceID) > 0;
@@ -1545,11 +1572,12 @@ class TessieVehicle extends IPSModule
             $this->MaintainVariable($ident, $name, $type, $profile, $position, true);
         }
 
-        // Abgewählte Variablen ausblenden statt löschen (Objekt-ID und Archivdaten bleiben erhalten)
+        // Abgewählte Variablen ausblenden statt löschen (Objekt-ID und Archivdaten bleiben erhalten);
+        // über Aktions-Variablen abgebildete Telemetrie-Duplikate werden immer ausgeblendet
         foreach ($posMap as $ident => $pos) {
             $vid = @IPS_GetObjectIDByIdent($ident, $this->InstanceID);
             if ($vid <= 0) continue;
-            $hidden = !($enabled[$ident] ?? true);
+            $hidden = $this->isSupersededTelemetryIdent($ident, $registry) ? true : !($enabled[$ident] ?? true);
             $obj = IPS_GetObject($vid);
             if (($obj['ObjectIsHidden'] ?? false) != $hidden) {
                 IPS_SetHidden($vid, $hidden);
@@ -1627,9 +1655,10 @@ class TessieVehicle extends IPSModule
             $desired[$pid][] = $linkIdent;
         };
 
-        // Jede sichtbare Variable genau einer Domäne zuordnen
+        // Jede sichtbare Variable genau einer Domäne zuordnen (Duplikate überspringen)
         $registry = $this->getTelemetryRegistry();
         foreach ($posMap as $ident => $pos) {
+            if ($this->isSupersededTelemetryIdent($ident, $registry)) continue;
             $createLink($this->purposeForIdent($ident, $registry), $ident);
         }
 
@@ -1692,6 +1721,21 @@ class TessieVehicle extends IPSModule
             return $this->classifyTelemetryKeyToPurpose($key);
         }
         return self::PURPOSE_OTHER;
+    }
+
+    // Telemetrie-Keys, die bereits über eigene (Aktions-)Variablen abgebildet sind:
+    // ihre auto-entdeckten stat_tel_-Duplikate werden ausgeblendet und nicht verlinkt.
+    private function isSupersededTelemetryIdent(string $ident, array $registry): bool
+    {
+        static $handled = [
+            'Locked', 'ChargeLimitSoc', 'ChargeCurrentRequest', 'ChargeAmps',
+            'ChargeCurrentRequestMax', 'ACChargingPower', 'VehicleName',
+            'ClimateKeeperMode', 'CabinOverheatProtectionTemperatureLimit',
+            'ValetModeEnabled', 'SentryMode'
+        ];
+        $meta = $registry[$ident] ?? null;
+        if (!is_array($meta)) return false;
+        return in_array((string)($meta['key'] ?? ''), $handled, true);
     }
 
     private function classifyTelemetryKeyToPurpose(string $key): string
