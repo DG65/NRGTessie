@@ -179,18 +179,27 @@ class TessieVehicle extends IPSModule
 
             $cur = (string)GetValue($vid);
             $trim = ltrim($cur);
-            if ($trim === '' || ($trim[0] !== '{' && $trim[0] !== '[')) continue;
+            if ($trim === '') continue;
 
-            $decoded = json_decode($cur, true);
-            if (!is_array($decoded)) continue;
+            if ($trim[0] === '{' || $trim[0] === '[') {
+                // Roh-JSON erneut durch den Parser schicken
+                $decoded = json_decode($cur, true);
+                if (!is_array($decoded)) continue;
 
-            $key = (string)($meta['key'] ?? $ident);
-            [$type, $value] = $this->telemetryInferTypeAndValue($key, $decoded);
+                $key = (string)($meta['key'] ?? $ident);
+                [$type, $value] = $this->telemetryInferTypeAndValue($key, $decoded);
 
-            // Wenn der Parser den Wert nicht deuten kann, gibt er erneut JSON zurück -> nicht überschreiben
-            if (is_string($value) && $value === json_encode($decoded)) continue;
+                // Nicht deutbar -> der Parser gibt erneut JSON zurück, dann nicht überschreiben
+                if (is_string($value) && $value === json_encode($decoded)) continue;
 
-            $this->safeSetValueIfExists($ident, $value);
+                $this->safeSetValueIfExists($ident, $value);
+            } else {
+                // Klartext-Enum (z.B. WheelType "Induction20Black") nachträglich übersetzen
+                $t = $this->Translate($cur);
+                if ($t !== '' && $t !== $cur) {
+                    $this->safeSetValueIfExists($ident, $t);
+                }
+            }
         }
     }
 
