@@ -864,14 +864,29 @@ class TessieVehicle extends IPSModule
 
 
             if ($key === 'ClimateKeeperMode') {
+                // Tesla sendet entweder eine Zahl oder einen Enum-String (z.B. "ClimateKeeperModeStateOff")
                 $n = $this->telemetryGetNumber($val);
+                if ($n === null) {
+                    $s = strtolower((string)$this->telemetryFirstEnumString($val));
+                    if (strpos($s, 'off') !== false) $n = 0;
+                    elseif (strpos($s, 'dog') !== false) $n = 2;
+                    elseif (strpos($s, 'party') !== false || strpos($s, 'camp') !== false) $n = 3;
+                    elseif (strpos($s, 'keep') !== false || strpos($s, 'on') !== false) $n = 1;
+                }
                 if ($n !== null) {
                     $this->safeSetValueIfExists(self::ACT_CLIMATE_KEEPER_MODE, (int)round($n));
                 }
                 continue;
             }
             if ($key === 'CabinOverheatProtectionTemperatureLimit') {
+                // Zahl oder Enum-String (z.B. "ClimateOverheatProtectionTempLimitLow")
                 $n = $this->telemetryGetNumber($val);
+                if ($n === null) {
+                    $s = strtolower((string)$this->telemetryFirstEnumString($val));
+                    if (strpos($s, 'low') !== false) $n = 1;
+                    elseif (strpos($s, 'medium') !== false) $n = 2;
+                    elseif (strpos($s, 'high') !== false) $n = 3;
+                }
                 if ($n !== null) {
                     $this->safeSetValueIfExists(self::ACT_COP_TEMP, (int)round($n));
                 }
@@ -1039,6 +1054,20 @@ class TessieVehicle extends IPSModule
             return [VARIABLETYPE_FLOAT, (float)$s];
         }
         return [VARIABLETYPE_STRING, $this->Translate((string)$inner)];
+    }
+
+    // Ersten skalaren String-Wert aus einem Telemetrie-Wrapper holen (stringValue oder *Value)
+    private function telemetryFirstEnumString(array $val): ?string
+    {
+        if (isset($val['stringValue']) && is_string($val['stringValue'])) {
+            return $val['stringValue'];
+        }
+        foreach ($val as $k => $inner) {
+            if (is_string($k) && substr($k, -5) === 'Value' && is_string($inner)) {
+                return $inner;
+            }
+        }
+        return null;
     }
 
     private function getTelemetryRegistry(): array
