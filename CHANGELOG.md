@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.1.3] - 2026-06-14
+### Behoben
+- Drag & Drop der Datenpunkte ging weiterhin nicht, obwohl die Liste strukturell mit HeishaMon identisch war. Entscheidender Unterschied: HeishaMon definiert das Formular in einer statischen form.json und injiziert nur die Werte, Tessie baute das komplette Formular dynamisch in GetConfigurationForm. Die IPS-Konsole aktiviert die Sortierung offenbar nur fuer Listen aus der form.json. Tessie nutzt jetzt dasselbe Muster: Struktur in TessieVehicle/form.json, GetConfigurationForm injiziert nur values + Toggle-Status.
+
 ## [2.1.2] - 2026-06-14
 ### Behoben
 - Datenpunkte ließen sich nicht per Drag & Drop sortieren (HeishaMon konnte es, Tessie nicht). Ursache gefunden: Tessie schrieb die Listen-Property `VisibleVars` per `IPS_SetProperty` waehrend `ApplyChanges` (Funktion `ensureVisibleVarsMerged`) - das bringt die an die Property gebundene Liste in einen Zustand, in dem IPS das Umsortieren sperrt. HeishaMon macht das nicht. Aufruf entfernt; `loadValuesFromConfiguration` wie bei HeishaMon auf `false`. Vollstaendigkeit/Positionen kommen weiter aus getEffectiveList().

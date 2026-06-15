@@ -194,12 +194,15 @@ class TessieVehicle extends IPSModule
     // Dynamisches Formular: eine Liste "Anzuzeigende Variablen" inkl. Telemetrie-Einträgen
     public function GetConfigurationForm()
     {
-$registry = $this->getTelemetryRegistry();
+        $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
+        if (!is_array($form)) {
+            $form = ['elements' => [], 'actions' => [], 'status' => []];
+        }
 
+        $registry = $this->getTelemetryRegistry();
         $fullList = $this->getEffectiveList();
 
-        // Kanonische Namen (Defaults + Telemetrie), damit die Anzeige nicht von
-        // gespeicherten Spalten abhängt (nur Aktiv/Ident werden persistiert)
+        // Kanonische Namen (Defaults + Telemetrie), unabhaengig von gespeicherten Spalten
         $names = [];
         foreach ($this->getDefaultVisibleVars() as $d) {
             $names[(string)($d['Ident'] ?? '')] = (string)($d['Name'] ?? '');
@@ -208,7 +211,9 @@ $registry = $this->getTelemetryRegistry();
             if (is_array($m)) $names[(string)$tid] = (string)($m['name'] ?? $tid);
         }
 
-        // Anzeige-Spalten je Zeile: Name übersetzen, Gruppe = Domäne (wie im Linkbaum)
+        // Anzeige-Spalten je Zeile + Telemetrie-Status fuer den Sammelbutton
+        $hasTelemetry = false;
+        $allTelemetryOn = true;
         foreach ($fullList as &$row) {
             if (!is_array($row)) continue;
             $ident = (string)($row['Ident'] ?? '');
@@ -216,121 +221,35 @@ $registry = $this->getTelemetryRegistry();
             $row['Gruppe'] = $this->purposeForIdent($ident, $registry);
             $vid = @IPS_GetObjectIDByIdent($ident, $this->InstanceID);
             $row['Empfangen'] = ($vid > 0 && (int)(@IPS_GetVariable($vid)['VariableUpdated'] ?? 0) > 0) ? 'Ja' : '';
+            if (strpos($ident, 'stat_tel_') === 0) {
+                $hasTelemetry = true;
+                if (!(bool)($row['Enabled'] ?? false)) $allTelemetryOn = false;
+            }
         }
         unset($row);
-
-        // Status für den Telemetrie-Sammel-Button
-        $hasTelemetry = false;
-        $allTelemetryOn = true;
-        foreach ($fullList as $row) {
-            if (!is_array($row) || strpos((string)($row['Ident'] ?? ''), 'stat_tel_') !== 0) continue;
-            $hasTelemetry = true;
-            if (!(bool)($row['Enabled'] ?? false)) { $allTelemetryOn = false; break; }
-        }
         if (!$hasTelemetry) $allTelemetryOn = false;
-        $toggleCaption = $allTelemetryOn ? 'Telemetrie: alle ausblenden' : 'Telemetrie: alle einblenden';
-        $toggleConfirm = $allTelemetryOn ? 'Wirklich alle Telemetrie-Datenpunkte ausblenden?' : '';
 
-        $elements = [
-            [
-                'type' => 'NumberSpinner',
-                'name' => 'UpdateInterval',
-                'caption' => 'Update Intervall (Sekunden)',
-                'suffix' => ' s',
-                'minimum' => 0,
-                'maximum' => 3600
-            ],
-            [
-                'type' => 'SelectCategory',
-                'name' => 'InstanceLocation',
-                'caption' => 'Ablageort Instanz (optional)'
-            ],
-            [
-                'type' => 'Label',
-                'caption' => 'Telemetrie-Variablen werden automatisch angelegt, sobald das Fahrzeug die entsprechenden Daten sendet.'
-            ],
-            [
-                'type' => 'List',
-                'name' => 'VisibleVars',
-                'caption' => 'Datenpunkte',
-                'rowCount' => 15,
-                'add' => false,
-                'delete' => false,
-                'changeOrder' => true,
-                'loadValuesFromConfiguration' => false,
-                'columns' => [
-                    ['caption' => 'Aktiv',     'name' => 'Enabled',   'width' => '80px',  'add' => true, 'edit' => ['type' => 'CheckBox']],
-                    ['caption' => 'Name',      'name' => 'Name',      'width' => 'auto',  'add' => ''],
-                    ['caption' => 'Gruppe',    'name' => 'Gruppe',    'width' => '170px', 'add' => ''],
-                    ['caption' => 'Ident',     'name' => 'Ident',     'width' => '300px', 'add' => '', 'save' => true],
-                    ['caption' => 'Empfangen', 'name' => 'Empfangen', 'width' => '110px', 'add' => '']
-                ],
-                'values' => $fullList
-            ],
-            [
-                'type' => 'Label',
-                'caption' => 'Deaktivierte Datenpunkte werden ausgeblendet - Objekt-ID und Archivdaten bleiben erhalten. Neue Telemetrie wird nur angelegt, solange aktiviert. Zeilen per Drag & Drop sortieren - Variablen und Links folgen der Reihenfolge.'
-            ],
-            [
-                'type' => 'ExpansionPanel',
-                'caption' => 'Linkstruktur',
-                'items' => [
-                    [
-                        'type' => 'Label',
-                        'caption' => 'Erzeugt am gewählten Zielort einen gruppierten Kategoriebaum (Laden, Klima, Sicherheit, Sonstiges) mit Links auf alle aktiven Datenpunkte. Links deaktivierter Datenpunkte werden automatisch entfernt.'
-                    ],
-                    [
-                        'type' => 'CheckBox',
-                        'name' => 'CreateLinks',
-                        'caption' => 'Linkstruktur erzeugen'
-                    ],
-                    [
-                        'type' => 'SelectCategory',
-                        'name' => 'LinksLocation',
-                        'caption' => 'Zielkategorie'
-                    ],
-                    [
-                        'type' => 'CheckBox',
-                        'name' => 'CleanupLinks',
-                        'caption' => 'Links automatisch bereinigen'
-                    ]
-                ]
-            ]
-        ];
+        // Werte in die Datenpunkt-Liste der form.json injizieren
+        foreach ($form['elements'] as &$element) {
+            if (($element['name'] ?? '') === 'VisibleVars') {
+                $element['values'] = $fullList;
+                break;
+            }
+        }
+        unset($element);
 
-        $actions = [
-            [
-                'type' => 'Button',
-                'caption' => 'Reset: Standardliste wiederherstellen',
-                'confirm' => 'Wirklich die Variablenliste und Reihenfolge auf Standard zurücksetzen?',
-                'onClick' => 'TESSIE_ResetVisibleVars(' . $this->InstanceID . ');'
-            ],
-            [
-                'type'    => 'Button',
-                'caption' => $toggleCaption,
-                'confirm' => $toggleConfirm,
-                'enabled' => $hasTelemetry,
-                'onClick' => 'TESSIE_ToggleAllTelemetry(' . $this->InstanceID . ');'
-            ],
-            [
-                'type'    => 'Button',
-                'caption' => 'Telemetrie: nur wichtige einblenden',
-                'confirm' => 'Nicht wichtige Telemetrie-Datenpunkte werden ausgeblendet. Fortfahren?',
-                'onClick' => 'TESSIE_SetImportantTelemetryEnabled(' . $this->InstanceID . ');'
-            ],
-            [
-                'type'    => 'Button',
-                'caption' => 'Telemetrie: Namen aktualisieren',
-                'confirm' => 'Telemetrie-Variablennamen im Objektbaum anhand locale.json aktualisieren?',
-                'onClick' => 'TESSIE_RenameTelemetryVariables(' . $this->InstanceID . ');'
-            ],
-            [
-                'type' => 'Label',
-                'caption' => "Name/Ident sind schreibgeschützt - du änderst nur 'Aktiv'. Reihenfolge per Drag & Drop (danach Übernehmen)."
-            ]
-        ];
+        // Telemetrie-Sammelbutton dynamisch beschriften
+        foreach (($form['actions'] ?? []) as &$action) {
+            if (($action['name'] ?? '') === 'ToggleTelemetry') {
+                $action['caption'] = $allTelemetryOn ? 'Telemetrie: alle ausblenden' : 'Telemetrie: alle einblenden';
+                $action['confirm'] = $allTelemetryOn ? 'Wirklich alle Telemetrie-Datenpunkte ausblenden?' : '';
+                $action['enabled'] = $hasTelemetry;
+                break;
+            }
+        }
+        unset($action);
 
-        return json_encode(['elements' => $elements, 'actions' => $actions]);
+        return json_encode($form);
     }
 
     public function ResetVisibleVars()
