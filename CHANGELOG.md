@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.1.0] - 2026-06-14
+### Geaendert
+- Reihenfolge der Datenpunkte jetzt ueber eine editierbare Spalte "Reihenfolge" (Zahl, kleinere = weiter oben) statt Drag & Drop. Drag&Drop (changeOrder) war in IPS 9.0 hier nicht zuverlaessig; die Spalte mit Sortierung nutzt nur dokumentierte, stabile List-Features. Variablen-Positionen und Links folgen der Reihenfolge.
+
 ## [2.0.5] - 2026-06-14
 ### Behoben
 - Configurator: Fatal `json_decode(): Argument #1 must be string` beim Anlegen/Sync von Fahrzeugen, wenn `IPS_GetConfiguration()` waehrend einer Instanz-Erstellung null lieferte. Alle Konfig-Zugriffe laufen jetzt ueber einen abgesicherten Helfer (readInstanceConfig). Toter `IPS_GetProperty('InstanceInterface')`-Fallback entfernt (verursachte die Warnung "InstanceInterface is not available").
