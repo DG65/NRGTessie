@@ -117,19 +117,9 @@ class TessieVehicle extends IPSModule
     }
 
 
-    private function ensureVisibleVarsMerged(): void
-    {
-        $merged = $this->getEffectiveList();
-        // Nur schreiben, wenn sich etwas ändert (Reihenfolge bleibt erhalten)
-        if (json_encode($this->getVisibleList()) !== json_encode($merged)) {
-            IPS_SetProperty($this->InstanceID, self::PROP_VISIBLE_VARS, json_encode($merged));
-        }
-    }
-
     public function ApplyChanges()
     {
         parent::ApplyChanges();
-        $this->ensureVisibleVarsMerged();
 
         $interval = (int)$this->ReadPropertyInteger('UpdateInterval');
         if ($interval < 0) {
@@ -267,7 +257,7 @@ $registry = $this->getTelemetryRegistry();
                 'add' => false,
                 'delete' => false,
                 'changeOrder' => true,
-                'loadValuesFromConfiguration' => true,
+                'loadValuesFromConfiguration' => false,
                 'columns' => [
                     ['caption' => 'Aktiv',     'name' => 'Enabled',   'width' => '80px',  'add' => true, 'edit' => ['type' => 'CheckBox']],
                     ['caption' => 'Name',      'name' => 'Name',      'width' => 'auto',  'add' => ''],

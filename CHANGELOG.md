@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.1.2] - 2026-06-14
+### Behoben
+- Datenpunkte ließen sich nicht per Drag & Drop sortieren (HeishaMon konnte es, Tessie nicht). Ursache gefunden: Tessie schrieb die Listen-Property `VisibleVars` per `IPS_SetProperty` waehrend `ApplyChanges` (Funktion `ensureVisibleVarsMerged`) - das bringt die an die Property gebundene Liste in einen Zustand, in dem IPS das Umsortieren sperrt. HeishaMon macht das nicht. Aufruf entfernt; `loadValuesFromConfiguration` wie bei HeishaMon auf `false`. Vollstaendigkeit/Positionen kommen weiter aus getEffectiveList().
+
 ## [2.1.1] - 2026-06-14
 ### Geaendert
 - Reihenfolge wieder per Drag & Drop (editierbare Zahlenspalte aus 2.1.0 entfernt - war unpraktisch). Hinweis: Falls sich die Liste nicht verschieben laesst, liegt es an inkonsistentem gespeichertem Zustand aus aelteren Versionen - dann einmal "Reset: Standardliste wiederherstellen" druecken oder die Instanz neu anlegen.
