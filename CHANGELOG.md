@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.1.1] - 2026-06-14
+### Geaendert
+- Reihenfolge wieder per Drag & Drop (editierbare Zahlenspalte aus 2.1.0 entfernt - war unpraktisch). Hinweis: Falls sich die Liste nicht verschieben laesst, liegt es an inkonsistentem gespeichertem Zustand aus aelteren Versionen - dann einmal "Reset: Standardliste wiederherstellen" druecken oder die Instanz neu anlegen.
+
 ## [2.1.0] - 2026-06-14
 ### Geaendert
 - Reihenfolge der Datenpunkte jetzt ueber eine editierbare Spalte "Reihenfolge" (Zahl, kleinere = weiter oben) statt Drag & Drop. Drag&Drop (changeOrder) war in IPS 9.0 hier nicht zuverlaessig; die Spalte mit Sortierung nutzt nur dokumentierte, stabile List-Features. Variablen-Positionen und Links folgen der Reihenfolge.

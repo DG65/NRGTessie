@@ -266,23 +266,20 @@ $registry = $this->getTelemetryRegistry();
                 'rowCount' => 15,
                 'add' => false,
                 'delete' => false,
-                // Sortierung über die editierbare Spalte "Reihenfolge" (zuverlässig in allen
-                // IPS-9.0-Versionen; Drag&Drop/changeOrder war hier nicht stabil)
+                'changeOrder' => true,
                 'loadValuesFromConfiguration' => true,
-                'sort' => ['column' => 'Sort', 'direction' => 'ascending'],
                 'columns' => [
-                    ['caption' => 'Reihenfolge', 'name' => 'Sort',      'width' => '110px', 'add' => 0,    'save' => true, 'edit' => ['type' => 'NumberSpinner']],
-                    ['caption' => 'Aktiv',       'name' => 'Enabled',   'width' => '80px',  'add' => true, 'edit' => ['type' => 'CheckBox']],
-                    ['caption' => 'Name',        'name' => 'Name',      'width' => 'auto',  'add' => ''],
-                    ['caption' => 'Gruppe',      'name' => 'Gruppe',    'width' => '170px', 'add' => ''],
-                    ['caption' => 'Ident',       'name' => 'Ident',     'width' => '300px', 'add' => '', 'save' => true],
-                    ['caption' => 'Empfangen',   'name' => 'Empfangen', 'width' => '110px', 'add' => '']
+                    ['caption' => 'Aktiv',     'name' => 'Enabled',   'width' => '80px',  'add' => true, 'edit' => ['type' => 'CheckBox']],
+                    ['caption' => 'Name',      'name' => 'Name',      'width' => 'auto',  'add' => ''],
+                    ['caption' => 'Gruppe',    'name' => 'Gruppe',    'width' => '170px', 'add' => ''],
+                    ['caption' => 'Ident',     'name' => 'Ident',     'width' => '300px', 'add' => '', 'save' => true],
+                    ['caption' => 'Empfangen', 'name' => 'Empfangen', 'width' => '110px', 'add' => '']
                 ],
                 'values' => $fullList
             ],
             [
                 'type' => 'Label',
-                'caption' => 'Deaktivierte Datenpunkte werden ausgeblendet - Objekt-ID und Archivdaten bleiben erhalten. Neue Telemetrie wird nur angelegt, solange aktiviert. Reihenfolge über die Spalte "Reihenfolge" festlegen (kleinere Zahl = weiter oben) - Variablen und Links folgen ihr.'
+                'caption' => 'Deaktivierte Datenpunkte werden ausgeblendet - Objekt-ID und Archivdaten bleiben erhalten. Neue Telemetrie wird nur angelegt, solange aktiviert. Zeilen per Drag & Drop sortieren - Variablen und Links folgen der Reihenfolge.'
             ],
             [
                 'type' => 'ExpansionPanel',
@@ -339,7 +336,7 @@ $registry = $this->getTelemetryRegistry();
             ],
             [
                 'type' => 'Label',
-                'caption' => "Name/Ident sind schreibgeschützt - du änderst nur 'Aktiv' und die 'Reihenfolge' (danach Übernehmen)."
+                'caption' => "Name/Ident sind schreibgeschützt - du änderst nur 'Aktiv'. Reihenfolge per Drag & Drop (danach Übernehmen)."
             ]
         ];
 
@@ -1212,28 +1209,7 @@ $registry = $this->getTelemetryRegistry();
                 $present[$id] = true;
             }
         }
-        $list = $this->mergeTelemetryIntoVisibleVars($base);
-
-        // Jede Zeile braucht eine Sortier-Nummer; bestehende behalten, fehlende fortlaufend vergeben
-        $maxSort = 0;
-        foreach ($list as $row) {
-            if (is_array($row) && isset($row['Sort'])) {
-                $maxSort = max($maxSort, (int)$row['Sort']);
-            }
-        }
-        foreach ($list as &$row) {
-            if (!is_array($row)) continue;
-            if (!isset($row['Sort']) || (int)$row['Sort'] <= 0) {
-                $maxSort += 10;
-                $row['Sort'] = $maxSort;
-            } else {
-                $row['Sort'] = (int)$row['Sort'];
-            }
-        }
-        unset($row);
-
-        usort($list, fn($a, $b) => ((int)($a['Sort'] ?? 0)) <=> ((int)($b['Sort'] ?? 0)));
-        return $list;
+        return $this->mergeTelemetryIntoVisibleVars($base);
     }
 
     private function mergeTelemetryIntoVisibleVars(array $list): array
