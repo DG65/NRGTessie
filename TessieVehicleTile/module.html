@@ -62,11 +62,6 @@
 
 <body>
     <div class="wrap" id="card">
-        <div class="tsl-head">
-            <span class="tsl-name" id="tsl-name">Tesla</span>
-            <span class="tsl-pill" id="tsl-lock">–</span>
-        </div>
-
         <div class="tsl-top">
             <div class="tsl-ring">
                 <svg viewBox="0 0 96 96">
@@ -87,6 +82,7 @@
         <div class="tsl-state">
             <span class="tsl-dot"></span>
             <span class="tsl-state-lbl" id="tsl-state">–</span>
+            <span class="tsl-pill" id="tsl-lock" style="margin-left:auto">–</span>
         </div>
 
         <div class="tsl-boxes">
@@ -125,8 +121,6 @@
             applyVar('--textmuted', d.textmuted);
             if (d.font) root.setProperty('--font', d.font);
             root.setProperty('--scale', d.scale || 1);
-
-            document.getElementById('tsl-name').textContent = d.name || 'Tesla';
 
             var lock = document.getElementById('tsl-lock');
             if (d.locked === null || d.locked === undefined) { lock.textContent = '–'; lock.className = 'tsl-pill'; }

@@ -59,6 +59,7 @@ class TessieVehicleTile extends IPSModule
         $this->RegisterPropertyString('FontFamily', self::DEF_FONT);
         $this->RegisterPropertyFloat('FontScale', self::DEF_SCALE);
         $this->RegisterPropertyBoolean('ShowControls', true);
+        $this->RegisterPropertyBoolean('AdoptVehicleName', true);
 
         $this->SetVisualizationType(1);
     }
@@ -96,6 +97,14 @@ class TessieVehicleTile extends IPSModule
                 }
             }
             $this->SetStatus(102);
+
+            // Optional: Kachel-Instanz nach dem verbundenen Fahrzeug benennen
+            if ($this->ReadPropertyBoolean('AdoptVehicleName')) {
+                $vehicleName = IPS_GetName($src);
+                if ($vehicleName !== '' && IPS_GetName($this->InstanceID) !== $vehicleName) {
+                    IPS_SetName($this->InstanceID, $vehicleName);
+                }
+            }
         } else {
             $this->SetStatus(104);
         }

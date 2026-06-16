@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.3.1] - 2026-06-16
+### Geaendert
+- Kachel (TessieVehicleTile): Fahrzeugname nicht mehr doppelt - der Name in der Karte entfaellt (er steht bereits im Kachel-Titel); die Verriegelt-Pille rueckt in die Statuszeile. Neue Option "Kachelname automatisch vom Fahrzeug uebernehmen" (Standard an) benennt die Kachel-Instanz nach dem verbundenen Fahrzeug.
+
 ## [2.3.0] - 2026-06-16
 ### Hinzugefuegt
 - Neues Modul **TessieVehicleTile**: eigenstaendige HTML-Kachel (eigene Instanz) fuer die Kacheln-Visualisierung, nach Vorbild des TibberGridRewardTile. Zeigt Akku-Ring/Ladestand, Reichweite, Temperaturen, Verriegelungs-/Klima-/Ladestatus, Lade-Details und Standort einer TessieVehicle-Instanz; optionale Bedien-Buttons (Verriegeln/Klima/Laden) werden an die Quelle weitergereicht. Quelle wird automatisch erkannt (oder per SelectInstance gewaehlt); Live-Updates via VM_UPDATE; Farben/Schrift konfigurierbar, sonst IPS-Theme.

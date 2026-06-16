@@ -11,6 +11,11 @@
       "validModules": ["{3F1F7E31-8BA0-4B8F-9B62-47DAD7A0B6C9}"]
     },
     {
+      "type": "CheckBox",
+      "name": "AdoptVehicleName",
+      "caption": "Kachelname automatisch vom Fahrzeug übernehmen"
+    },
+    {
       "type": "ExpansionPanel",
       "caption": "🎨 Statusfarben",
       "items": [
