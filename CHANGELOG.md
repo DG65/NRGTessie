@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.1.4] - 2026-06-16
+### Behoben
+- Die per Liste festgelegte Reihenfolge wirkte sich nicht auf die Variablen im Objektbaum aus (das eigentliche Problem hinter "laesst sich nicht verschieben"). Ursache: MaintainVariable setzt die Position nur bei der Neuanlage, nicht fuer bestehende Variablen. ensureVariables fuehrt die Position jetzt explizit per IPS_SetPosition nach (nur bei Abweichung), analog HeishaMon. Drag&Drop bzw. die Listenreihenfolge schlaegt damit auf die Objektbaum-Reihenfolge durch.
+
 ## [2.1.3] - 2026-06-14
 ### Behoben
 - Drag & Drop der Datenpunkte ging weiterhin nicht, obwohl die Liste strukturell mit HeishaMon identisch war. Entscheidender Unterschied: HeishaMon definiert das Formular in einer statischen form.json und injiziert nur die Werte, Tessie baute das komplette Formular dynamisch in GetConfigurationForm. Die IPS-Konsole aktiviert die Sortierung offenbar nur fuer Listen aus der form.json. Tessie nutzt jetzt dasselbe Muster: Struktur in TessieVehicle/form.json, GetConfigurationForm injiziert nur values + Toggle-Status.

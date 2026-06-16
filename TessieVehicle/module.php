@@ -1469,6 +1469,12 @@ class TessieVehicle extends IPSModule
             if (($obj['ObjectIsHidden'] ?? false) != $hidden) {
                 IPS_SetHidden($vid, $hidden);
             }
+            // Reihenfolge der Liste auf die Variablen-Position übertragen. MaintainVariable
+            // setzt die Position nur bei der Neuanlage, daher hier explizit nachführen
+            // (nur bei Abweichung, sonst Update-Sturm).
+            if (($obj['ObjectPosition'] ?? 0) != $pos) {
+                IPS_SetPosition($vid, $pos);
+            }
         }
     }
 
