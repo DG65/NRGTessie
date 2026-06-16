@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.1.5] - 2026-06-16
+### Behoben
+- GPS-Koordinaten (Fahrzeug-/Zielposition, Lat/Lon) wurden ohne Nachkommastellen angezeigt, obwohl Float. Diese Variablen bekamen die Standard-Praesentation mit 0 Stellen. Jetzt 6 Nachkommastellen (~0,11 m Genauigkeit).
+
 ## [2.1.4] - 2026-06-16
 ### Behoben
 - Die per Liste festgelegte Reihenfolge wirkte sich nicht auf die Variablen im Objektbaum aus (das eigentliche Problem hinter "laesst sich nicht verschieben"). Ursache: MaintainVariable setzt die Position nur bei der Neuanlage, nicht fuer bestehende Variablen. ensureVariables fuehrt die Position jetzt explizit per IPS_SetPosition nach (nur bei Abweichung), analog HeishaMon. Drag&Drop bzw. die Listenreihenfolge schlaegt damit auf die Objektbaum-Reihenfolge durch.

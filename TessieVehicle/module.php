@@ -1456,7 +1456,11 @@ class TessieVehicle extends IPSModule
             // und werden unten ggf. ausgeblendet (so bleiben Objekt-ID und Archivdaten erhalten)
             $exists = @IPS_GetObjectIDByIdent($ident, $this->InstanceID) > 0;
             if (!$exists && !$isEnabled) continue;
-            $this->MaintainVariable($ident, $name, $type, $this->presFor($profile, false), $position, true);
+
+            // GPS-Koordinaten (Lat/Lon) brauchen genug Nachkommastellen (~1 m -> 6 Stellen)
+            $isCoord = (substr($ident, -4) === '_lat' || substr($ident, -4) === '_lon');
+            $presentation = $isCoord ? $this->presValue('', 6) : $this->presFor($profile, false);
+            $this->MaintainVariable($ident, $name, $type, $presentation, $position, true);
         }
 
         // Abgewählte Variablen ausblenden statt löschen (Objekt-ID und Archivdaten bleiben erhalten);
