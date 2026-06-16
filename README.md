@@ -2,16 +2,19 @@
 
 Anbindung von Tesla-Fahrzeugen an IP-Symcon über die [Tessie-API](https://developer.tessie.com/) – Steuerung per REST und Live-Telemetrie per WebSocket.
 
+> Inoffizielles Community-Modul. Nicht von Tesla, Inc. oder Tessie entwickelt, unterstützt oder freigegeben. Siehe [Markenhinweis](#markenhinweis) und [Haftungsausschluss](#haftungsausschluss).
+
 ## Funktionen
 
-- **Fahrzeugsteuerung** über die Tessie-REST-API: Ver-/Entriegeln, Klima ein/aus, Solltemperaturen, Sitz-/Lenkradheizung, Laden starten/stoppen, Ladelimit, Ladestrom, Ladeport, Fenster lüften/schließen, Hupe, Lichthupe, Sentry-/Valet-Modus, Frunk/Kofferraum, HomeLink, Innenraum-Überhitzeschutz, Climate-Keeper u. a.
+- **Fahrzeugsteuerung** über die Tessie-REST-API: Ver-/Entriegeln, Klima ein/aus, Solltemperaturen, Sitz-/Lenkradheizung, Laden starten/stoppen, Ladelimit, Ladestrom, Ladeport, Fenster lüften/schließen, Hupe, Lichthupe, Sentry-/Valet-Modus, vorderer Kofferraum/Heckklappe, HomeLink, Innenraum-Überhitzeschutz, Klimahaltung u. a.
 - **Live-Telemetrie** über den Tessie-WebSocket-Stream (Token kompatibel als `?access_token=…` in der URL).
 - **Automatische Telemetrie-Variablen**: neue Datenpunkte werden bei Bedarf angelegt; Werte werden **lesbar** aufbereitet
   - Enum-Zustände als Klartext (z. B. `DefrostModeStateOff` → „Entfroster: aus") über `locale.json`, mit generischem Fallback für unbekannte Codes,
-  - Einheiten metrisch (mph→km/h, mi→km),
+  - Einheiten metrisch (mph→km/h, mi→km), GPS-Koordinaten mit 6 Nachkommastellen,
   - Zeitstempel als Datum,
   - verschachtelte Status (z. B. Türen) als lesbare Liste.
-- **Konfigurierbare Variablenliste**: Datenpunkte ein-/ausblenden und per Drag & Drop sortieren. Abgewählte Variablen werden **ausgeblendet statt gelöscht** – Objekt-ID und Archivdaten bleiben erhalten.
+- **IP-Symcon-9.0-Presentations** für die Darstellung (Schalter/Slider/Auswahl/Wert) statt Variablenprofilen.
+- **Konfigurierbare Datenpunktliste**: ein-/ausblenden und per Drag & Drop sortieren; die Reihenfolge wirkt auf Variablen und Links. Abgewählte Datenpunkte werden **ausgeblendet statt gelöscht** – Objekt-ID und Archivdaten bleiben erhalten.
 - **Optionale Linkstruktur**: gruppierter Kategoriebaum (Laden / Klima / Sicherheit / Sonstiges) mit Verknüpfungen auf die aktiven Variablen.
 
 ## Enthaltene Module
@@ -38,8 +41,8 @@ Präfix der öffentlichen Funktionen: `TESSIE`.
 ## Konfiguration (TessieVehicle)
 
 - **Update-Intervall** für REST-Statusabfragen (Sekunden; 0 = aus, Telemetrie läuft unabhängig weiter).
-- **Ablageort** von Instanz und Links, **Links anlegen/bereinigen**.
-- **Anzuzeigende Variablen**: Liste zum Ein-/Ausblenden und Sortieren.
+- **Datenpunkte**: Liste zum Ein-/Ausblenden und Sortieren (Drag & Drop). Spalten: Aktiv, Name, Gruppe, Ident, Empfangen.
+- **Linkstruktur** (aufklappbar): Zielkategorie, Links erzeugen/automatisch bereinigen.
 - Buttons: Standardliste zurücksetzen, Telemetrie alle/​nur wichtige ein-/ausblenden, Telemetrie-Namen aktualisieren.
 
 ## Hinweise
@@ -47,6 +50,23 @@ Präfix der öffentlichen Funktionen: `TESSIE`.
 - Telemetrie-Werte werden **beim Empfang** aufbereitet; selten gesendete/stale Werte werden zusätzlich beim **Übernehmen** der Instanz nachträglich lesbar gemacht.
 - Fehlt für einen Enum-Code die Übersetzung, greift ein generischer Fallback (CamelCase → Wörter). Gezielte Übersetzungen lassen sich in `TessieVehicle/locale.json` ergänzen.
 
+## Changelog
+
+Alle Änderungen sind in [CHANGELOG.md](CHANGELOG.md) dokumentiert (Format nach [Keep a Changelog](https://keepachangelog.com/de/)).
+
+## Markenhinweis
+
+„Tesla" ist eine Marke der Tesla, Inc. „Tessie" ist ein Dienst der Tessie bzw. der jeweiligen Rechteinhaber. Dieses Projekt steht in **keiner** Verbindung zu Tesla, Inc. oder Tessie und wird von diesen weder unterstützt noch geprüft. Alle Marken gehören ihren jeweiligen Eigentümern und werden hier nur zur Beschreibung der Kompatibilität genannt.
+
+## Haftungsausschluss
+
+Dieses Modul steuert ein reales Fahrzeug (u. a. Ver-/Entriegeln, Fenster, Kofferraum/Heckklappe, Laden, Klima). Die Nutzung erfolgt **auf eigene Gefahr**.
+
+- Die Software wird **ohne jede Gewährleistung** bereitgestellt (siehe [Lizenz](#lizenz)). Es wird keine Haftung für Schäden, Fehlfunktionen, Datenverlust, unbeabsichtigte Fahrzeugaktionen oder Folgen aus der Nutzung übernommen, soweit gesetzlich zulässig.
+- Funktion und Verfügbarkeit hängen von der Tessie-API, dem Fahrzeug und der Netzwerkverbindung ab und können sich jederzeit ändern.
+- Sicherheitsrelevante Aktionen (z. B. Entriegeln, Fenster/Kofferraum öffnen) sollten nicht ungeprüft automatisiert werden. Stelle sicher, dass keine Personen, Tiere oder Gegenstände gefährdet werden.
+- Der API-Token gewährt weitreichenden Zugriff auf das Fahrzeug – bitte entsprechend vertraulich behandeln.
+
 ## Lizenz
 
-Siehe [LICENSE](LICENSE).
+Veröffentlicht unter der **MIT-Lizenz** – © 2026 Dietmar Gureth. Vollständiger Text in [LICENSE](LICENSE).

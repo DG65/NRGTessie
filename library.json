@@ -2,11 +2,11 @@
   "id": "{A9E66B36-2E8F-4F52-9E4D-1A1D2F0E6F40}",
   "author": "Dietmar Gureth",
   "name": "Tessie for IP-Symcon",
-  "url": "https://developer.tessie.com/",
+  "url": "https://github.com/DG65/Tessie",
   "compatibility": {
     "version": "9.0"
   },
-  "version": "2.1.6",
+  "version": "2.1.7",
   "build": 20260616,
-  "date": 1781604126
+  "date": 1781604529
 }

@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.1.7] - 2026-06-16
+### Geaendert
+- Dokumentation ueberarbeitet: README mit Markenhinweis (kein Bezug zu Tesla/Tessie), Haftungsausschluss, Changelog-Verweis und genauerer Konfigurationsbeschreibung. Vollstaendige MIT-Lizenz in LICENSE (Copyright Dietmar Gureth). Dokumentations-Link (url) in library.json und module.json auf das GitHub-Repository umgestellt.
+
 ## [2.1.6] - 2026-06-16
 ### Geaendert
 - Deutsche Namen fuer "Climate Keeper Mode" -> "Klimahaltung", "Front-Trunk oeffnen" -> "Vorderer Kofferraum oeffnen", "Rear-Trunk oeffnen/schliessen" -> "Heckklappe oeffnen/schliessen". Bestehende Variablen werden umbenannt, sofern ihr Name noch der alte englische Default ist (eigene Umbenennungen bleiben erhalten).
