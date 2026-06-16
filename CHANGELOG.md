@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.2.0] - 2026-06-16
+### Hinzugefuegt
+- HTML-Visualisierungskachel (HTML-SDK) direkt in TessieVehicle: Akku-Ring mit Ladestand, Reichweite, Innen-/Aussentemperatur, Verriegelungs-/Klima-/Ladestatus, Lade-Details (Leistung, Ladestrom, Limit, Zeit bis voll), Standort mit Karten-Link sowie Bedien-Buttons (Verriegeln, Klima, Laden). Aktivierung per SetVisualizationType(1); Live-Updates per UpdateVisualizationValue bei Telemetrie/Aktion; Buttons via requestAction -> RequestAction. Layout in TessieVehicle/module.html.
+
 ## [2.1.7] - 2026-06-16
 ### Geaendert
 - Dokumentation ueberarbeitet: README mit Markenhinweis (kein Bezug zu Tesla/Tessie), Haftungsausschluss, Changelog-Verweis und genauerer Konfigurationsbeschreibung. Vollstaendige MIT-Lizenz in LICENSE (Copyright Dietmar Gureth). Dokumentations-Link (url) in library.json und module.json auf das GitHub-Repository umgestellt.

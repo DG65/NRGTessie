@@ -1,0 +1,135 @@
+<style>
+.tsl-card { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; color: #1c1c1e; padding: 14px 16px; box-sizing: border-box; }
+.tsl-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.tsl-name { font-size: 16px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tsl-pill { font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+.tsl-pill.ok { background: #e6f4ea; color: #137333; }
+.tsl-pill.warn { background: #fce8e6; color: #c5221f; }
+.tsl-top { display: flex; align-items: center; gap: 16px; margin-bottom: 14px; }
+.tsl-ring { position: relative; width: 92px; height: 92px; flex: none; }
+.tsl-ring .pct { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; }
+.tsl-stats { display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+.tsl-stats .big { font-size: 18px; font-weight: 600; }
+.tsl-muted { color: #6b7280; }
+.tsl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; font-size: 13px; margin: 10px 0; }
+.tsl-grid .k { color: #6b7280; }
+.tsl-grid .v { text-align: right; font-weight: 600; }
+.tsl-sec { font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #8a8a8e; margin: 12px 0 6px; }
+.tsl-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.tsl-btn { flex: 1 1 30%; min-width: 90px; border: none; border-radius: 10px; padding: 10px 8px; font-size: 13px; font-weight: 600; cursor: pointer; background: #f2f2f7; color: #1c1c1e; }
+.tsl-btn:hover { background: #e5e5ea; }
+.tsl-btn.active { background: #e6f4ea; color: #137333; }
+.tsl-btn.red { background: #fdeceb; color: #c5221f; }
+.tsl-loc a { color: #1a73e8; text-decoration: none; font-size: 13px; }
+</style>
+
+<div class="tsl-card">
+  <div class="tsl-head">
+    <div class="tsl-name" id="tsl-name">Tesla</div>
+    <div class="tsl-pill" id="tsl-lock">–</div>
+  </div>
+
+  <div class="tsl-top">
+    <div class="tsl-ring">
+      <svg width="92" height="92" viewBox="0 0 92 92">
+        <circle cx="46" cy="46" r="40" fill="none" stroke="#ececf0" stroke-width="9"/>
+        <circle id="tsl-arc" cx="46" cy="46" r="40" fill="none" stroke="#137333" stroke-width="9"
+                stroke-linecap="round" stroke-dasharray="251.3" stroke-dashoffset="251.3"
+                transform="rotate(-90 46 46)"/>
+      </svg>
+      <div class="pct" id="tsl-soc">–</div>
+    </div>
+    <div class="tsl-stats">
+      <div class="big" id="tsl-range">–</div>
+      <div class="tsl-muted" id="tsl-temps">–</div>
+      <div class="tsl-muted" id="tsl-climate">–</div>
+    </div>
+  </div>
+
+  <div class="tsl-sec">Laden</div>
+  <div class="tsl-grid">
+    <div class="k">Ladeleistung</div><div class="v" id="tsl-power">–</div>
+    <div class="k">Ladestrom Ist/Max</div><div class="v" id="tsl-amps">–</div>
+    <div class="k">Ladelimit</div><div class="v" id="tsl-limit">–</div>
+    <div class="k">Zeit bis voll</div><div class="v" id="tsl-ttf">–</div>
+  </div>
+
+  <div class="tsl-loc" id="tsl-loc-wrap" style="display:none">
+    <div class="tsl-sec">Standort</div>
+    <a id="tsl-loc" href="#" target="_blank" rel="noopener">Auf Karte öffnen</a>
+  </div>
+
+  <div class="tsl-btns" id="tsl-btns"></div>
+</div>
+
+<script>
+var tileData = __TESSIE_INITIAL__;
+
+function tslFmt(v, dec, unit) {
+  if (v === null || v === undefined || v === '') return '–';
+  var n = Number(v);
+  if (isNaN(n)) return String(v);
+  return n.toLocaleString('de-DE', { minimumFractionDigits: dec, maximumFractionDigits: dec }) + (unit || '');
+}
+
+function tslRender(d) {
+  if (!d) return;
+  tileData = d;
+  document.getElementById('tsl-name').textContent = d.name || 'Tesla';
+
+  // Verriegelung
+  var lock = document.getElementById('tsl-lock');
+  if (d.locked === null || d.locked === undefined) { lock.textContent = '–'; lock.className = 'tsl-pill'; }
+  else { lock.textContent = d.locked ? 'Verriegelt' : 'Entriegelt'; lock.className = 'tsl-pill ' + (d.locked ? 'ok' : 'warn'); }
+
+  // Akku-Ring
+  var soc = (d.soc === null || d.soc === undefined) ? null : Number(d.soc);
+  document.getElementById('tsl-soc').textContent = soc === null ? '–' : Math.round(soc) + '%';
+  var circ = 251.3, arc = document.getElementById('tsl-arc');
+  arc.setAttribute('stroke-dashoffset', soc === null ? circ : (circ * (1 - Math.max(0, Math.min(100, soc)) / 100)));
+  arc.setAttribute('stroke', d.charging ? '#137333' : '#1a73e8');
+
+  document.getElementById('tsl-range').textContent = 'Reichweite: ' + tslFmt(d.range, 0, ' km');
+  var temps = [];
+  if (d.insideTemp !== null && d.insideTemp !== undefined) temps.push('innen ' + tslFmt(d.insideTemp, 1, ' °C'));
+  if (d.outsideTemp !== null && d.outsideTemp !== undefined) temps.push('außen ' + tslFmt(d.outsideTemp, 1, ' °C'));
+  document.getElementById('tsl-temps').textContent = temps.length ? temps.join(' · ') : '–';
+  document.getElementById('tsl-climate').textContent = 'Klima: ' + (d.climate === null || d.climate === undefined ? '–' : (d.climate ? 'ein' : 'aus'));
+
+  // Laden
+  document.getElementById('tsl-power').textContent = tslFmt(d.acPower, 2, ' kW');
+  document.getElementById('tsl-amps').textContent = tslFmt(d.ampsActual, 1, '') + ' / ' + tslFmt(d.ampsMax, 0, ' A');
+  document.getElementById('tsl-limit').textContent = tslFmt(d.chargeLimit, 0, ' %');
+  document.getElementById('tsl-ttf').textContent = tslFmt(d.timeToFull, 1, ' h');
+
+  // Standort
+  var wrap = document.getElementById('tsl-loc-wrap');
+  if (d.lat !== null && d.lat !== undefined && d.lon !== null && d.lon !== undefined) {
+    wrap.style.display = 'block';
+    var a = document.getElementById('tsl-loc');
+    a.href = 'https://www.google.com/maps?q=' + d.lat + ',' + d.lon;
+    a.textContent = 'Karte: ' + Number(d.lat).toFixed(5) + ', ' + Number(d.lon).toFixed(5);
+  } else { wrap.style.display = 'none'; }
+
+  // Bedien-Buttons
+  var ids = d.idents || {};
+  var btns = document.getElementById('tsl-btns');
+  btns.innerHTML = '';
+  function addBtn(label, cls, onclick) {
+    var b = document.createElement('button');
+    b.className = 'tsl-btn' + (cls ? ' ' + cls : '');
+    b.textContent = label;
+    b.onclick = onclick;
+    btns.appendChild(b);
+  }
+  if (ids.lock) addBtn(d.locked ? 'Entriegeln' : 'Verriegeln', d.locked ? 'red' : '', function () { requestAction(ids.lock, !d.locked); });
+  if (ids.climate) addBtn(d.climate ? 'Klima aus' : 'Klima ein', d.climate ? 'active' : '', function () { requestAction(ids.climate, !d.climate); });
+  if (ids.charge) addBtn(d.charging ? 'Laden stop' : 'Laden start', d.charging ? 'active' : '', function () { requestAction(ids.charge, !d.charging); });
+}
+
+function handleMessage(data) {
+  try { tslRender(typeof data === 'string' ? JSON.parse(data) : data); } catch (e) {}
+}
+
+tslRender(tileData);
+</script>
