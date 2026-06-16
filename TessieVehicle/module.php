@@ -429,14 +429,14 @@ class TessieVehicle extends IPSModule
 
             ['Ident' => self::ACT_CLIMATE,              'Name' => 'Klima',                           'Enabled' => true],
             
-            ['Ident' => self::ACT_CLIMATE_KEEPER_MODE, 'Name' => 'Climate Keeper Mode', 'Enabled' => true],
+            ['Ident' => self::ACT_CLIMATE_KEEPER_MODE, 'Name' => 'Klimahaltung', 'Enabled' => true],
             ['Ident' => self::ACT_COP_ENABLED, 'Name' => 'Innenraum-Überhitzeschutz', 'Enabled' => true],
             ['Ident' => self::ACT_COP_FAN_ONLY, 'Name' => 'Innenraum-Überhitzeschutz: nur Lüfter', 'Enabled' => true],
             ['Ident' => self::ACT_COP_TEMP, 'Name' => 'Innenraum-Überhitzeschutz: Temperaturlimit', 'Enabled' => true],
             ['Ident' => self::ACT_BIO_DEFENSE, 'Name' => 'Bio Defense Mode', 'Enabled' => true],
             ['Ident' => self::ACT_HOMELINK, 'Name' => 'HomeLink auslösen', 'Enabled' => false],
-            ['Ident' => self::ACT_FRONT_TRUNK, 'Name' => 'Front-Trunk öffnen', 'Enabled' => false],
-            ['Ident' => self::ACT_REAR_TRUNK, 'Name' => 'Rear-Trunk öffnen/schließen', 'Enabled' => false],
+            ['Ident' => self::ACT_FRONT_TRUNK, 'Name' => 'Vorderer Kofferraum öffnen', 'Enabled' => false],
+            ['Ident' => self::ACT_REAR_TRUNK, 'Name' => 'Heckklappe öffnen/schließen', 'Enabled' => false],
 
 ['Ident' => self::ACT_TEMP_DRIVER,          'Name' => 'Solltemperatur Fahrer (°C)',      'Enabled' => true],
             ['Ident' => self::ACT_TEMP_PASSENGER,       'Name' => 'Solltemperatur Beifahrer (°C)',   'Enabled' => true],
@@ -1357,7 +1357,7 @@ class TessieVehicle extends IPSModule
         if ($keep(self::ACT_CLIMATE)) $this->EnableAction(self::ACT_CLIMATE);
 
 
-        $this->MaintainVariable(self::ACT_CLIMATE_KEEPER_MODE, 'Climate Keeper Mode', VARIABLETYPE_INTEGER, $this->presFor('Tessie.ClimateKeeperMode', true), $pos(self::ACT_CLIMATE_KEEPER_MODE), true);
+        $this->MaintainVariable(self::ACT_CLIMATE_KEEPER_MODE, 'Klimahaltung', VARIABLETYPE_INTEGER, $this->presFor('Tessie.ClimateKeeperMode', true), $pos(self::ACT_CLIMATE_KEEPER_MODE), true);
         if ($keep(self::ACT_CLIMATE_KEEPER_MODE)) $this->EnableAction(self::ACT_CLIMATE_KEEPER_MODE);
 
         $this->MaintainVariable(self::ACT_COP_ENABLED, 'Innenraum-Überhitzeschutz', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_COP_ENABLED), true);
@@ -1375,10 +1375,10 @@ class TessieVehicle extends IPSModule
         $this->MaintainVariable(self::ACT_HOMELINK, 'HomeLink auslösen', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_HOMELINK), true);
         if ($keep(self::ACT_HOMELINK)) $this->EnableAction(self::ACT_HOMELINK);
 
-        $this->MaintainVariable(self::ACT_FRONT_TRUNK, 'Front-Trunk öffnen', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_FRONT_TRUNK), true);
+        $this->MaintainVariable(self::ACT_FRONT_TRUNK, 'Vorderer Kofferraum öffnen', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_FRONT_TRUNK), true);
         if ($keep(self::ACT_FRONT_TRUNK)) $this->EnableAction(self::ACT_FRONT_TRUNK);
 
-        $this->MaintainVariable(self::ACT_REAR_TRUNK, 'Rear-Trunk öffnen/schließen', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_REAR_TRUNK), true);
+        $this->MaintainVariable(self::ACT_REAR_TRUNK, 'Heckklappe öffnen/schließen', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_REAR_TRUNK), true);
         if ($keep(self::ACT_REAR_TRUNK)) $this->EnableAction(self::ACT_REAR_TRUNK);
 
         $this->MaintainVariable(self::ACT_START_CHARGING, 'Laden', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_START_CHARGING), true);
@@ -1478,6 +1478,22 @@ class TessieVehicle extends IPSModule
             // (nur bei Abweichung, sonst Update-Sturm).
             if (($obj['ObjectPosition'] ?? 0) != $pos) {
                 IPS_SetPosition($vid, $pos);
+            }
+        }
+
+        // Bestehende Variablen mit altem englischen Namen umbenennen (vom Nutzer
+        // angepasste Namen bleiben erhalten, da nur exakte alte Defaults ersetzt werden)
+        $renames = [
+            self::ACT_CLIMATE_KEEPER_MODE => ['Climate Keeper Mode' => 'Klimahaltung'],
+            self::ACT_FRONT_TRUNK         => ['Front-Trunk öffnen' => 'Vorderer Kofferraum öffnen'],
+            self::ACT_REAR_TRUNK          => ['Rear-Trunk öffnen/schließen' => 'Heckklappe öffnen/schließen']
+        ];
+        foreach ($renames as $ident => $map) {
+            $vid = @IPS_GetObjectIDByIdent($ident, $this->InstanceID);
+            if ($vid <= 0) continue;
+            $cur = IPS_GetName($vid);
+            if (isset($map[$cur])) {
+                IPS_SetName($vid, $map[$cur]);
             }
         }
     }

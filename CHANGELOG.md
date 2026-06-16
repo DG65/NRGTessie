@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.1.6] - 2026-06-16
+### Geaendert
+- Deutsche Namen fuer "Climate Keeper Mode" -> "Klimahaltung", "Front-Trunk oeffnen" -> "Vorderer Kofferraum oeffnen", "Rear-Trunk oeffnen/schliessen" -> "Heckklappe oeffnen/schliessen". Bestehende Variablen werden umbenannt, sofern ihr Name noch der alte englische Default ist (eigene Umbenennungen bleiben erhalten).
+
 ## [2.1.5] - 2026-06-16
 ### Behoben
 - GPS-Koordinaten (Fahrzeug-/Zielposition, Lat/Lon) wurden ohne Nachkommastellen angezeigt, obwohl Float. Diese Variablen bekamen die Standard-Praesentation mit 0 Stellen. Jetzt 6 Nachkommastellen (~0,11 m Genauigkeit).
