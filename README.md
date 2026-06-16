@@ -23,6 +23,7 @@ Anbindung von Tesla-Fahrzeugen an IP-Symcon über die [Tessie-API](https://devel
 |------|-----|--------------|
 | **TessieConfigurator** | 4 (Configurator) | Liest die Fahrzeuge zum Tessie-Token aus und legt je Fahrzeug eine TessieVehicle-Instanz samt WebSocket-Client an. |
 | **TessieVehicle** | 3 (Device) | Steuerung und Telemetrie eines Fahrzeugs. Hängt unter einem MQTT/WebSocket-Client. |
+| **TessieVehicleTile** | 3 (Visualisierung) | Eigenständige HTML-Kachel für die Kacheln-Visualisierung: zeigt Ladestand, Reichweite, Status, Lade-Details und Standort einer TessieVehicle-Instanz und bietet optional Bedien-Buttons. Bewusst von der Datenlogik getrennt. |
 
 Präfix der öffentlichen Funktionen: `TESSIE`.
 
@@ -49,6 +50,12 @@ Präfix der öffentlichen Funktionen: `TESSIE`.
 
 - Telemetrie-Werte werden **beim Empfang** aufbereitet; selten gesendete/stale Werte werden zusätzlich beim **Übernehmen** der Instanz nachträglich lesbar gemacht.
 - Fehlt für einen Enum-Code die Übersetzung, greift ein generischer Fallback (CamelCase → Wörter). Gezielte Übersetzungen lassen sich in `TessieVehicle/locale.json` ergänzen.
+
+## Kachel (TessieVehicleTile)
+
+Für eine schöne Darstellung in der **Kacheln-Visualisierung** eine Instanz des Moduls **TessieVehicleTile** anlegen. Die Datenquelle wird automatisch erkannt, wenn es genau eine TessieVehicle-Instanz gibt – bei mehreren wählst du sie manuell aus. Die Kachel zeigt Akku-Ring/Ladestand, Reichweite, Temperaturen, Verriegelungs-/Klima-/Ladestatus, Lade-Details und Standort (mit Karten-Link) und bietet optional Bedien-Buttons (Verriegeln, Klima, Laden). Farben und Schrift sind konfigurierbar; ohne feste Farbe übernimmt die Kachel das IP-Symcon-Theme (hell/dunkel).
+
+Status-/Telemetriewerte (Ladestand, Reichweite, Temperaturen, Standort …) erscheinen nur, wenn die entsprechenden Datenpunkte in der TessieVehicle-Instanz aktiviert sind.
 
 ## Changelog
 

@@ -121,9 +121,6 @@ class TessieVehicle extends IPSModule
     {
         parent::ApplyChanges();
 
-        // HTML-Visualisierungskachel aktivieren
-        $this->SetVisualizationType(1);
-
         $interval = (int)$this->ReadPropertyInteger('UpdateInterval');
         if ($interval < 0) {
             $interval = 0;
@@ -710,64 +707,6 @@ class TessieVehicle extends IPSModule
             default:
                 throw new Exception('Unbekannte Aktion: ' . (string)$Ident);
         }
-
-        $this->updateTile();
-    }
-
-    // -------------------- Visualisierungs-Kachel (HTML-SDK) --------------------
-    public function GetVisualizationTile()
-    {
-        $html = @file_get_contents(__DIR__ . '/module.html');
-        if ($html === false) {
-            return '<div style="padding:12px;font-family:sans-serif">module.html nicht gefunden</div>';
-        }
-        return str_replace('__TESSIE_INITIAL__', json_encode($this->buildTileData()), $html);
-    }
-
-    private function updateTile(): void
-    {
-        // Aktualisiert offene Kacheln; ohne offene Kachel ein günstiger No-Op
-        $this->UpdateVisualizationValue(json_encode($this->buildTileData()));
-    }
-
-    private function tileValue(string $ident)
-    {
-        $id = @IPS_GetObjectIDByIdent($ident, $this->InstanceID);
-        if ($id <= 0) {
-            return null;
-        }
-        return GetValue($id);
-    }
-
-    private function buildTileData(): array
-    {
-        $name = trim($this->ReadAttributeString(self::ATTR_VEHICLE_NAME));
-        if ($name === '') {
-            $name = IPS_GetName($this->InstanceID);
-        }
-        return [
-            'name'        => $name,
-            'locked'      => $this->tileValue(self::ACT_LOCKED),
-            'climate'     => $this->tileValue(self::ACT_CLIMATE),
-            'charging'    => $this->tileValue(self::ACT_START_CHARGING),
-            'soc'         => $this->tileValue('stat_tel_Soc'),
-            'range'       => $this->tileValue('stat_tel_RatedRange'),
-            'insideTemp'  => $this->tileValue('stat_tel_InsideTemp'),
-            'outsideTemp' => $this->tileValue('stat_tel_OutsideTemp'),
-            'acPower'     => $this->tileValue(self::STAT_AC_CHARGING_POWER),
-            'ampsActual'  => $this->tileValue(self::STAT_CHARGING_AMPS_ACTUAL),
-            'ampsMax'     => $this->tileValue(self::STAT_CHARGING_AMPS_MAX),
-            'ampsReq'     => $this->tileValue(self::ACT_CHARGING_AMPS_REQUEST),
-            'chargeLimit' => $this->tileValue(self::ACT_CHARGE_LIMIT),
-            'timeToFull'  => $this->tileValue('stat_tel_TimeToFullCharge'),
-            'lat'         => $this->tileValue('stat_tel_Location_lat'),
-            'lon'         => $this->tileValue('stat_tel_Location_lon'),
-            'idents'      => [
-                'lock'    => self::ACT_LOCKED,
-                'climate' => self::ACT_CLIMATE,
-                'charge'  => self::ACT_START_CHARGING
-            ]
-        ];
     }
 
     // Commands
@@ -1006,8 +945,6 @@ class TessieVehicle extends IPSModule
                 try { $this->ensureLinkTree(true); } catch (Throwable $e) { /* ignorieren */ }
             }
         }
-
-        $this->updateTile();
     }
 
     private function safeSetValueIfExists(string $ident, $value): void

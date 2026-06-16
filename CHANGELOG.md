@@ -2,6 +2,12 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.3.0] - 2026-06-16
+### Hinzugefuegt
+- Neues Modul **TessieVehicleTile**: eigenstaendige HTML-Kachel (eigene Instanz) fuer die Kacheln-Visualisierung, nach Vorbild des TibberGridRewardTile. Zeigt Akku-Ring/Ladestand, Reichweite, Temperaturen, Verriegelungs-/Klima-/Ladestatus, Lade-Details und Standort einer TessieVehicle-Instanz; optionale Bedien-Buttons (Verriegeln/Klima/Laden) werden an die Quelle weitergereicht. Quelle wird automatisch erkannt (oder per SelectInstance gewaehlt); Live-Updates via VM_UPDATE; Farben/Schrift konfigurierbar, sonst IPS-Theme.
+### Geaendert
+- Der in 2.2.0 direkt in TessieVehicle integrierte Kachel-Ansatz (GetVisualizationTile im Geraet) wurde wieder entfernt und durch das separate Tile-Modul ersetzt - so bleibt die Datenlogik der Geraete-Instanz unberuehrt.
+
 ## [2.2.0] - 2026-06-16
 ### Hinzugefuegt
 - HTML-Visualisierungskachel (HTML-SDK) direkt in TessieVehicle: Akku-Ring mit Ladestand, Reichweite, Innen-/Aussentemperatur, Verriegelungs-/Klima-/Ladestatus, Lade-Details (Leistung, Ladestrom, Limit, Zeit bis voll), Standort mit Karten-Link sowie Bedien-Buttons (Verriegeln, Klima, Laden). Aktivierung per SetVisualizationType(1); Live-Updates per UpdateVisualizationValue bei Telemetrie/Aktion; Buttons via requestAction -> RequestAction. Layout in TessieVehicle/module.html.

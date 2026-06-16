@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <style>
+        :root {
+            --accent: #2bb3c0;
+            --bg: transparent;
+            --box: rgba(127, 135, 145, .16);
+            --text: #ffffff;
+            --textmuted: #9fb0c0;
+            --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --scale: 1;
+            --track: rgba(127, 135, 145, .25);
+        }
+
+        @media (prefers-color-scheme: light) {
+            :root {
+                --box: rgba(20, 30, 45, .06);
+                --text: #1b2430;
+                --textmuted: #5c6b7a;
+            }
+        }
+
+        html { height: 100%; background: var(--bg); overflow: hidden; }
+        body { margin: 0; height: 100%; box-sizing: border-box; font-family: var(--font); color: var(--text); }
+        .wrap { box-sizing: border-box; padding: 50px 18px 16px; }
+
+        .tsl-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+        .tsl-name { font-size: calc(17px * var(--scale)); font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .tsl-pill { font-size: calc(12px * var(--scale)); font-weight: 600; padding: 3px 10px; border-radius: 999px; white-space: nowrap; background: var(--box); color: var(--textmuted); }
+        .tsl-pill.ok { color: var(--accent); }
+
+        .tsl-top { display: flex; align-items: center; gap: 16px; margin-bottom: 14px; }
+        .tsl-ring { position: relative; width: calc(96px * var(--scale)); height: calc(96px * var(--scale)); flex: 0 0 auto; }
+        .tsl-ring svg { width: 100%; height: 100%; display: block; }
+        .tsl-ring .pct { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: calc(21px * var(--scale)); font-weight: 700; color: var(--text); }
+        .tsl-stats { display: flex; flex-direction: column; gap: 3px; }
+        .tsl-range { font-size: calc(19px * var(--scale)); font-weight: 700; color: var(--text); }
+        .tsl-sub { font-size: calc(13px * var(--scale)); color: var(--textmuted); }
+
+        .tsl-state { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+        .tsl-dot { width: calc(12px * var(--scale)); height: calc(12px * var(--scale)); border-radius: 50%; flex: 0 0 auto; color: var(--accent); background: var(--accent); box-shadow: 0 0 6px 1px currentColor; }
+        .tsl-state-lbl { font-size: calc(15px * var(--scale)); font-weight: 700; color: var(--accent); }
+        #card.live .tsl-dot { animation: tslpulse 1.4s ease-in-out infinite; }
+        @keyframes tslpulse { 0%,100% { box-shadow: 0 0 4px 0 currentColor; transform: scale(1); } 50% { box-shadow: 0 0 13px 4px currentColor; transform: scale(1.18); } }
+
+        .tsl-boxes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+        .tsl-box { background: var(--box); border-radius: 11px; padding: 9px 11px; }
+        .tsl-box .v { font-size: calc(15px * var(--scale)); font-weight: 700; color: var(--text); }
+        .tsl-box .k { font-size: calc(10px * var(--scale)); color: var(--textmuted); margin-top: 3px; text-transform: uppercase; letter-spacing: .5px; }
+
+        .tsl-loc { margin-bottom: 12px; }
+        .tsl-loc a { color: var(--accent); text-decoration: none; font-size: calc(13px * var(--scale)); }
+
+        .tsl-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+        .tsl-btn { flex: 1 1 30%; min-width: 84px; border: none; border-radius: 10px; padding: 10px 8px; font-size: calc(13px * var(--scale)); font-weight: 600; cursor: pointer; background: var(--box); color: var(--text); }
+        .tsl-btn.on { color: var(--accent); }
+    </style>
+</head>
+
+<body>
+    <div class="wrap" id="card">
+        <div class="tsl-head">
+            <span class="tsl-name" id="tsl-name">Tesla</span>
+            <span class="tsl-pill" id="tsl-lock">–</span>
+        </div>
+
+        <div class="tsl-top">
+            <div class="tsl-ring">
+                <svg viewBox="0 0 96 96">
+                    <circle cx="48" cy="48" r="42" fill="none" stroke="var(--track)" stroke-width="9" />
+                    <circle id="tsl-arc" cx="48" cy="48" r="42" fill="none" stroke="var(--accent)" stroke-width="9"
+                        stroke-linecap="round" stroke-dasharray="263.9" stroke-dashoffset="263.9"
+                        transform="rotate(-90 48 48)" />
+                </svg>
+                <div class="pct" id="tsl-soc">–</div>
+            </div>
+            <div class="tsl-stats">
+                <div class="tsl-range" id="tsl-range">–</div>
+                <div class="tsl-sub" id="tsl-temps">–</div>
+                <div class="tsl-sub" id="tsl-climate">–</div>
+            </div>
+        </div>
+
+        <div class="tsl-state">
+            <span class="tsl-dot"></span>
+            <span class="tsl-state-lbl" id="tsl-state">–</span>
+        </div>
+
+        <div class="tsl-boxes">
+            <div class="tsl-box"><div class="v" id="tsl-power">–</div><div class="k">Ladeleistung</div></div>
+            <div class="tsl-box"><div class="v" id="tsl-amps">–</div><div class="k">Ladestrom Ist/Max</div></div>
+            <div class="tsl-box"><div class="v" id="tsl-limit">–</div><div class="k">Ladelimit</div></div>
+            <div class="tsl-box"><div class="v" id="tsl-ttf">–</div><div class="k">Zeit bis voll</div></div>
+        </div>
+
+        <div class="tsl-loc" id="tsl-loc-wrap" style="display:none">
+            <a id="tsl-loc" href="#" target="_blank" rel="noopener">Karte öffnen</a>
+        </div>
+
+        <div class="tsl-btns" id="tsl-btns"></div>
+    </div>
+
+    <script>
+        var RING = 263.9;
+        function fmt(v, dec, unit) {
+            if (v === null || v === undefined || v === '') return '–';
+            var n = Number(v);
+            if (isNaN(n)) return String(v);
+            return n.toLocaleString('de-DE', { minimumFractionDigits: dec, maximumFractionDigits: dec }) + (unit || '');
+        }
+
+        function handleMessage(payload) {
+            var d = (typeof payload === 'string') ? JSON.parse(payload) : payload;
+            if (!d) return;
+
+            var root = document.documentElement.style;
+            function applyVar(name, val) { if (val) { root.setProperty(name, val); } else { root.removeProperty(name); } }
+            root.setProperty('--accent', d.accent || '#2bb3c0');
+            applyVar('--bg', d.bg);
+            applyVar('--box', d.box);
+            applyVar('--text', d.text);
+            applyVar('--textmuted', d.textmuted);
+            if (d.font) root.setProperty('--font', d.font);
+            root.setProperty('--scale', d.scale || 1);
+
+            document.getElementById('tsl-name').textContent = d.name || 'Tesla';
+
+            var lock = document.getElementById('tsl-lock');
+            if (d.locked === null || d.locked === undefined) { lock.textContent = '–'; lock.className = 'tsl-pill'; }
+            else { lock.textContent = d.locked ? 'Verriegelt' : 'Entriegelt'; lock.className = 'tsl-pill' + (d.locked ? ' ok' : ''); }
+
+            var soc = (d.soc === null || d.soc === undefined) ? null : Number(d.soc);
+            document.getElementById('tsl-soc').textContent = soc === null ? '–' : Math.round(soc) + '%';
+            document.getElementById('tsl-arc').setAttribute('stroke-dashoffset',
+                soc === null ? RING : (RING * (1 - Math.max(0, Math.min(100, soc)) / 100)));
+
+            document.getElementById('tsl-range').textContent = fmt(d.range, 0, ' km');
+            var t = [];
+            if (d.insideTemp !== null && d.insideTemp !== undefined) t.push('innen ' + fmt(d.insideTemp, 1, ' °C'));
+            if (d.outsideTemp !== null && d.outsideTemp !== undefined) t.push('außen ' + fmt(d.outsideTemp, 1, ' °C'));
+            document.getElementById('tsl-temps').textContent = t.length ? t.join(' · ') : '–';
+            document.getElementById('tsl-climate').textContent = 'Klima: ' + (d.climate === null || d.climate === undefined ? '–' : (d.climate ? 'ein' : 'aus'));
+
+            document.getElementById('tsl-state').textContent = d.stateLabel || '–';
+            document.getElementById('card').classList.toggle('live', d.cls === 'live');
+
+            document.getElementById('tsl-power').textContent = fmt(d.acPower, 2, ' kW');
+            document.getElementById('tsl-amps').textContent = fmt(d.ampsActual, 1, '') + ' / ' + fmt(d.ampsMax, 0, ' A');
+            document.getElementById('tsl-limit').textContent = fmt(d.chargeLimit, 0, ' %');
+            document.getElementById('tsl-ttf').textContent = fmt(d.timeToFull, 1, ' h');
+
+            var lw = document.getElementById('tsl-loc-wrap');
+            if (d.lat !== null && d.lat !== undefined && d.lon !== null && d.lon !== undefined) {
+                lw.style.display = 'block';
+                var a = document.getElementById('tsl-loc');
+                a.href = 'https://www.google.com/maps?q=' + d.lat + ',' + d.lon;
+                a.textContent = 'Karte: ' + Number(d.lat).toFixed(5) + ', ' + Number(d.lon).toFixed(5);
+            } else { lw.style.display = 'none'; }
+
+            var btns = document.getElementById('tsl-btns');
+            btns.textContent = '';
+            if (d.controls) {
+                function addBtn(label, on, ident, value) {
+                    var b = document.createElement('button');
+                    b.className = 'tsl-btn' + (on ? ' on' : '');
+                    b.textContent = label;
+                    b.onclick = function () { requestAction(ident, value); };
+                    btns.appendChild(b);
+                }
+                addBtn(d.locked ? 'Entriegeln' : 'Verriegeln', false, 'lock', !d.locked);
+                addBtn(d.climate ? 'Klima aus' : 'Klima ein', !!d.climate, 'climate', !d.climate);
+                addBtn(d.charging ? 'Laden stop' : 'Laden start', !!d.charging, 'charge', !d.charging);
+            }
+        }
+    </script>
+</body>
+
+</html>
