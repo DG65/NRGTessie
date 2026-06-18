@@ -32,12 +32,15 @@ Präfix der öffentlichen Funktionen: `TESSIE`.
 - IP-Symcon ab Version 9.0
 - Ein [Tessie](https://tessie.com/)-Konto mit **API-Token** (deckt REST und Telemetrie ab)
 
+> Warum Tessie statt der offiziellen Tesla-API? Tessie ist ein etablierter Drittanbieter-Dienst, der den Zugriff über ein einfaches Token kapselt. Die **Tesla Fleet API** verlangt von Drittanbietern nutzungsabhängige Gebühren (pro Befehl/Abruf), eine eigene Entwickler-/Domain-Registrierung und ist deutlich aufwändiger einzurichten. Über das Tessie-Abo ist die API hingegen ohne zusätzliche Pro-Nutzung-Kosten und mit minimalem Setup nutzbar – das macht die Anbindung in IP-Symcon praktikabel.
+
 ## Installation
 
-1. In IP-Symcon unter **Kern-Instanzen → Modules** das Repository hinzufügen: `https://github.com/DG65/Tessie`
-2. Kanal wählen: **Beta** (aktiv gepflegt) oder **main** (stabil).
-3. Eine Instanz des **Tessie Configurator** anlegen, den Tessie-Token eintragen.
-4. Im Configurator die gefundenen Fahrzeuge anlegen – TessieVehicle und WebSocket-Client werden automatisch erzeugt.
+1. Im IP-Symcon **Module Store** nach **„Tessie"** suchen und installieren.
+   _Alternativ_ unter **Kern-Instanzen → Modules** das Repository manuell hinzufügen: `https://github.com/DG65/Tessie`
+2. Eine Instanz des **Tessie Configurator** anlegen und den Tessie-Token eintragen.
+3. Im Configurator die gefundenen Fahrzeuge anlegen – TessieVehicle und WebSocket-Client werden automatisch erzeugt.
+4. Optional eine Instanz **TessieVehicleTile** für die Kachel-Visualisierung anlegen (siehe unten).
 
 ## Konfiguration (TessieVehicle)
 

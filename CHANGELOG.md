@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.3.2] - 2026-06-16
+### Geaendert
+- Dokumentation aktualisiert: Installation jetzt ueber den Module Store (Suche "Tessie"); veralteten Beta-Branch-Hinweis entfernt; TessieVehicleTile als optionalen Schritt ergaenzt; Hinweis zum Kostenvorteil der Tessie-API gegenueber der nutzungspflichtigen Tesla Fleet API.
+
 ## [2.3.1] - 2026-06-16
 ### Geaendert
 - Kachel (TessieVehicleTile): Fahrzeugname nicht mehr doppelt - der Name in der Karte entfaellt (er steht bereits im Kachel-Titel); die Verriegelt-Pille rueckt in die Statuszeile. Neue Option "Kachelname automatisch vom Fahrzeug uebernehmen" (Standard an) benennt die Kachel-Instanz nach dem verbundenen Fahrzeug.
