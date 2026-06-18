@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.3.4] - 2026-06-16
+### Geaendert (Review-Anpassung)
+- Formular-Buttons (Reset Standardliste, Telemetrie alle/nur wichtige einblenden) schreiben nicht mehr direkt die Eigenschaft per IPS_SetProperty+IPS_ApplyChanges, sondern aktualisieren nur die offene Konfiguration via UpdateFormField. Der Nutzer bestaetigt selbst mit "Aenderungen uebernehmen" (vom Symcon-Review empfohlenes Muster). Gemeinsamer Helfer buildFormRows() fuer die Anzeigespalten.
+
 ## [2.3.3] - 2026-06-16
 ### Geaendert (Review-Anpassungen)
 - Vendor in allen Modulen auf "Tessie Technology LLC" (Entwickler der genutzten API) gesetzt.

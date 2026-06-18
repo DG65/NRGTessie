@@ -185,17 +185,11 @@ class TessieVehicle extends IPSModule
     }
 
     // Dynamisches Formular: eine Liste "Anzuzeigende Variablen" inkl. Telemetrie-Einträgen
-    public function GetConfigurationForm()
+    // Reichert eine Basisliste (Ident/Name/Enabled) um die Anzeigespalten an: übersetzter
+    // Name, Gruppe (Domäne) und "Empfangen". Genutzt von GetConfigurationForm und den Buttons.
+    private function buildFormRows(array $base): array
     {
-        $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
-        if (!is_array($form)) {
-            $form = ['elements' => [], 'actions' => [], 'status' => []];
-        }
-
         $registry = $this->getTelemetryRegistry();
-        $fullList = $this->getEffectiveList();
-
-        // Kanonische Namen (Defaults + Telemetrie), unabhaengig von gespeicherten Spalten
         $names = [];
         foreach ($this->getDefaultVisibleVars() as $d) {
             $names[(string)($d['Ident'] ?? '')] = (string)($d['Name'] ?? '');
@@ -203,23 +197,35 @@ class TessieVehicle extends IPSModule
         foreach ($registry as $tid => $m) {
             if (is_array($m)) $names[(string)$tid] = (string)($m['name'] ?? $tid);
         }
-
-        // Anzeige-Spalten je Zeile + Telemetrie-Status fuer den Sammelbutton
-        $hasTelemetry = false;
-        $allTelemetryOn = true;
-        foreach ($fullList as &$row) {
+        foreach ($base as &$row) {
             if (!is_array($row)) continue;
             $ident = (string)($row['Ident'] ?? '');
             $row['Name']   = $this->Translate($names[$ident] ?? (string)($row['Name'] ?? $ident));
             $row['Gruppe'] = $this->purposeForIdent($ident, $registry);
             $vid = @IPS_GetObjectIDByIdent($ident, $this->InstanceID);
             $row['Empfangen'] = ($vid > 0 && (int)(@IPS_GetVariable($vid)['VariableUpdated'] ?? 0) > 0) ? 'Ja' : '';
-            if (strpos($ident, 'stat_tel_') === 0) {
-                $hasTelemetry = true;
-                if (!(bool)($row['Enabled'] ?? false)) $allTelemetryOn = false;
-            }
         }
         unset($row);
+        return $base;
+    }
+
+    public function GetConfigurationForm()
+    {
+        $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
+        if (!is_array($form)) {
+            $form = ['elements' => [], 'actions' => [], 'status' => []];
+        }
+
+        $fullList = $this->buildFormRows($this->getEffectiveList());
+
+        // Telemetrie-Status für den Sammelbutton
+        $hasTelemetry = false;
+        $allTelemetryOn = true;
+        foreach ($fullList as $row) {
+            if (!is_array($row) || strpos((string)($row['Ident'] ?? ''), 'stat_tel_') !== 0) continue;
+            $hasTelemetry = true;
+            if (!(bool)($row['Enabled'] ?? false)) $allTelemetryOn = false;
+        }
         if (!$hasTelemetry) $allTelemetryOn = false;
 
         // form.json-Elemente befüllen: Datenpunkt-Liste + aktueller Ablageort der Instanz
@@ -261,68 +267,46 @@ class TessieVehicle extends IPSModule
 
     public function ResetVisibleVars()
     {
-        IPS_SetProperty($this->InstanceID, self::PROP_VISIBLE_VARS, json_encode($this->getDefaultVisibleVars()));
-        IPS_ApplyChanges($this->InstanceID);
+        // Nur die offene Konfiguration zurücksetzen; der Nutzer bestätigt selbst mit „Änderungen übernehmen".
+        $this->UpdateFormField('VisibleVars', 'values', json_encode($this->buildFormRows($this->getDefaultVisibleVars())));
+        $this->UpdateFormField('ToggleTelemetry', 'caption', 'Telemetrie: alle einblenden');
+        $this->UpdateFormField('ToggleTelemetry', 'confirm', '');
     }
 
     public function ToggleAllTelemetry(): void
     {
-        // Telemetrie-Einträge sind ggf. noch nicht in der gespeicherten Liste enthalten -> vorab mergen
-        $list = $this->mergeTelemetryIntoVisibleVars($this->getVisibleList());
-
+        $base = $this->getEffectiveList();
         $hasTelemetry = false;
         $allOn = true;
-
-        foreach ($list as $row) {
-            if (!is_array($row)) {
-                continue;
-            }
-            $ident = (string)($row['Ident'] ?? '');
-            if (strpos($ident, 'stat_tel_') !== 0) {
+        foreach ($base as $row) {
+            if (!is_array($row) || strpos((string)($row['Ident'] ?? ''), 'stat_tel_') !== 0) {
                 continue;
             }
             $hasTelemetry = true;
             if (!(bool)($row['Enabled'] ?? false)) {
                 $allOn = false;
-                break;
             }
         }
-
         if (!$hasTelemetry) {
             return;
         }
-
         $this->SetAllTelemetryEnabled(!$allOn);
     }
 
 
     public function SetAllTelemetryEnabled(bool $enabled): void
     {
-        // Telemetrie-Einträge sind ggf. noch nicht in der gespeicherten Liste enthalten -> vorab mergen
-        $list = $this->mergeTelemetryIntoVisibleVars($this->getVisibleList());
-        $changed = false;
-
-        foreach ($list as &$row) {
-            if (!is_array($row)) {
-                continue;
-            }
-            $ident = (string)($row['Ident'] ?? '');
-            if ($ident === '') {
-                continue;
-            }
-            if (strpos($ident, 'stat_tel_') === 0) {
-                if (($row['Enabled'] ?? null) !== $enabled) {
-                    $row['Enabled'] = $enabled;
-                    $changed = true;
-                }
+        $base = $this->getEffectiveList();
+        foreach ($base as &$row) {
+            if (is_array($row) && strpos((string)($row['Ident'] ?? ''), 'stat_tel_') === 0) {
+                $row['Enabled'] = $enabled;
             }
         }
         unset($row);
-
-        if ($changed) {
-            IPS_SetProperty($this->InstanceID, self::PROP_VISIBLE_VARS, json_encode($list));
-            IPS_ApplyChanges($this->InstanceID);
-        }
+        // Nur die offene Liste anpassen; Anwendung erst beim „Übernehmen" durch den Nutzer.
+        $this->UpdateFormField('VisibleVars', 'values', json_encode($this->buildFormRows($base)));
+        $this->UpdateFormField('ToggleTelemetry', 'caption', $enabled ? 'Telemetrie: alle ausblenden' : 'Telemetrie: alle einblenden');
+        $this->UpdateFormField('ToggleTelemetry', 'confirm', $enabled ? 'Wirklich alle Telemetrie-Datenpunkte ausblenden?' : '');
     }
 
     public function SetImportantTelemetryEnabled(): void
@@ -352,35 +336,25 @@ class TessieVehicle extends IPSModule
         $important = array_flip($importantKeys);
 
         $registry = $this->getTelemetryRegistry();
-        $list = $this->mergeTelemetryIntoVisibleVars($this->getVisibleList());
-        $changed = false;
+        $base = $this->getEffectiveList();
 
-        foreach ($list as &$row) {
+        foreach ($base as &$row) {
             if (!is_array($row)) {
                 continue;
             }
             $ident = (string)($row['Ident'] ?? '');
-            if ($ident === '' || strpos($ident, 'stat_tel_') !== 0) {
+            if (strpos($ident, 'stat_tel_') !== 0) {
                 continue;
             }
-
-            $key = '';
-            if (isset($registry[$ident]) && is_array($registry[$ident])) {
-                $key = (string)($registry[$ident]['key'] ?? '');
-            }
-
-            $enable = ($key !== '' && isset($important[$key]));
-            if (($row['Enabled'] ?? null) !== $enable) {
-                $row['Enabled'] = $enable;
-                $changed = true;
-            }
+            $key = (isset($registry[$ident]) && is_array($registry[$ident])) ? (string)($registry[$ident]['key'] ?? '') : '';
+            $row['Enabled'] = ($key !== '' && isset($important[$key]));
         }
         unset($row);
 
-        if ($changed) {
-            IPS_SetProperty($this->InstanceID, self::PROP_VISIBLE_VARS, json_encode($list));
-            IPS_ApplyChanges($this->InstanceID);
-        }
+        // Nur die offene Liste anpassen; Anwendung erst beim „Übernehmen" durch den Nutzer.
+        $this->UpdateFormField('VisibleVars', 'values', json_encode($this->buildFormRows($base)));
+        $this->UpdateFormField('ToggleTelemetry', 'caption', 'Telemetrie: alle einblenden');
+        $this->UpdateFormField('ToggleTelemetry', 'confirm', '');
     }
 
     public function RenameTelemetryVariables(): void
