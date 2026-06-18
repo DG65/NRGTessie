@@ -93,7 +93,9 @@ class TessieVehicle extends IPSModule
         $this->RegisterPropertyBoolean('DebugHTTP', false);
 
         // Links / Ablageorte
-        $this->RegisterPropertyInteger('InstanceLocation', 0);
+        // Hinweis: 'InstanceLocation' ist KEINE Eigenschaft mehr – das SelectCategory wird in
+        // GetConfigurationForm mit dem aktuellen Parent gefüllt und verschiebt die Instanz nur
+        // einmalig per onChange (TESSIE_SetInstanceLocation).
         $this->RegisterPropertyInteger('LinksLocation', 0);
         $this->RegisterPropertyBoolean('CreateLinks', true);
         $this->RegisterPropertyBoolean('CleanupLinks', true);
@@ -126,15 +128,6 @@ class TessieVehicle extends IPSModule
             $interval = 0;
         }
         $this->SetTimerInterval(self::TIMER_UPDATE, $interval > 0 ? $interval * 1000 : 0);
-
-        // Instanz verschieben (optional)
-        $instanceParent = (int)$this->ReadPropertyInteger('InstanceLocation');
-        if ($instanceParent > 0 && IPS_ObjectExists($instanceParent)) {
-            $currentParent = IPS_GetParent($this->InstanceID);
-            if ($currentParent !== $instanceParent) {
-                IPS_SetParent($this->InstanceID, $instanceParent);
-            }
-        }
 
         $this->refreshTelemetryRegistryNames();
         $this->ensureVariables();
@@ -229,11 +222,14 @@ class TessieVehicle extends IPSModule
         unset($row);
         if (!$hasTelemetry) $allTelemetryOn = false;
 
-        // Werte in die Datenpunkt-Liste der form.json injizieren
+        // form.json-Elemente befüllen: Datenpunkt-Liste + aktueller Ablageort der Instanz
         foreach ($form['elements'] as &$element) {
-            if (($element['name'] ?? '') === 'VisibleVars') {
+            $elName = $element['name'] ?? '';
+            if ($elName === 'VisibleVars') {
                 $element['values'] = $fullList;
-                break;
+            } elseif ($elName === 'InstanceLocation') {
+                // Aktuellen Parent anzeigen; verschoben wird nur per onChange (siehe SetInstanceLocation)
+                $element['value'] = IPS_GetParent($this->InstanceID);
             }
         }
         unset($element);
@@ -250,6 +246,17 @@ class TessieVehicle extends IPSModule
         unset($action);
 
         return json_encode($form);
+    }
+
+    /**
+     * onChange des "Ablageort Instanz"-Feldes: verschiebt die Instanz einmalig an die gewählte
+     * Kategorie. Keine Eigenschaft – beim nächsten Laden zeigt das Feld den tatsächlichen Parent.
+     */
+    public function SetInstanceLocation(int $categoryID): void
+    {
+        if ($categoryID > 0 && IPS_ObjectExists($categoryID) && IPS_GetParent($this->InstanceID) != $categoryID) {
+            @IPS_SetParent($this->InstanceID, $categoryID);
+        }
     }
 
     public function ResetVisibleVars()

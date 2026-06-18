@@ -2,8 +2,10 @@
   "id": "{ACAFF26A-C6AB-4D45-B51B-3832BE5C2CFA}",
   "name": "TessieVehicleTile",
   "type": 3,
-  "vendor": "DG65",
-  "aliases": ["Tessie Fahrzeug-Kachel"],
+  "vendor": "Tessie Technology LLC",
+  "aliases": [
+    "Tessie Fahrzeug-Kachel"
+  ],
   "url": "https://github.com/DG65/Tessie",
   "parentRequirements": [],
   "childRequirements": [],

@@ -2,6 +2,13 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.3.3] - 2026-06-16
+### Geaendert (Review-Anpassungen)
+- Vendor in allen Modulen auf "Tessie Technology LLC" (Entwickler der genutzten API) gesetzt.
+- Ablageort der Instanz: Die Eigenschaft InstanceLocation wurde entfernt (Eigenschaften liegen in der Hoheit des Nutzers; die Instanz wurde zuvor bei jedem Uebernehmen zurueckgeschoben). Das SelectCategory bleibt, wird in GetConfigurationForm mit dem aktuellen Parent gefuellt und verschiebt die Instanz nur einmalig per onChange (TESSIE_SetInstanceLocation). Wird die Instanz spaeter regulaer verschoben, zeigt das Feld beim naechsten Laden den tatsaechlichen Ort.
+### Hinweis
+- Der vom Reviewer genannte ensureVisibleVarsMerged-Punkt (Property-Schreiben in ApplyChanges) war bereits zuvor behoben: kein Property-Schreiben mehr, loadValuesFromConfiguration=false, zusaetzliche Werte werden bei GetConfigurationForm in die values der Liste eingetragen.
+
 ## [2.3.2] - 2026-06-16
 ### Geaendert
 - Dokumentation aktualisiert: Installation jetzt ueber den Module Store (Suche "Tessie"); veralteten Beta-Branch-Hinweis entfernt; TessieVehicleTile als optionalen Schritt ergaenzt; Hinweis zum Kostenvorteil der Tessie-API gegenueber der nutzungspflichtigen Tesla Fleet API.

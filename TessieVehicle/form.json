@@ -11,7 +11,8 @@
         {
             "type": "SelectCategory",
             "name": "InstanceLocation",
-            "caption": "Ablageort Instanz (optional)"
+            "caption": "Ablageort Instanz (optional)",
+            "onChange": "TESSIE_SetInstanceLocation($id, $InstanceLocation);"
         },
         {
             "type": "Label",
