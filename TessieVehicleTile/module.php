@@ -144,18 +144,17 @@ class TessieVehicleTile extends IPSModule
      */
     public function ResetStyle(): void
     {
-        $id = $this->InstanceID;
-        IPS_SetProperty($id, 'ColorCharging', self::DEF_CHARGING);
-        IPS_SetProperty($id, 'ColorReady', self::DEF_READY);
-        IPS_SetProperty($id, 'ColorIdle', self::DEF_IDLE);
-        IPS_SetProperty($id, 'ColorBackground', self::DEF_BACKGROUND);
-        IPS_SetProperty($id, 'ColorBox', self::DEF_BOX);
-        IPS_SetProperty($id, 'ColorText', self::DEF_TEXT);
-        IPS_SetProperty($id, 'ColorTextMuted', self::DEF_TEXTMUTED);
-        IPS_SetProperty($id, 'FontFamily', self::DEF_FONT);
-        IPS_SetProperty($id, 'FontScale', self::DEF_SCALE);
-        IPS_ApplyChanges($id);
-        $this->ReloadForm();
+        // Nur die offene Konfiguration setzen; der Nutzer bestätigt selbst mit
+        // „Änderungen übernehmen" (vom Symcon-Review empfohlenes Muster).
+        $this->UpdateFormField('ColorCharging', 'value', self::DEF_CHARGING);
+        $this->UpdateFormField('ColorReady', 'value', self::DEF_READY);
+        $this->UpdateFormField('ColorIdle', 'value', self::DEF_IDLE);
+        $this->UpdateFormField('ColorBackground', 'value', self::DEF_BACKGROUND);
+        $this->UpdateFormField('ColorBox', 'value', self::DEF_BOX);
+        $this->UpdateFormField('ColorText', 'value', self::DEF_TEXT);
+        $this->UpdateFormField('ColorTextMuted', 'value', self::DEF_TEXTMUTED);
+        $this->UpdateFormField('FontFamily', 'value', self::DEF_FONT);
+        $this->UpdateFormField('FontScale', 'value', self::DEF_SCALE);
     }
 
     public function GetVisualizationTile()

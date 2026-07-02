@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.3.5] - 2026-06-17
+### Geaendert (Review-Anpassung)
+- Kachel (TessieVehicleTile): Button "Stil zuruecksetzen" (ResetStyle) schreibt die Farben/Schrift-Eigenschaften nicht mehr direkt per IPS_SetProperty+IPS_ApplyChanges, sondern setzt sie nur in der offenen Konfiguration via UpdateFormField. Der Nutzer uebernimmt selbst (vom Symcon-Review empfohlenes Muster).
+
 ## [2.3.4] - 2026-06-16
 ### Geaendert (Review-Anpassung)
 - Formular-Buttons (Reset Standardliste, Telemetrie alle/nur wichtige einblenden) schreiben nicht mehr direkt die Eigenschaft per IPS_SetProperty+IPS_ApplyChanges, sondern aktualisieren nur die offene Konfiguration via UpdateFormField. Der Nutzer bestaetigt selbst mit "Aenderungen uebernehmen" (vom Symcon-Review empfohlenes Muster). Gemeinsamer Helfer buildFormRows() fuer die Anzeigespalten.
