@@ -1444,7 +1444,7 @@ class TessieVehicle extends IPSModule
 
         $nameVid = @IPS_GetObjectIDByIdent(self::STAT_LOCATION_NAME, $this->InstanceID);
         if ($nameVid > 0) {
-            $text = ($bestName !== '') ? $bestName : $this->Translate('Unterwegs');
+            $text = ($bestName !== '') ? $bestName : $this->Translate('On the road');
             if (GetValueString($nameVid) !== $text) {
                 SetValueString($nameVid, $text);
             }
@@ -1583,7 +1583,7 @@ class TessieVehicle extends IPSModule
                     $pres = $this->presFor('Tessie.AtHome', false);
                 } else {
                     $name = $f['name'];
-                    $pres = $this->presSwitch($f['name'], $this->Translate('Abwesend'));
+                    $pres = $this->presSwitch($f['name'], $this->Translate('Away'));
                 }
                 $this->MaintainVariable($f['ident'], $name, VARIABLETYPE_BOOLEAN, $pres, $geoPos, true);
                 $geoActiveIdents[$f['ident']] = true;

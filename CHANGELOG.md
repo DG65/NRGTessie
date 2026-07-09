@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.6.1] - 2026-06-21
+### Korrigiert (Review-Anpassung)
+- Translate() wird jetzt korrekt mit englischen Quellbegriffen aufgerufen ("On the road", "Away") und die deutschen Uebersetzungen ("Unterwegs", "Abwesend") stehen in der locale.json. Vorher wurden die deutschen Begriffe direkt als Quellstring uebergeben.
+
 ## [2.6.0] - 2026-06-20
 ### Hinzugefuegt
 - Standort-Erkennung: Bleibt "Standort Zuhause" leer, wird automatisch der Systemstandort aus der Kern-Instanz "Location Control" uebernommen (dort ist das Zuhause bei der Symcon-Installation ohnehin gepflegt). Eine eigene Angabe im Modul hat weiterhin Vorrang.
