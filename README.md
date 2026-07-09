@@ -16,7 +16,7 @@ Anbindung von Tesla-Fahrzeugen an IP-Symcon über die [Tessie-API](https://devel
 - **IP-Symcon-9.0-Presentations** für die Darstellung (Schalter/Slider/Auswahl/Wert) statt Variablenprofilen.
 - **Konfigurierbare Datenpunktliste**: ein-/ausblenden und per Drag & Drop sortieren; die Reihenfolge wirkt auf Variablen und Links. Abgewählte Datenpunkte werden **ausgeblendet statt gelöscht** – Objekt-ID und Archivdaten bleiben erhalten.
 - **Optionale Linkstruktur**: gruppierter Kategoriebaum (Laden / Klima / Sicherheit / Sonstiges) mit Verknüpfungen auf die aktiven Variablen.
-- **Zuhause-Erkennung (Geofence)**: optionale Status-Variable „Zu Hause", die aus der GPS-Position und einem konfigurierbaren Standort + Radius automatisch true/false setzt – ideal als Auslöser für Automationen (z. B. Laden nur zu Hause).
+- **Standort-Erkennung (Geofence)**: optionale Status-Variablen aus GPS-Position und konfigurierbaren Standorten (Zuhause + beliebige weitere, je mit Name und Radius). Je Standort eine Boolean-Variable plus eine Textvariable „Aktueller Standort" (Standortname bzw. „Unterwegs") – ideal als Auslöser für Automationen (z. B. Laden nur zu Hause).
 
 ## Enthaltene Module
 
@@ -48,7 +48,7 @@ Präfix der öffentlichen Funktionen: `TESSIE`.
 - **Update-Intervall** für REST-Statusabfragen (Sekunden; 0 = aus, Telemetrie läuft unabhängig weiter).
 - **Datenpunkte**: Liste zum Ein-/Ausblenden und Sortieren (Drag & Drop). Spalten: Aktiv, Name, Gruppe, Ident, Empfangen.
 - **Linkstruktur** (aufklappbar): Zielkategorie, Links erzeugen/automatisch bereinigen.
-- **Zuhause-Erkennung** (aufklappbar): aktivieren, Standort Zuhause (Karte) und Radius in Metern wählen. Legt die Status-Variable „Zu Hause" an und setzt sie bei jeder Positionsaktualisierung. Benötigt aktive GPS-Telemetrie (Datenpunkt „Fahrzeugposition"). Bei Deaktivierung bleibt die Variable erhalten (nur ausgeblendet).
+- **Standort-Erkennung** (aufklappbar): aktivieren, Standort Zuhause (Karte) und Radius wählen; darunter beliebige **weitere Standorte** (Name, Kartenposition, Radius) als Liste. Je Standort entsteht eine Boolean-Variable („Zu Hause" bzw. Standortname), dazu die Textvariable „Aktueller Standort". Bei überlappenden Zonen gewinnt der nächstgelegene Standort. Benötigt aktive GPS-Telemetrie (Datenpunkt „Fahrzeugposition"). Bei Deaktivierung/Entfernen bleiben die Variablen erhalten (nur ausgeblendet).
 - Buttons: Standardliste zurücksetzen, Telemetrie alle/​nur wichtige ein-/ausblenden, Telemetrie-Namen aktualisieren.
 
 ## Hinweise

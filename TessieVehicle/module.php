@@ -44,6 +44,8 @@ class TessieVehicle extends IPSModule
     private const STAT_CHARGING_AMPS_MAX    = 'stat_charge_amps_max';
     private const STAT_AC_CHARGING_POWER    = 'stat_ac_charging_power';
     private const STAT_AT_HOME              = 'stat_at_home';
+    private const STAT_LOCATION_NAME        = 'stat_location_name';
+    private const GEO_IDENT_PREFIX          = 'stat_geo_';
 
     // -------------------- Timer --------------------
     private const TIMER_UPDATE = 'UpdateTimer';
@@ -101,11 +103,13 @@ class TessieVehicle extends IPSModule
         $this->RegisterPropertyBoolean('CreateLinks', true);
         $this->RegisterPropertyBoolean('CleanupLinks', true);
 
-        // Zuhause-Erkennung (Geofence): setzt eine Status-Variable, sobald die
-        // Fahrzeugposition innerhalb des Radius um den gewählten Standort liegt.
+        // Standort-Erkennung (Geofence): setzt Status-Variablen, sobald die
+        // Fahrzeugposition innerhalb des Radius um einen der Standorte liegt.
         $this->RegisterPropertyBoolean('HomeDetection', false);
         $this->RegisterPropertyString('HomeLocation', '');
         $this->RegisterPropertyInteger('HomeRadius', 100);
+        // Weitere Standorte: [{Name, Location(JSON lat/lon), Radius}, ...]
+        $this->RegisterPropertyString('GeofenceList', '[]');
 
         // Eine Liste für ALLE Variablen (Bestand + Telemetrie)
         $this->RegisterPropertyString(self::PROP_VISIBLE_VARS, json_encode($this->getDefaultVisibleVars()));
@@ -1332,9 +1336,64 @@ class TessieVehicle extends IPSModule
 
 
     /**
-     * Zuhause-Erkennung (Geofence): setzt die Status-Variable "Zu Hause" true/false,
-     * je nachdem ob die Fahrzeugposition innerhalb des konfigurierten Radius um den
-     * gewählten Standort liegt. No-op, solange die Erkennung deaktiviert ist.
+     * Alle konfigurierten Geofences (Zuhause + weitere Standorte) als Liste:
+     * [['ident' => ..., 'name' => ..., 'lat' => ..., 'lon' => ..., 'radius' => ...], ...]
+     * Einträge ohne gültige Position werden übersprungen.
+     */
+    private function getGeofences(): array
+    {
+        $fences = [];
+
+        $parse = function ($locJson) {
+            $loc = is_array($locJson) ? $locJson : json_decode((string)$locJson, true);
+            if (!is_array($loc) || !isset($loc['latitude'], $loc['longitude'])) {
+                return null;
+            }
+            $lat = (float)$loc['latitude'];
+            $lon = (float)$loc['longitude'];
+            if (($lat == 0.0 && $lon == 0.0) || !is_finite($lat) || !is_finite($lon)) {
+                return null; // kein Standort gewählt
+            }
+            return [$lat, $lon];
+        };
+
+        // Zuhause (fester erster Eintrag, kompatibel zu 2.4.0)
+        $home = $parse($this->ReadPropertyString('HomeLocation'));
+        if ($home !== null) {
+            $fences[] = [
+                'ident'  => self::STAT_AT_HOME,
+                'name'   => 'Zuhause',
+                'lat'    => $home[0],
+                'lon'    => $home[1],
+                'radius' => max(1, (int)$this->ReadPropertyInteger('HomeRadius'))
+            ];
+        }
+
+        // Weitere Standorte aus der Liste
+        $list = json_decode((string)$this->ReadPropertyString('GeofenceList'), true);
+        if (is_array($list)) {
+            foreach ($list as $row) {
+                if (!is_array($row)) continue;
+                $name = trim((string)($row['Name'] ?? ''));
+                $pos = $parse($row['Location'] ?? '');
+                if ($name === '' || $pos === null) continue;
+                $fences[] = [
+                    'ident'  => self::GEO_IDENT_PREFIX . strtolower($this->makeIdent($name)),
+                    'name'   => $name,
+                    'lat'    => $pos[0],
+                    'lon'    => $pos[1],
+                    'radius' => max(1, (int)($row['Radius'] ?? 100))
+                ];
+            }
+        }
+
+        return $fences;
+    }
+
+    /**
+     * Standort-Erkennung (Geofence): setzt je Standort die Boolean-Variable und
+     * die Textvariable "Aktueller Standort" (Name des nächsten passenden Standorts,
+     * sonst "Unterwegs"). No-op, solange die Erkennung deaktiviert ist.
      */
     private function updateHomeStatus(float $lat, float $lon): void
     {
@@ -1344,25 +1403,32 @@ class TessieVehicle extends IPSModule
         if (!is_finite($lat) || !is_finite($lon)) {
             return;
         }
-        $vid = @IPS_GetObjectIDByIdent(self::STAT_AT_HOME, $this->InstanceID);
-        if ($vid <= 0) {
-            return;
-        }
-        $home = json_decode((string)$this->ReadPropertyString('HomeLocation'), true);
-        if (!is_array($home) || !isset($home['latitude'], $home['longitude'])) {
-            return;
-        }
-        $hLat = (float)$home['latitude'];
-        $hLon = (float)$home['longitude'];
-        if (($hLat == 0.0 && $hLon == 0.0) || !is_finite($hLat) || !is_finite($hLon)) {
-            return; // kein Standort gewählt
+
+        $bestName = '';
+        $bestDist = PHP_FLOAT_MAX;
+
+        foreach ($this->getGeofences() as $f) {
+            $dist = $this->haversineMeters($lat, $lon, $f['lat'], $f['lon']);
+            $inside = ($dist <= $f['radius']);
+
+            $vid = @IPS_GetObjectIDByIdent($f['ident'], $this->InstanceID);
+            if ($vid > 0 && GetValueBoolean($vid) !== $inside) {
+                SetValueBoolean($vid, $inside);
+            }
+
+            // Bei überlappenden Zonen gewinnt der nächstgelegene Standort
+            if ($inside && $dist < $bestDist) {
+                $bestDist = $dist;
+                $bestName = $f['name'];
+            }
         }
 
-        $radius = max(1, (int)$this->ReadPropertyInteger('HomeRadius'));
-        $inside = ($this->haversineMeters($lat, $lon, $hLat, $hLon) <= $radius);
-
-        if (GetValueBoolean($vid) !== $inside) {
-            SetValueBoolean($vid, $inside);
+        $nameVid = @IPS_GetObjectIDByIdent(self::STAT_LOCATION_NAME, $this->InstanceID);
+        if ($nameVid > 0) {
+            $text = ($bestName !== '') ? $bestName : $this->Translate('Unterwegs');
+            if (GetValueString($nameVid) !== $text) {
+                SetValueString($nameVid, $text);
+            }
         }
     }
 
@@ -1480,17 +1546,43 @@ class TessieVehicle extends IPSModule
         $this->MaintainVariable(self::STAT_CHARGING_AMPS_MAX, 'Ladestrom Max (A)', VARIABLETYPE_INTEGER, $this->presFor('Tessie.Amps', false), $pos(self::STAT_CHARGING_AMPS_MAX), true);
         $this->MaintainVariable(self::STAT_AC_CHARGING_POWER, 'AC Ladeleistung (kW)', VARIABLETYPE_FLOAT, $this->presFor('Tessie.kW', false), $pos(self::STAT_AC_CHARGING_POWER), true);
 
-        // Zuhause-Erkennung (Geofence): Status-Variable nur anlegen/einblenden, wenn aktiviert.
-        // Nicht Teil der VisibleVars-Liste – wird komplett über die Eigenschaft gesteuert.
-        $homeVid = @IPS_GetObjectIDByIdent(self::STAT_AT_HOME, $this->InstanceID);
+        // Standort-Erkennung (Geofence): Status-Variablen nur anlegen/einblenden, wenn aktiviert.
+        // Nicht Teil der VisibleVars-Liste – wird komplett über die Eigenschaften gesteuert.
+        $geoActiveIdents = [];
         if ($this->ReadPropertyBoolean('HomeDetection')) {
-            $homePos = (count($posMap) ? max($posMap) : 0) + 10;
-            $this->MaintainVariable(self::STAT_AT_HOME, 'Zu Hause', VARIABLETYPE_BOOLEAN, $this->presFor('Tessie.AtHome', false), $homePos, true);
-        } elseif ($homeVid > 0) {
-            // Deaktiviert: ausblenden statt löschen (Objekt-ID und Archivdaten bleiben erhalten)
-            $obj = IPS_GetObject($homeVid);
-            if (!($obj['ObjectIsHidden'] ?? false)) {
-                IPS_SetHidden($homeVid, true);
+            $geoPos = (count($posMap) ? max($posMap) : 0) + 10;
+
+            // Textvariable "Aktueller Standort" (Name des Geofence bzw. "Unterwegs")
+            $this->MaintainVariable(self::STAT_LOCATION_NAME, 'Aktueller Standort', VARIABLETYPE_STRING, $this->presValue(), $geoPos, true);
+            $geoActiveIdents[self::STAT_LOCATION_NAME] = true;
+            $geoPos += 10;
+
+            // Je Standort eine Boolean-Variable ("Zu Hause" = fester Zuhause-Eintrag)
+            foreach ($this->getGeofences() as $f) {
+                if ($f['ident'] === self::STAT_AT_HOME) {
+                    $name = 'Zu Hause';
+                    $pres = $this->presFor('Tessie.AtHome', false);
+                } else {
+                    $name = $f['name'];
+                    $pres = $this->presSwitch($f['name'], $this->Translate('Abwesend'));
+                }
+                $this->MaintainVariable($f['ident'], $name, VARIABLETYPE_BOOLEAN, $pres, $geoPos, true);
+                $geoActiveIdents[$f['ident']] = true;
+                $geoPos += 10;
+            }
+        }
+
+        // Nicht (mehr) konfigurierte Geofence-Variablen ausblenden statt löschen
+        // (Objekt-ID und Archivdaten bleiben erhalten; greift auch bei Deaktivierung/Umbenennung)
+        foreach (IPS_GetChildrenIDs($this->InstanceID) as $cid) {
+            $obj = IPS_GetObject($cid);
+            $ident = (string)($obj['ObjectIdent'] ?? '');
+            $isGeo = ($ident === self::STAT_AT_HOME || $ident === self::STAT_LOCATION_NAME
+                || strpos($ident, self::GEO_IDENT_PREFIX) === 0);
+            if (!$isGeo) continue;
+            $hide = !isset($geoActiveIdents[$ident]);
+            if (($obj['ObjectIsHidden'] ?? false) != $hide) {
+                IPS_SetHidden($cid, $hide);
             }
         }
 

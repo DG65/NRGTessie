@@ -2,6 +2,12 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.5.0] - 2026-06-19
+### Hinzugefuegt
+- Standort-Erkennung mit mehreren Geofences: Zusaetzlich zum Zuhause-Standort koennen beliebige weitere Standorte (Name, Kartenposition, Radius) als Liste konfiguriert werden. Je Standort entsteht eine Boolean-Variable (stat_geo_*), dazu eine neue Textvariable "Aktueller Standort" (stat_location_name) mit dem Namen des naechsten passenden Standorts bzw. "Unterwegs". Bei ueberlappenden Zonen gewinnt der naechstgelegene Standort. Nicht mehr konfigurierte Geofence-Variablen werden ausgeblendet statt geloescht.
+### Geaendert
+- Panel "Zuhause-Erkennung" heisst jetzt "Standort-Erkennung (Geofence)"; die Variable "Zu Hause" (stat_at_home) bleibt unveraendert kompatibel.
+
 ## [2.4.0] - 2026-06-18
 ### Hinzugefuegt
 - Zuhause-Erkennung (Geofence): Neue optionale Status-Variable "Zu Hause" (stat_at_home). Aus der GPS-Position (Telemetrie "Fahrzeugposition") und einem konfigurierbaren Standort + Radius wird per Haversine-Distanz automatisch true/false gesetzt. Konfiguration ueber neues aufklappbares Panel "Zuhause-Erkennung" (Aktivierung, Standort per Karte, Radius in Metern). Ersetzt externe Skript-/Ereignis-Loesungen (Bounding-Box). Variable bleibt bei Deaktivierung erhalten (nur ausgeblendet), Auswertung unabhaengig von der Auto-Discovery der Telemetrie.

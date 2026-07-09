@@ -94,16 +94,16 @@
         },
         {
             "type": "ExpansionPanel",
-            "caption": "Zuhause-Erkennung (Geofence)",
+            "caption": "Standort-Erkennung (Geofence)",
             "items": [
                 {
                     "type": "Label",
-                    "caption": "Legt eine Status-Variable 'Zu Hause' an, die true wird, sobald die Fahrzeugposition innerhalb des Radius um den gewählten Standort liegt. Benötigt aktive GPS-Telemetrie (Datenpunkt 'Fahrzeugposition'). Bei Deaktivierung bleibt die Variable erhalten (nur ausgeblendet)."
+                    "caption": "Legt je Standort eine Status-Variable an ('Zu Hause' bzw. Standortname), die true wird, sobald die Fahrzeugposition innerhalb des Radius liegt, sowie eine Textvariable 'Aktueller Standort' (Standortname bzw. 'Unterwegs'). Benötigt aktive GPS-Telemetrie (Datenpunkt 'Fahrzeugposition'). Bei Deaktivierung oder Entfernen bleiben die Variablen erhalten (nur ausgeblendet)."
                 },
                 {
                     "type": "CheckBox",
                     "name": "HomeDetection",
-                    "caption": "Zuhause-Erkennung aktivieren"
+                    "caption": "Standort-Erkennung aktivieren"
                 },
                 {
                     "type": "SelectLocation",
@@ -113,10 +113,45 @@
                 {
                     "type": "NumberSpinner",
                     "name": "HomeRadius",
-                    "caption": "Radius",
+                    "caption": "Radius Zuhause",
                     "suffix": " m",
                     "minimum": 10,
                     "maximum": 5000
+                },
+                {
+                    "type": "List",
+                    "name": "GeofenceList",
+                    "caption": "Weitere Standorte",
+                    "rowCount": 5,
+                    "add": true,
+                    "delete": true,
+                    "columns": [
+                        {
+                            "caption": "Name",
+                            "name": "Name",
+                            "width": "200px",
+                            "add": "",
+                            "edit": { "type": "ValidationTextBox" }
+                        },
+                        {
+                            "caption": "Standort",
+                            "name": "Location",
+                            "width": "auto",
+                            "add": "",
+                            "edit": { "type": "SelectLocation" }
+                        },
+                        {
+                            "caption": "Radius (m)",
+                            "name": "Radius",
+                            "width": "120px",
+                            "add": 100,
+                            "edit": { "type": "NumberSpinner", "suffix": " m", "minimum": 10, "maximum": 5000 }
+                        }
+                    ]
+                },
+                {
+                    "type": "Label",
+                    "caption": "Der Name des Standorts wird als Variablenname und in 'Aktueller Standort' verwendet. Bei überlappenden Zonen gewinnt der nächstgelegene Standort."
                 }
             ]
         }
