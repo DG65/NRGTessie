@@ -91,6 +91,34 @@
                     "caption": "Links automatisch bereinigen"
                 }
             ]
+        },
+        {
+            "type": "ExpansionPanel",
+            "caption": "Zuhause-Erkennung (Geofence)",
+            "items": [
+                {
+                    "type": "Label",
+                    "caption": "Legt eine Status-Variable 'Zu Hause' an, die true wird, sobald die Fahrzeugposition innerhalb des Radius um den gewählten Standort liegt. Benötigt aktive GPS-Telemetrie (Datenpunkt 'Fahrzeugposition'). Bei Deaktivierung bleibt die Variable erhalten (nur ausgeblendet)."
+                },
+                {
+                    "type": "CheckBox",
+                    "name": "HomeDetection",
+                    "caption": "Zuhause-Erkennung aktivieren"
+                },
+                {
+                    "type": "SelectLocation",
+                    "name": "HomeLocation",
+                    "caption": "Standort Zuhause"
+                },
+                {
+                    "type": "NumberSpinner",
+                    "name": "HomeRadius",
+                    "caption": "Radius",
+                    "suffix": " m",
+                    "minimum": 10,
+                    "maximum": 5000
+                }
+            ]
         }
     ],
     "actions": [

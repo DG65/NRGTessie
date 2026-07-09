@@ -43,6 +43,7 @@ class TessieVehicle extends IPSModule
     private const STAT_CHARGING_AMPS_ACTUAL = 'stat_charge_amps_actual';
     private const STAT_CHARGING_AMPS_MAX    = 'stat_charge_amps_max';
     private const STAT_AC_CHARGING_POWER    = 'stat_ac_charging_power';
+    private const STAT_AT_HOME              = 'stat_at_home';
 
     // -------------------- Timer --------------------
     private const TIMER_UPDATE = 'UpdateTimer';
@@ -99,6 +100,12 @@ class TessieVehicle extends IPSModule
         $this->RegisterPropertyInteger('LinksLocation', 0);
         $this->RegisterPropertyBoolean('CreateLinks', true);
         $this->RegisterPropertyBoolean('CleanupLinks', true);
+
+        // Zuhause-Erkennung (Geofence): setzt eine Status-Variable, sobald die
+        // Fahrzeugposition innerhalb des Radius um den gewählten Standort liegt.
+        $this->RegisterPropertyBoolean('HomeDetection', false);
+        $this->RegisterPropertyString('HomeLocation', '');
+        $this->RegisterPropertyInteger('HomeRadius', 100);
 
         // Eine Liste für ALLE Variablen (Bestand + Telemetrie)
         $this->RegisterPropertyString(self::PROP_VISIBLE_VARS, json_encode($this->getDefaultVisibleVars()));
@@ -863,6 +870,14 @@ class TessieVehicle extends IPSModule
                 continue;
             }
 
+            // Zuhause-Erkennung: Position immer auswerten, unabhängig von Auto-Discovery.
+            if (array_key_exists('locationValue', $val) && is_array($val['locationValue'])) {
+                $loc = $val['locationValue'];
+                if (isset($loc['latitude'], $loc['longitude'])) {
+                    $this->updateHomeStatus((float)$loc['latitude'], (float)$loc['longitude']);
+                }
+            }
+
             if (!$autoCreate) {
                 continue;
             }
@@ -1259,6 +1274,7 @@ class TessieVehicle extends IPSModule
         switch ($profile) {
             case '~Lock':                    return $this->presSwitch('Verriegelt', 'Entriegelt');
             case '~Switch':                  return $this->presSwitch('An', 'Aus');
+            case 'Tessie.AtHome':            return $this->presSwitch('Zu Hause', 'Unterwegs');
             case 'Tessie.PercentInt':        return $settable ? $this->presSlider(0, 100, 1, ' %', 0) : $this->presValue(' %', 0);
             case 'Tessie.Amps':              return $settable ? $this->presSlider(0, 48, 1, ' A', 0) : $this->presValue(' A', 0);
             case 'Tessie.AmpsFloat':         return $this->presValue(' A', 1);
@@ -1314,6 +1330,52 @@ class TessieVehicle extends IPSModule
         return '';
     }
 
+
+    /**
+     * Zuhause-Erkennung (Geofence): setzt die Status-Variable "Zu Hause" true/false,
+     * je nachdem ob die Fahrzeugposition innerhalb des konfigurierten Radius um den
+     * gewählten Standort liegt. No-op, solange die Erkennung deaktiviert ist.
+     */
+    private function updateHomeStatus(float $lat, float $lon): void
+    {
+        if (!$this->ReadPropertyBoolean('HomeDetection')) {
+            return;
+        }
+        if (!is_finite($lat) || !is_finite($lon)) {
+            return;
+        }
+        $vid = @IPS_GetObjectIDByIdent(self::STAT_AT_HOME, $this->InstanceID);
+        if ($vid <= 0) {
+            return;
+        }
+        $home = json_decode((string)$this->ReadPropertyString('HomeLocation'), true);
+        if (!is_array($home) || !isset($home['latitude'], $home['longitude'])) {
+            return;
+        }
+        $hLat = (float)$home['latitude'];
+        $hLon = (float)$home['longitude'];
+        if (($hLat == 0.0 && $hLon == 0.0) || !is_finite($hLat) || !is_finite($hLon)) {
+            return; // kein Standort gewählt
+        }
+
+        $radius = max(1, (int)$this->ReadPropertyInteger('HomeRadius'));
+        $inside = ($this->haversineMeters($lat, $lon, $hLat, $hLon) <= $radius);
+
+        if (GetValueBoolean($vid) !== $inside) {
+            SetValueBoolean($vid, $inside);
+        }
+    }
+
+    /** Entfernung zweier Koordinaten in Metern (Haversine). */
+    private function haversineMeters(float $lat1, float $lon1, float $lat2, float $lon2): float
+    {
+        $earth = 6371000.0; // m
+        $dLat = deg2rad($lat2 - $lat1);
+        $dLon = deg2rad($lon2 - $lon1);
+        $a = sin($dLat / 2) ** 2
+            + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLon / 2) ** 2;
+        return $earth * 2 * atan2(sqrt($a), sqrt(1 - $a));
+    }
 
     private function ensureVariables(): void
     {
@@ -1417,6 +1479,20 @@ class TessieVehicle extends IPSModule
         $this->MaintainVariable(self::STAT_CHARGING_AMPS_ACTUAL, 'Ladestrom Ist (A)', VARIABLETYPE_FLOAT, $this->presFor('Tessie.AmpsFloat', false), $pos(self::STAT_CHARGING_AMPS_ACTUAL), true);
         $this->MaintainVariable(self::STAT_CHARGING_AMPS_MAX, 'Ladestrom Max (A)', VARIABLETYPE_INTEGER, $this->presFor('Tessie.Amps', false), $pos(self::STAT_CHARGING_AMPS_MAX), true);
         $this->MaintainVariable(self::STAT_AC_CHARGING_POWER, 'AC Ladeleistung (kW)', VARIABLETYPE_FLOAT, $this->presFor('Tessie.kW', false), $pos(self::STAT_AC_CHARGING_POWER), true);
+
+        // Zuhause-Erkennung (Geofence): Status-Variable nur anlegen/einblenden, wenn aktiviert.
+        // Nicht Teil der VisibleVars-Liste – wird komplett über die Eigenschaft gesteuert.
+        $homeVid = @IPS_GetObjectIDByIdent(self::STAT_AT_HOME, $this->InstanceID);
+        if ($this->ReadPropertyBoolean('HomeDetection')) {
+            $homePos = (count($posMap) ? max($posMap) : 0) + 10;
+            $this->MaintainVariable(self::STAT_AT_HOME, 'Zu Hause', VARIABLETYPE_BOOLEAN, $this->presFor('Tessie.AtHome', false), $homePos, true);
+        } elseif ($homeVid > 0) {
+            // Deaktiviert: ausblenden statt löschen (Objekt-ID und Archivdaten bleiben erhalten)
+            $obj = IPS_GetObject($homeVid);
+            if (!($obj['ObjectIsHidden'] ?? false)) {
+                IPS_SetHidden($homeVid, true);
+            }
+        }
 
         // Telemetrie-Variablen aus Registry (nur wenn User aktiviert)
         $registry = $this->getTelemetryRegistry();
