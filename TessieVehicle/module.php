@@ -1357,8 +1357,13 @@ class TessieVehicle extends IPSModule
             return [$lat, $lon];
         };
 
-        // Zuhause (fester erster Eintrag, kompatibel zu 2.4.0)
+        // Zuhause (fester erster Eintrag, kompatibel zu 2.4.0).
+        // Ohne eigene Angabe wird der Systemstandort aus der Kern-Instanz
+        // "Location Control" übernommen (dort ist das Zuhause ohnehin gepflegt).
         $home = $parse($this->ReadPropertyString('HomeLocation'));
+        if ($home === null) {
+            $home = $parse($this->getSystemLocation());
+        }
         if ($home !== null) {
             $fences[] = [
                 'ident'  => self::STAT_AT_HOME,
@@ -1388,6 +1393,20 @@ class TessieVehicle extends IPSModule
         }
 
         return $fences;
+    }
+
+    /**
+     * Systemstandort aus der Kern-Instanz "Location Control" (JSON {latitude, longitude}).
+     * Leerer String, wenn keine Instanz vorhanden oder kein Standort gepflegt ist.
+     */
+    private function getSystemLocation(): string
+    {
+        $ids = @IPS_GetInstanceListByModuleID('{45E97A63-F870-408A-B259-2933F7EABF74}');
+        if (!is_array($ids) || count($ids) === 0) {
+            return '';
+        }
+        $loc = @IPS_GetProperty($ids[0], 'Location');
+        return is_string($loc) ? $loc : '';
     }
 
     /**

@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.6.0] - 2026-06-20
+### Hinzugefuegt
+- Standort-Erkennung: Bleibt "Standort Zuhause" leer, wird automatisch der Systemstandort aus der Kern-Instanz "Location Control" uebernommen (dort ist das Zuhause bei der Symcon-Installation ohnehin gepflegt). Eine eigene Angabe im Modul hat weiterhin Vorrang.
+
 ## [2.5.0] - 2026-06-19
 ### Hinzugefuegt
 - Standort-Erkennung mit mehreren Geofences: Zusaetzlich zum Zuhause-Standort koennen beliebige weitere Standorte (Name, Kartenposition, Radius) als Liste konfiguriert werden. Je Standort entsteht eine Boolean-Variable (stat_geo_*), dazu eine neue Textvariable "Aktueller Standort" (stat_location_name) mit dem Namen des naechsten passenden Standorts bzw. "Unterwegs". Bei ueberlappenden Zonen gewinnt der naechstgelegene Standort. Nicht mehr konfigurierte Geofence-Variablen werden ausgeblendet statt geloescht.

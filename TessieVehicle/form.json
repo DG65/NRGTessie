@@ -108,7 +108,7 @@
                 {
                     "type": "SelectLocation",
                     "name": "HomeLocation",
-                    "caption": "Standort Zuhause"
+                    "caption": "Standort Zuhause (leer = Systemstandort aus Kern-Instanz 'Location')"
                 },
                 {
                     "type": "NumberSpinner",
