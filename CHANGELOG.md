@@ -2,6 +2,12 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.10.0] - 2026-06-25
+### Korrigiert
+- Automationen/Standort-Aktionen: Die dynamischen Auswahllisten (Datenpunkt bzw. Standort) blieben im Formular leer. Ursache: Iteration per Referenz ueber ($element['columns'] ?? []) - der ??-Ausdruck liefert eine Kopie, die Optionen gingen verloren. Jetzt wird direkt ueber $element['columns'] iteriert.
+### Hinzugefuegt
+- Regel-Editor in der Kachel: Wenn->Dann-Regeln lassen sich komplett in der Kachel anlegen, bearbeiten und loeschen ('+ Neue Regel', Stift, Papierkorb mit Rueckfrage). Der Editor bietet alle Datenpunkte als Quelle, schaltbare Variablen (mit Aktion) als Ziel mit Suchfeld ueber Name/Pfad, und bei 'Wert setzen' die im Profil bzw. der Darstellung definierten Werte als Auswahlliste (TESSIE_GetDataActionEditor, TESSIE_GetTargetValueOptions, TESSIE_SetDataAction, TESSIE_DeleteDataAction).
+
 ## [2.9.0] - 2026-06-24
 ### Hinzugefuegt
 - Automationen (Wenn -> Dann): generische Regeln ueber beliebige Datenpunkte des Fahrzeugs (Property DataActions). Bedingungen: wird EIN/AUS, =, !=, >, >=, <, <=, aendert sich; Aktionen: Einschalten/Ausschalten/Umschalten/Wert setzen auf eine beliebige Zielvariable (RequestAction bzw. SetValue). Flankengesteuert - eine Regel feuert beim Eintreten der Bedingung, nicht bei jeder Datenmeldung; nach Uebernehmen wird der Ausgangszustand ohne Ausloesen neu eingelesen (Attribut RuleState). Datenpunkt-Auswahl dynamisch aus der Datenpunktliste + Geofence-Variablen.

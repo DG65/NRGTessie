@@ -55,14 +55,32 @@
         .tsl-loc a { color: var(--accent); text-decoration: none; font-size: calc(13px * var(--scale)); }
 
         .tsl-rules { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+        .tsl-rules .hdrow { display: flex; align-items: center; justify-content: space-between; }
         .tsl-rules .hd { font-size: calc(10px * var(--scale)); color: var(--textmuted); text-transform: uppercase; letter-spacing: .5px; }
-        .tsl-rule { display: flex; align-items: center; gap: 10px; background: var(--box); border-radius: 11px; padding: 8px 11px; }
+        .tsl-rule { display: flex; align-items: center; gap: 8px; background: var(--box); border-radius: 11px; padding: 8px 11px; }
         .tsl-rule .t { flex: 1 1 auto; font-size: calc(12px * var(--scale)); color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .tsl-rule.off .t { color: var(--textmuted); }
+        .tsl-ico { flex: 0 0 auto; border: none; background: none; color: var(--textmuted); cursor: pointer; font-size: calc(13px * var(--scale)); padding: 2px 4px; border-radius: 6px; }
+        .tsl-ico:hover { color: var(--text); background: var(--track); }
+        .tsl-ico.warn { color: #e05a4e; }
+        .tsl-add { border: 1px dashed var(--textmuted); background: none; color: var(--textmuted); border-radius: 999px; font-size: calc(11px * var(--scale)); padding: 2px 10px; cursor: pointer; }
+        .tsl-add:hover { color: var(--accent); border-color: var(--accent); }
         .tsl-sw { flex: 0 0 auto; width: calc(36px * var(--scale)); height: calc(20px * var(--scale)); border: none; border-radius: 999px; background: var(--track); cursor: pointer; position: relative; padding: 0; }
         .tsl-sw::after { content: ''; position: absolute; top: 2px; left: 2px; width: calc(16px * var(--scale)); height: calc(16px * var(--scale)); border-radius: 50%; background: #fff; transition: transform .15s ease; }
         .tsl-sw.on { background: var(--accent); }
         .tsl-sw.on::after { transform: translateX(calc(16px * var(--scale))); }
+
+        /* Regel-Editor (Overlay) */
+        .tsl-ed { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: none; align-items: flex-start; justify-content: center; padding: 24px 12px; overflow: auto; z-index: 10; }
+        .tsl-ed.open { display: flex; }
+        .tsl-ed-card { background: var(--bg); border: 1px solid var(--track); border-radius: 14px; padding: 16px; width: 100%; max-width: 520px; box-sizing: border-box; backdrop-filter: blur(6px); background-color: rgba(30,36,44,.97); }
+        @media (prefers-color-scheme: light) { .tsl-ed-card { background-color: rgba(250,251,252,.98); } }
+        .tsl-ed-card h3 { margin: 0 0 12px; font-size: calc(14px * var(--scale)); color: var(--text); }
+        .tsl-ed-card label { display: block; font-size: calc(10px * var(--scale)); color: var(--textmuted); text-transform: uppercase; letter-spacing: .5px; margin: 10px 0 4px; }
+        .tsl-ed-card select, .tsl-ed-card input { width: 100%; box-sizing: border-box; background: var(--box); color: var(--text); border: 1px solid var(--track); border-radius: 8px; padding: 8px 10px; font-size: calc(13px * var(--scale)); font-family: var(--font); }
+        .tsl-ed-actions { display: flex; gap: 8px; margin-top: 16px; }
+        .tsl-ed-actions .tsl-btn { flex: 1 1 auto; }
+        .tsl-ed-hint { font-size: calc(11px * var(--scale)); color: var(--textmuted); margin-top: 6px; }
 
         .tsl-btns { display: flex; gap: 8px; flex-wrap: wrap; }
         .tsl-btn { flex: 1 1 30%; min-width: 84px; border: none; border-radius: 10px; padding: 10px 8px; font-size: calc(13px * var(--scale)); font-weight: 600; cursor: pointer; background: var(--box); color: var(--text); }
@@ -112,6 +130,57 @@
         <div class="tsl-btns" id="tsl-btns"></div>
     </div>
 
+    <div class="tsl-ed" id="tsl-ed">
+        <div class="tsl-ed-card">
+            <h3 id="ed-title">Regel bearbeiten</h3>
+
+            <label for="ed-src">Wenn Datenpunkt</label>
+            <select id="ed-src"></select>
+
+            <label for="ed-op">Bedingung</label>
+            <select id="ed-op">
+                <option value="true">wird EIN (true)</option>
+                <option value="false">wird AUS (false)</option>
+                <option value="eq">= (gleich)</option>
+                <option value="ne">&#8800; (ungleich)</option>
+                <option value="gt">&gt; (größer)</option>
+                <option value="ge">&#8805; (größer gleich)</option>
+                <option value="lt">&lt; (kleiner)</option>
+                <option value="le">&#8804; (kleiner gleich)</option>
+                <option value="change">ändert sich</option>
+            </select>
+
+            <div id="ed-cmp-wrap">
+                <label for="ed-cmp">Vergleichswert</label>
+                <input id="ed-cmp" type="text" placeholder="z. B. 80 oder Zuhause">
+            </div>
+
+            <label for="ed-tfilter">Dann Zielvariable</label>
+            <input id="ed-tfilter" type="text" placeholder="Suchen (Name oder Pfad) …" autocomplete="off">
+            <select id="ed-target" size="1" style="margin-top:6px"></select>
+            <div class="tsl-ed-hint">Angeboten werden schaltbare Variablen (mit Aktion). Andere Ziele lassen sich im Instanzformular wählen.</div>
+
+            <label for="ed-act">Aktion</label>
+            <select id="ed-act">
+                <option value="on">Einschalten</option>
+                <option value="off">Ausschalten</option>
+                <option value="toggle">Umschalten</option>
+                <option value="value">Wert setzen</option>
+            </select>
+
+            <div id="ed-val-wrap">
+                <label for="ed-val">Wert</label>
+                <select id="ed-val-sel" style="display:none"></select>
+                <input id="ed-val" type="text" placeholder="Wert">
+            </div>
+
+            <div class="tsl-ed-actions">
+                <button class="tsl-btn" id="ed-cancel">Abbrechen</button>
+                <button class="tsl-btn on" id="ed-save">Speichern</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         var RING = 263.9;
         function fmt(v, dec, unit) {
@@ -124,6 +193,10 @@
         function handleMessage(payload) {
             var d = (typeof payload === 'string') ? JSON.parse(payload) : payload;
             if (!d) return;
+
+            // Teil-Nachrichten für den Regel-Editor (kein vollständiges Kachel-Update)
+            if (d.editor !== undefined) { ED.data = d.editor; edOpenNow(); return; }
+            if (d.targetOpts !== undefined) { edApplyTargetOpts(d.targetOpts); return; }
 
             var root = document.documentElement.style;
             function applyVar(name, val) { if (val) { root.setProperty(name, val); } else { root.removeProperty(name); } }
@@ -173,12 +246,20 @@
 
             var rules = document.getElementById('tsl-rules');
             rules.textContent = '';
-            if (d.rules && d.rules.length) {
+            if (Array.isArray(d.rules)) {
                 rules.style.display = 'flex';
+                var hdrow = document.createElement('div');
+                hdrow.className = 'hdrow';
                 var hd = document.createElement('div');
                 hd.className = 'hd';
                 hd.textContent = 'Automationen';
-                rules.appendChild(hd);
+                var add = document.createElement('button');
+                add.className = 'tsl-add';
+                add.textContent = '+ Neue Regel';
+                add.onclick = function () { edOpen(-1, null); };
+                hdrow.appendChild(hd);
+                hdrow.appendChild(add);
+                rules.appendChild(hdrow);
                 d.rules.forEach(function (r) {
                     var row = document.createElement('div');
                     row.className = 'tsl-rule' + (r.active ? '' : ' off');
@@ -186,11 +267,29 @@
                     t.className = 't';
                     t.textContent = r.text;
                     t.title = r.text;
+                    var ed = document.createElement('button');
+                    ed.className = 'tsl-ico';
+                    ed.textContent = '✎';
+                    ed.title = 'Regel bearbeiten';
+                    ed.onclick = function () { edOpen(r.i, r.rule, r.active); };
+                    var del = document.createElement('button');
+                    del.className = 'tsl-ico';
+                    del.textContent = '\u{1F5D1}';
+                    del.title = 'Regel löschen';
+                    del.onclick = function () {
+                        if (del.dataset.confirm === '1') { requestAction('ruleDelete', r.i); return; }
+                        del.dataset.confirm = '1';
+                        del.textContent = 'Sicher?';
+                        del.className = 'tsl-ico warn';
+                        setTimeout(function () { del.dataset.confirm = ''; del.textContent = '\u{1F5D1}'; del.className = 'tsl-ico'; }, 3000);
+                    };
                     var sw = document.createElement('button');
                     sw.className = 'tsl-sw' + (r.active ? ' on' : '');
                     sw.setAttribute('aria-label', (r.active ? 'Regel deaktivieren: ' : 'Regel aktivieren: ') + r.text);
                     sw.onclick = function () { requestAction('rule', JSON.stringify({ i: r.i, on: !r.active })); };
                     row.appendChild(t);
+                    row.appendChild(ed);
+                    row.appendChild(del);
                     row.appendChild(sw);
                     rules.appendChild(row);
                 });
@@ -213,6 +312,128 @@
                 addBtn(d.charging ? 'Laden stop' : 'Laden start', !!d.charging, 'charge', !d.charging);
             }
         }
+
+        // ------------------------------------------------------------------
+        // Regel-Editor
+        // ------------------------------------------------------------------
+        var ED = { data: null, i: -1, rule: null, active: true, pendingOpen: false };
+        var NUM_OPS = ['eq', 'ne', 'gt', 'ge', 'lt', 'le'];
+
+        function edOpen(i, rule, active) {
+            ED.i = i;
+            ED.rule = rule || { Source: '', Op: 'true', Compare: '', Target: 0, Action: 'on', Value: '' };
+            ED.active = (active === undefined) ? true : !!active;
+            if (ED.data) { edOpenNow(); }
+            else { ED.pendingOpen = true; requestAction('ruleEditor', ''); }
+        }
+
+        function edOpenNow() {
+            if (!ED.data) return;
+            if (ED.pendingOpen) ED.pendingOpen = false;
+            var src = document.getElementById('ed-src');
+            src.textContent = '';
+            (ED.data.sources || []).forEach(function (s) {
+                var o = document.createElement('option');
+                o.value = s.v; o.textContent = s.c;
+                src.appendChild(o);
+            });
+            if (ED.rule.Source) src.value = ED.rule.Source;
+            document.getElementById('ed-op').value = ED.rule.Op || 'true';
+            document.getElementById('ed-cmp').value = ED.rule.Compare || '';
+            document.getElementById('ed-tfilter').value = '';
+            edRenderTargets('');
+            document.getElementById('ed-act').value = ED.rule.Action || 'on';
+            document.getElementById('ed-val').value = ED.rule.Value || '';
+            document.getElementById('ed-title').textContent = (ED.i < 0) ? 'Neue Regel' : 'Regel bearbeiten';
+            edSync();
+            document.getElementById('tsl-ed').classList.add('open');
+        }
+
+        function edRenderTargets(filter) {
+            var sel = document.getElementById('ed-target');
+            sel.textContent = '';
+            var f = (filter || '').toLowerCase();
+            var count = 0, hasCurrent = false;
+            (ED.data.targets || []).forEach(function (t) {
+                if (count >= 200) return;
+                var label = t.p || t.c;
+                if (f && label.toLowerCase().indexOf(f) < 0) return;
+                var o = document.createElement('option');
+                o.value = t.v; o.textContent = label;
+                sel.appendChild(o);
+                if (String(t.v) === String(ED.rule.Target)) hasCurrent = true;
+                count++;
+            });
+            // Aktuelles Ziel immer anbieten, auch wenn es nicht in der (gefilterten) Liste ist
+            if (!hasCurrent && ED.rule.Target > 0) {
+                var cur = document.createElement('option');
+                cur.value = ED.rule.Target;
+                cur.textContent = '#' + ED.rule.Target;
+                sel.insertBefore(cur, sel.firstChild);
+            }
+            if (ED.rule.Target > 0) sel.value = String(ED.rule.Target);
+        }
+
+        function edSync() {
+            var op = document.getElementById('ed-op').value;
+            document.getElementById('ed-cmp-wrap').style.display = (NUM_OPS.indexOf(op) >= 0) ? 'block' : 'none';
+            var isValue = (document.getElementById('ed-act').value === 'value');
+            document.getElementById('ed-val-wrap').style.display = isValue ? 'block' : 'none';
+            if (isValue) {
+                // Profil-/Presentation-Werte der Zielvariable anfragen (kommen als targetOpts zurück)
+                var vid = parseInt(document.getElementById('ed-target').value || '0', 10);
+                document.getElementById('ed-val-sel').style.display = 'none';
+                document.getElementById('ed-val').style.display = '';
+                if (vid > 0) requestAction('targetOpts', vid);
+            }
+        }
+
+        function edApplyTargetOpts(to) {
+            if (!document.getElementById('tsl-ed').classList.contains('open')) return;
+            var vid = parseInt(document.getElementById('ed-target').value || '0', 10);
+            if (!to || parseInt(to.vid, 10) !== vid) return;
+            var sel = document.getElementById('ed-val-sel');
+            var inp = document.getElementById('ed-val');
+            if (to.options && to.options.length) {
+                sel.textContent = '';
+                to.options.forEach(function (o) {
+                    var e = document.createElement('option');
+                    e.value = o.v; e.textContent = o.c + ' (' + o.v + ')';
+                    sel.appendChild(e);
+                });
+                if (inp.value !== '') sel.value = inp.value;
+                if (sel.selectedIndex < 0) sel.selectedIndex = 0;
+                sel.style.display = '';
+                inp.style.display = 'none';
+            } else {
+                sel.style.display = 'none';
+                inp.style.display = '';
+            }
+        }
+
+        function edClose() { document.getElementById('tsl-ed').classList.remove('open'); }
+
+        document.getElementById('ed-op').onchange = edSync;
+        document.getElementById('ed-act').onchange = edSync;
+        document.getElementById('ed-target').onchange = edSync;
+        document.getElementById('ed-tfilter').oninput = function () { edRenderTargets(this.value); edSync(); };
+        document.getElementById('ed-cancel').onclick = edClose;
+        document.getElementById('tsl-ed').onclick = function (ev) { if (ev.target === this) edClose(); };
+        document.getElementById('ed-save').onclick = function () {
+            var valSel = document.getElementById('ed-val-sel');
+            var rule = {
+                Active: ED.active,
+                Source: document.getElementById('ed-src').value,
+                Op: document.getElementById('ed-op').value,
+                Compare: document.getElementById('ed-cmp').value,
+                Target: parseInt(document.getElementById('ed-target').value || '0', 10),
+                Action: document.getElementById('ed-act').value,
+                Value: (valSel.style.display !== 'none') ? valSel.value : document.getElementById('ed-val').value
+            };
+            if (!rule.Source || !(rule.Target > 0)) return;
+            requestAction('ruleSave', JSON.stringify({ i: ED.i, rule: rule }));
+            edClose();
+        };
     </script>
 </body>
 

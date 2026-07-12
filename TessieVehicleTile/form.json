@@ -31,7 +31,7 @@
         },
         {
           "type": "Label",
-          "caption": "Mit 'Automationen anzeigen' listet die Kachel die Wenn→Dann-Regeln der TessieVehicle-Quelle und schaltet sie per Schalter aktiv/inaktiv. Angelegt und bearbeitet werden die Regeln in der TessieVehicle-Instanz (Panel 'Automationen'). Ist die Kachel mehrfach verlinkt, wirken die Schalter überall auf dieselben Regeln."
+          "caption": "Mit 'Automationen anzeigen' verwaltet die Kachel die Wenn→Dann-Regeln der TessieVehicle-Quelle vollständig: '+ Neue Regel' legt eine Regel an, ✎ bearbeitet, der Papierkorb löscht (mit Rückfrage), der Schalter aktiviert/deaktiviert. Im Editor werden als Ziel schaltbare Variablen (mit Aktion) angeboten – per Suchfeld filterbar; bei 'Wert setzen' erscheinen die im Profil/der Darstellung definierten Werte als Auswahlliste. Ist die Kachel mehrfach verlinkt, wirken alle Änderungen überall auf dieselben Regeln."
         },
         {
           "type": "Label",

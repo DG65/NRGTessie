@@ -136,13 +136,39 @@ class TessieVehicleTile extends IPSModule
             return;
         }
 
-        // Automations-Toggle aus der Kachel: Regel in der Quelle ein-/ausschalten
+        // Automations-Verwaltung aus der Kachel (Regeln der Quelle)
         if ($Ident === 'rule') {
             $data = json_decode((string)$Value, true);
             if (is_array($data) && isset($data['i'])) {
                 @TESSIE_SetDataActionActive($src, (int)$data['i'], (bool)($data['on'] ?? false));
                 $this->UpdateVisualizationValue($this->GetFullUpdateMessage());
             }
+            return;
+        }
+        if ($Ident === 'ruleEditor') {
+            // Editor-Daten (Datenpunkte + schaltbare Zielvariablen) an die Kachel schicken
+            $editor = json_decode((string)@TESSIE_GetDataActionEditor($src), true);
+            $this->UpdateVisualizationValue(json_encode(['editor' => is_array($editor) ? $editor : ['sources' => [], 'targets' => []]]));
+            return;
+        }
+        if ($Ident === 'targetOpts') {
+            // Auswählbare Werte (Profil/Presentation) der gewählten Zielvariable
+            $vid = (int)$Value;
+            $opts = json_decode((string)@TESSIE_GetTargetValueOptions($src, $vid), true);
+            $this->UpdateVisualizationValue(json_encode(['targetOpts' => ['vid' => $vid, 'options' => is_array($opts) ? $opts : []]]));
+            return;
+        }
+        if ($Ident === 'ruleSave') {
+            $data = json_decode((string)$Value, true);
+            if (is_array($data) && isset($data['rule'])) {
+                @TESSIE_SetDataAction($src, (int)($data['i'] ?? -1), json_encode($data['rule']));
+                $this->UpdateVisualizationValue($this->GetFullUpdateMessage());
+            }
+            return;
+        }
+        if ($Ident === 'ruleDelete') {
+            @TESSIE_DeleteDataAction($src, (int)$Value);
+            $this->UpdateVisualizationValue($this->GetFullUpdateMessage());
             return;
         }
 
@@ -252,7 +278,11 @@ class TessieVehicleTile extends IPSModule
         return 0;
     }
 
-    /** Wenn->Dann-Regeln der Quelle für die Kachel ([{i,text,active}] oder null). */
+    /**
+     * Wenn->Dann-Regeln der Quelle für die Kachel ([{i,text,active,rule}] oder null).
+     * Leeres Array = Automationen aktiv, aber noch keine Regel (Kachel zeigt dann
+     * nur den "+ Neue Regel"-Knopf).
+     */
     private function ReadSourceRules(int $instanceID): ?array
     {
         if (!$this->ReadPropertyBoolean('ShowAutomations')) {
@@ -260,7 +290,7 @@ class TessieVehicleTile extends IPSModule
         }
         $json = @TESSIE_GetDataActions($instanceID);
         $rules = is_string($json) ? json_decode($json, true) : null;
-        return (is_array($rules) && count($rules) > 0) ? $rules : null;
+        return is_array($rules) ? $rules : null;
     }
 
     private function ReadSourceValue(int $instanceID, string $ident)

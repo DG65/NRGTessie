@@ -267,22 +267,7 @@ class TessieVehicle extends IPSModule
         }
 
         // Datenpunkt-Auswahl für die Automationsliste: alle Datenpunkte + Geofence-Variablen
-        $sourceOptions = [];
-        foreach ($fullList as $row) {
-            if (!is_array($row)) continue;
-            $ident = (string)($row['Ident'] ?? '');
-            if ($ident === '') continue;
-            $sourceOptions[] = ['caption' => (string)($row['Name'] ?? $ident), 'value' => $ident];
-        }
-        if ($this->ReadPropertyBoolean('HomeDetection')) {
-            $sourceOptions[] = ['caption' => 'Aktueller Standort', 'value' => self::STAT_LOCATION_NAME];
-            foreach ($this->getGeofences() as $f) {
-                $sourceOptions[] = [
-                    'caption' => ($f['ident'] === self::STAT_AT_HOME) ? 'Zu Hause' : $f['name'],
-                    'value'   => $f['ident']
-                ];
-            }
-        }
+        $sourceOptions = $this->getAutomationSourceOptions($fullList);
 
         // form.json-Elemente befüllen (rekursiv, Listen liegen z. T. in ExpansionPanels):
         // Datenpunkt-Liste, aktueller Ablageort, Standort-/Datenpunkt-Optionen der Aktionslisten
@@ -295,15 +280,17 @@ class TessieVehicle extends IPSModule
                 } elseif ($elName === 'InstanceLocation') {
                     // Aktuellen Parent anzeigen; verschoben wird nur per onChange (siehe SetInstanceLocation)
                     $element['value'] = IPS_GetParent($this->InstanceID);
-                } elseif ($elName === 'GeoActions') {
-                    foreach (($element['columns'] ?? []) as &$col) {
+                } elseif ($elName === 'GeoActions' && isset($element['columns']) && is_array($element['columns'])) {
+                    // Achtung: nicht über ($element['columns'] ?? []) iterieren – der ??-Ausdruck
+                    // liefert eine Kopie, Referenz-Änderungen gingen verloren.
+                    foreach ($element['columns'] as &$col) {
                         if (($col['name'] ?? '') === 'Fence') {
                             $col['edit']['options'] = $fenceOptions;
                         }
                     }
                     unset($col);
-                } elseif ($elName === 'DataActions') {
-                    foreach (($element['columns'] ?? []) as &$col) {
+                } elseif ($elName === 'DataActions' && isset($element['columns']) && is_array($element['columns'])) {
+                    foreach ($element['columns'] as &$col) {
                         if (($col['name'] ?? '') === 'Source') {
                             $col['edit']['options'] = $sourceOptions;
                         }
@@ -1778,6 +1765,155 @@ class TessieVehicle extends IPSModule
         return sprintf('Wenn %s %s → %s', $srcName, $cond, $do);
     }
 
+    /** Datenpunkt-Optionen für Regelquellen: alle Datenpunkte + Geofence-Variablen. */
+    private function getAutomationSourceOptions(?array $fullList = null): array
+    {
+        if ($fullList === null) {
+            $fullList = $this->buildFormRows($this->getEffectiveList());
+        }
+        $options = [];
+        foreach ($fullList as $row) {
+            if (!is_array($row)) continue;
+            $ident = (string)($row['Ident'] ?? '');
+            if ($ident === '') continue;
+            $options[] = ['caption' => (string)($row['Name'] ?? $ident), 'value' => $ident];
+        }
+        if ($this->ReadPropertyBoolean('HomeDetection')) {
+            $options[] = ['caption' => 'Aktueller Standort', 'value' => self::STAT_LOCATION_NAME];
+            foreach ($this->getGeofences() as $f) {
+                $options[] = [
+                    'caption' => ($f['ident'] === self::STAT_AT_HOME) ? 'Zu Hause' : $f['name'],
+                    'value'   => $f['ident']
+                ];
+            }
+        }
+        return $options;
+    }
+
+    /**
+     * Daten für den Regel-Editor der Kachel: Datenpunkte (Quellen) und
+     * schaltbare Zielvariablen mit Objektbaum-Pfad. JSON:
+     * {sources:[{v,c}], targets:[{v,c,p}]}
+     */
+    public function GetDataActionEditor(): string
+    {
+        $sources = [];
+        foreach ($this->getAutomationSourceOptions() as $o) {
+            $sources[] = ['v' => $o['value'], 'c' => $o['caption']];
+        }
+
+        // Schaltbare Variablen (mit Aktion) als sinnvolle Ziele; nach Pfad sortiert.
+        // Beliebige weitere Ziele lassen sich im Instanzformular wählen.
+        $targets = [];
+        foreach (IPS_GetVariableList() as $vid) {
+            $var = IPS_GetVariable($vid);
+            if ((int)$var['VariableAction'] <= 0 && (int)$var['VariableCustomAction'] <= 0) {
+                continue;
+            }
+            $targets[] = ['v' => $vid, 'c' => IPS_GetName($vid), 'p' => IPS_GetLocation($vid)];
+            if (count($targets) >= 1000) break;
+        }
+        usort($targets, function ($a, $b) { return strcasecmp($a['p'], $b['p']); });
+
+        return json_encode(['sources' => $sources, 'targets' => $targets]);
+    }
+
+    /**
+     * Auswählbare Werte einer Zielvariable (Presentation-Enumeration/-Switch bzw.
+     * Legacy-Profil-Assoziationen) als JSON [{v, c}]. Leer, wenn frei einzugeben.
+     */
+    public function GetTargetValueOptions(int $VariableID): string
+    {
+        if ($VariableID <= 0 || !IPS_VariableExists($VariableID)) {
+            return '[]';
+        }
+        $out = [];
+        $var = IPS_GetVariable($VariableID);
+
+        $pres = @IPS_GetVariablePresentation($VariableID);
+        if (is_array($pres)) {
+            $p = $pres['PRESENTATION'] ?? '';
+            if ($p === VARIABLE_PRESENTATION_ENUMERATION) {
+                $opts = json_decode((string)($pres['OPTIONS'] ?? '[]'), true);
+                if (is_array($opts)) {
+                    foreach ($opts as $o) {
+                        if (is_array($o) && isset($o['Value'])) {
+                            $out[] = ['v' => $o['Value'], 'c' => (string)($o['Caption'] ?? $o['Value'])];
+                        }
+                    }
+                }
+            } elseif ($p === VARIABLE_PRESENTATION_SWITCH) {
+                $out[] = ['v' => 1, 'c' => (string)($pres['CAPTION_ON'] ?? 'Ein')];
+                $out[] = ['v' => 0, 'c' => (string)($pres['CAPTION_OFF'] ?? 'Aus')];
+            }
+        }
+
+        // Legacy-Variablenprofil
+        if (count($out) === 0) {
+            $profile = ($var['VariableCustomProfile'] !== '') ? $var['VariableCustomProfile'] : $var['VariableProfile'];
+            if ($profile !== '' && IPS_VariableProfileExists($profile)) {
+                foreach (IPS_GetVariableProfile($profile)['Associations'] as $a) {
+                    $out[] = ['v' => $a['Value'], 'c' => (string)$a['Name']];
+                }
+            }
+        }
+
+        if (count($out) === 0 && (int)$var['VariableType'] === VARIABLETYPE_BOOLEAN) {
+            $out = [['v' => 1, 'c' => 'Ein'], ['v' => 0, 'c' => 'Aus']];
+        }
+        return json_encode($out);
+    }
+
+    /**
+     * Legt eine Regel an oder überschreibt sie ($Index < 0 = anhängen).
+     * $RuleJSON: {Active, Source, Op, Compare, Target, Action, Value}
+     */
+    public function SetDataAction(int $Index, string $RuleJSON): void
+    {
+        $in = json_decode($RuleJSON, true);
+        if (!is_array($in)) {
+            return;
+        }
+        $ops = ['true', 'false', 'eq', 'ne', 'gt', 'ge', 'lt', 'le', 'change'];
+        $acts = ['on', 'off', 'toggle', 'value'];
+        $rule = [
+            'Active'  => (bool)($in['Active'] ?? true),
+            'Source'  => (string)($in['Source'] ?? ''),
+            'Op'      => in_array(($in['Op'] ?? ''), $ops, true) ? (string)$in['Op'] : 'true',
+            'Compare' => (string)($in['Compare'] ?? ''),
+            'Target'  => (int)($in['Target'] ?? 0),
+            'Action'  => in_array(($in['Action'] ?? ''), $acts, true) ? (string)$in['Action'] : 'on',
+            'Value'   => (string)($in['Value'] ?? '')
+        ];
+        if ($rule['Source'] === '' || $rule['Target'] <= 0) {
+            return;
+        }
+
+        $rules = json_decode((string)$this->ReadPropertyString('DataActions'), true);
+        if (!is_array($rules)) {
+            $rules = [];
+        }
+        if ($Index >= 0 && isset($rules[$Index])) {
+            $rules[$Index] = $rule;
+        } else {
+            $rules[] = $rule;
+        }
+        IPS_SetProperty($this->InstanceID, 'DataActions', json_encode(array_values($rules)));
+        IPS_ApplyChanges($this->InstanceID);
+    }
+
+    /** Löscht eine Regel (z. B. aus der Kachel). */
+    public function DeleteDataAction(int $Index): void
+    {
+        $rules = json_decode((string)$this->ReadPropertyString('DataActions'), true);
+        if (!is_array($rules) || !isset($rules[$Index])) {
+            return;
+        }
+        unset($rules[$Index]);
+        IPS_SetProperty($this->InstanceID, 'DataActions', json_encode(array_values($rules)));
+        IPS_ApplyChanges($this->InstanceID);
+    }
+
     /**
      * Regeln als JSON für die Kachel: [{i, text, active}, ...]
      */
@@ -1791,7 +1927,16 @@ class TessieVehicle extends IPSModule
                 $out[] = [
                     'i'      => $i,
                     'text'   => $this->describeDataAction($rule),
-                    'active' => (bool)($rule['Active'] ?? true)
+                    'active' => (bool)($rule['Active'] ?? true),
+                    // Rohfelder, damit der Kachel-Editor die Regel laden kann
+                    'rule'   => [
+                        'Source'  => (string)($rule['Source'] ?? ''),
+                        'Op'      => (string)($rule['Op'] ?? 'true'),
+                        'Compare' => (string)($rule['Compare'] ?? ''),
+                        'Target'  => (int)($rule['Target'] ?? 0),
+                        'Action'  => (string)($rule['Action'] ?? 'on'),
+                        'Value'   => (string)($rule['Value'] ?? '')
+                    ]
                 ];
             }
         }
