@@ -61,6 +61,7 @@ class TessieVehicle extends IPSModule
     private const ATTR_LAST_LINKS_LOCATION = 'LastLinksLocation';
     private const ATTR_TELEMETRY_REGISTRY  = 'TelemetryRegistry';
     private const ATTR_GEO_STATE           = 'GeoState';
+    private const ATTR_RULE_STATE          = 'RuleState';
 
     // Durchfahrt = Einfahrt mit anschließender Ausfahrt binnen dieser Zeit
     private const GEO_PASS_MAX_SECONDS = 900;
@@ -116,6 +117,8 @@ class TessieVehicle extends IPSModule
         $this->RegisterPropertyString('GeofenceList', '[]');
         // Standort-Aktionen: [{Fence, Event(enter|exit|pass), Target, Action(on|off|toggle|value), Value}, ...]
         $this->RegisterPropertyString('GeoActions', '[]');
+        // Automationen (Wenn -> Dann): [{Active, Source(Ident), Op, Compare, Target, Action, Value}, ...]
+        $this->RegisterPropertyString('DataActions', '[]');
 
         // Eine Liste für ALLE Variablen (Bestand + Telemetrie)
         $this->RegisterPropertyString(self::PROP_VISIBLE_VARS, json_encode($this->getDefaultVisibleVars()));
@@ -134,6 +137,7 @@ class TessieVehicle extends IPSModule
         $this->RegisterAttributeInteger(self::ATTR_LAST_LINKS_LOCATION, 0);
         $this->RegisterAttributeString(self::ATTR_TELEMETRY_REGISTRY, json_encode(new stdClass()));
         $this->RegisterAttributeString(self::ATTR_GEO_STATE, '{}');
+        $this->RegisterAttributeString(self::ATTR_RULE_STATE, '{}');
     }
 
 
@@ -159,6 +163,10 @@ class TessieVehicle extends IPSModule
         // Bereits gespeicherte Roh-JSON-Telemetriewerte (z.B. von vor einem Update oder
         // selten gesendete/stale Datenpunkte) nachträglich lesbar machen
         $this->migrateTelemetryValues();
+
+        // Automations-Baseline: Zustände neu einlesen, ohne auszulösen
+        // (verhindert Fehlauslösungen durch bereits erfüllte Bedingungen)
+        try { $this->evaluateDataActions(false); } catch (Throwable $e) { /* ignorieren */ }
 
         $this->SetStatus(102);
     }
@@ -258,9 +266,27 @@ class TessieVehicle extends IPSModule
             }
         }
 
+        // Datenpunkt-Auswahl für die Automationsliste: alle Datenpunkte + Geofence-Variablen
+        $sourceOptions = [];
+        foreach ($fullList as $row) {
+            if (!is_array($row)) continue;
+            $ident = (string)($row['Ident'] ?? '');
+            if ($ident === '') continue;
+            $sourceOptions[] = ['caption' => (string)($row['Name'] ?? $ident), 'value' => $ident];
+        }
+        if ($this->ReadPropertyBoolean('HomeDetection')) {
+            $sourceOptions[] = ['caption' => 'Aktueller Standort', 'value' => self::STAT_LOCATION_NAME];
+            foreach ($this->getGeofences() as $f) {
+                $sourceOptions[] = [
+                    'caption' => ($f['ident'] === self::STAT_AT_HOME) ? 'Zu Hause' : $f['name'],
+                    'value'   => $f['ident']
+                ];
+            }
+        }
+
         // form.json-Elemente befüllen (rekursiv, Listen liegen z. T. in ExpansionPanels):
-        // Datenpunkt-Liste, aktueller Ablageort, Standort-Optionen der Aktionsliste
-        $patch = function (array &$elements) use (&$patch, $fullList, $fenceOptions) {
+        // Datenpunkt-Liste, aktueller Ablageort, Standort-/Datenpunkt-Optionen der Aktionslisten
+        $patch = function (array &$elements) use (&$patch, $fullList, $fenceOptions, $sourceOptions) {
             foreach ($elements as &$element) {
                 if (!is_array($element)) continue;
                 $elName = $element['name'] ?? '';
@@ -273,6 +299,13 @@ class TessieVehicle extends IPSModule
                     foreach (($element['columns'] ?? []) as &$col) {
                         if (($col['name'] ?? '') === 'Fence') {
                             $col['edit']['options'] = $fenceOptions;
+                        }
+                    }
+                    unset($col);
+                } elseif ($elName === 'DataActions') {
+                    foreach (($element['columns'] ?? []) as &$col) {
+                        if (($col['name'] ?? '') === 'Source') {
+                            $col['edit']['options'] = $sourceOptions;
                         }
                     }
                     unset($col);
@@ -979,6 +1012,11 @@ class TessieVehicle extends IPSModule
                 try { $this->ensureLinkTree(true); } catch (Throwable $e) { /* ignorieren */ }
             }
         }
+
+        // Wenn->Dann-Automationen nach jedem Datenpaket auswerten (flankengesteuert)
+        try { $this->evaluateDataActions(); } catch (Throwable $e) {
+            $this->SendDebug('Automation', 'Fehler: ' . $e->getMessage(), 0);
+        }
     }
 
     private function safeSetValueIfExists(string $ident, $value): void
@@ -1542,37 +1580,52 @@ class TessieVehicle extends IPSModule
             if ((string)($rule['Fence'] ?? '') !== $fenceName) continue;
             if ((string)($rule['Event'] ?? '') !== $event) continue;
 
-            $vid = (int)($rule['Target'] ?? 0);
-            if ($vid <= 0 || !IPS_VariableExists($vid)) {
-                $this->SendDebug('GeoAction', sprintf('%s/%s: Zielvariable %d existiert nicht', $fenceName, $event, $vid), 0);
-                continue;
-            }
-
-            $var = IPS_GetVariable($vid);
-            switch ((string)($rule['Action'] ?? 'on')) {
-                case 'off':    $value = false; break;
-                case 'toggle': $value = !(bool)GetValue($vid); break;
-                case 'value':  $value = $this->castToVariableType((string)($rule['Value'] ?? ''), (int)$var['VariableType']); break;
-                case 'on':
-                default:       $value = true; break;
-            }
-            // Bool-Aktionen auf Nicht-Bool-Variablen sinnvoll abbilden (0/1)
-            if (is_bool($value) && (int)$var['VariableType'] !== VARIABLETYPE_BOOLEAN) {
-                $value = $this->castToVariableType($value ? '1' : '0', (int)$var['VariableType']);
-            }
-
-            $hasAction = ((int)$var['VariableAction'] > 0 || (int)$var['VariableCustomAction'] > 0);
-            $ok = $hasAction ? @RequestAction($vid, $value) : @SetValue($vid, $value);
-
-            $this->SendDebug('GeoAction', sprintf(
-                '%s/%s -> %s #%d = %s (%s)',
-                $fenceName, $event, $hasAction ? 'RequestAction' : 'SetValue',
-                $vid, json_encode($value), ($ok === false) ? 'FEHLER' : 'ok'
-            ), 0);
-            if ($ok === false) {
-                $this->LogMessage(sprintf('Standort-Aktion %s/%s auf Variable #%d fehlgeschlagen', $fenceName, $event, $vid), KL_WARNING);
-            }
+            $this->applyActionToVariable(
+                (int)($rule['Target'] ?? 0),
+                (string)($rule['Action'] ?? 'on'),
+                (string)($rule['Value'] ?? ''),
+                sprintf('Standort %s/%s', $fenceName, $event)
+            );
         }
+    }
+
+    /**
+     * Führt eine Aktion (on|off|toggle|value) auf einer Zielvariable aus:
+     * per RequestAction, falls die Variable eine Aktion hat, sonst per SetValue.
+     * $context beschreibt den Auslöser für Debug/Log.
+     */
+    private function applyActionToVariable(int $vid, string $action, string $rawValue, string $context): bool
+    {
+        if ($vid <= 0 || !IPS_VariableExists($vid)) {
+            $this->SendDebug('Aktion', sprintf('%s: Zielvariable #%d existiert nicht', $context, $vid), 0);
+            return false;
+        }
+
+        $var = IPS_GetVariable($vid);
+        switch ($action) {
+            case 'off':    $value = false; break;
+            case 'toggle': $value = !(bool)GetValue($vid); break;
+            case 'value':  $value = $this->castToVariableType($rawValue, (int)$var['VariableType']); break;
+            case 'on':
+            default:       $value = true; break;
+        }
+        // Bool-Aktionen auf Nicht-Bool-Variablen sinnvoll abbilden (0/1)
+        if (is_bool($value) && (int)$var['VariableType'] !== VARIABLETYPE_BOOLEAN) {
+            $value = $this->castToVariableType($value ? '1' : '0', (int)$var['VariableType']);
+        }
+
+        $hasAction = ((int)$var['VariableAction'] > 0 || (int)$var['VariableCustomAction'] > 0);
+        $ok = $hasAction ? @RequestAction($vid, $value) : @SetValue($vid, $value);
+
+        $this->SendDebug('Aktion', sprintf(
+            '%s -> %s #%d = %s (%s)',
+            $context, $hasAction ? 'RequestAction' : 'SetValue',
+            $vid, json_encode($value), ($ok === false) ? 'FEHLER' : 'ok'
+        ), 0);
+        if ($ok === false) {
+            $this->LogMessage(sprintf('Aktion "%s" auf Variable #%d fehlgeschlagen', $context, $vid), KL_WARNING);
+        }
+        return $ok !== false;
     }
 
     /** Wandelt den Regel-Wert (Text) in den Typ der Zielvariable um. */
@@ -1589,6 +1642,178 @@ class TessieVehicle extends IPSModule
             default:
                 return $raw;
         }
+    }
+
+    // ---------------------------------------------------------------------
+    // Automationen (Wenn -> Dann): generische Regeln über beliebige Datenpunkte
+    // ---------------------------------------------------------------------
+
+    /**
+     * Wertet alle Wenn->Dann-Regeln aus. Flankengesteuert: eine Regel feuert nur,
+     * wenn ihre Bedingung von unerfüllt auf erfüllt wechselt (bzw. bei 'change',
+     * wenn sich der Wert ändert) – nicht bei jeder Datenmeldung erneut.
+     * $fire=false aktualisiert nur den Zustand ohne auszulösen (Baseline nach
+     * Übernehmen, verhindert Fehlauslösungen durch alte Flanken).
+     */
+    private function evaluateDataActions(bool $fire = true): void
+    {
+        $rules = json_decode((string)$this->ReadPropertyString('DataActions'), true);
+        if (!is_array($rules)) {
+            $rules = [];
+        }
+        $state = json_decode($this->ReadAttributeString(self::ATTR_RULE_STATE), true);
+        if (!is_array($state)) {
+            $state = [];
+        }
+        $stateChanged = false;
+
+        foreach ($rules as $i => $rule) {
+            if (!is_array($rule)) continue;
+            $key = (string)$i;
+
+            $srcIdent = (string)($rule['Source'] ?? '');
+            $vid = ($srcIdent !== '') ? @IPS_GetObjectIDByIdent($srcIdent, $this->InstanceID) : 0;
+            if ($vid <= 0) continue;
+
+            $cur = GetValue($vid);
+            $op = (string)($rule['Op'] ?? 'true');
+            $cond = $this->evalRuleCondition($cur, $op, (string)($rule['Compare'] ?? ''));
+            $serial = json_encode($cur);
+
+            $prev = $state[$key] ?? null;
+            if ($op === 'change') {
+                $fireNow = ($prev !== null) && (($prev['val'] ?? null) !== $serial);
+            } else {
+                // Erste Auswertung nach Anlage: nur Baseline, kein Auslösen
+                $fireNow = ($prev !== null) && !(bool)($prev['cond'] ?? false) && $cond;
+            }
+
+            if ($prev === null || ($prev['cond'] ?? null) !== $cond || ($prev['val'] ?? null) !== $serial) {
+                $state[$key] = ['cond' => $cond, 'val' => $serial];
+                $stateChanged = true;
+            }
+
+            if ($fire && $fireNow && (bool)($rule['Active'] ?? true)) {
+                $this->applyActionToVariable(
+                    (int)($rule['Target'] ?? 0),
+                    (string)($rule['Action'] ?? 'on'),
+                    (string)($rule['Value'] ?? ''),
+                    'Automation ' . $this->describeDataAction($rule)
+                );
+            }
+        }
+
+        // Zustände gelöschter Regeln aufräumen
+        foreach (array_keys($state) as $k) {
+            if (!isset($rules[(int)$k])) {
+                unset($state[$k]);
+                $stateChanged = true;
+            }
+        }
+        if ($stateChanged) {
+            $this->WriteAttributeString(self::ATTR_RULE_STATE, json_encode($state));
+        }
+    }
+
+    /** Prüft, ob der aktuelle Wert die Bedingung erfüllt. */
+    private function evalRuleCondition($cur, string $op, string $cmp): bool
+    {
+        switch ($op) {
+            case 'true':   return (bool)$cur === true;
+            case 'false':  return (bool)$cur === false;
+            case 'change': return false; // Sonderfall, wird über den Wertvergleich behandelt
+        }
+
+        $cmp = trim($cmp);
+        if (is_bool($cur)) {
+            $cur = $cur ? 1 : 0;
+        }
+        $numeric = is_numeric($cur) && is_numeric(str_replace(',', '.', $cmp));
+        if ($numeric) {
+            $a = (float)$cur;
+            $b = (float)str_replace(',', '.', $cmp);
+        } else {
+            $a = (string)$cur;
+            $b = $cmp;
+        }
+
+        switch ($op) {
+            case 'eq': return $numeric ? (abs($a - $b) < 1e-9) : (strcasecmp($a, $b) === 0);
+            case 'ne': return $numeric ? (abs($a - $b) >= 1e-9) : (strcasecmp($a, $b) !== 0);
+            case 'gt': return $numeric && $a > $b;
+            case 'ge': return $numeric && $a >= $b;
+            case 'lt': return $numeric && $a < $b;
+            case 'le': return $numeric && $a <= $b;
+        }
+        return false;
+    }
+
+    /** Menschenlesbare Beschreibung einer Regel, z. B. für Kachel und Debug. */
+    private function describeDataAction(array $rule): string
+    {
+        $opText = [
+            'true' => 'wird EIN', 'false' => 'wird AUS', 'change' => 'ändert sich',
+            'eq' => '=', 'ne' => '≠', 'gt' => '>', 'ge' => '≥', 'lt' => '<', 'le' => '≤'
+        ];
+
+        $srcIdent = (string)($rule['Source'] ?? '');
+        $srcVid = ($srcIdent !== '') ? @IPS_GetObjectIDByIdent($srcIdent, $this->InstanceID) : 0;
+        $srcName = ($srcVid > 0) ? IPS_GetName($srcVid) : $srcIdent;
+
+        $op = (string)($rule['Op'] ?? 'true');
+        $cond = $opText[$op] ?? $op;
+        if (!in_array($op, ['true', 'false', 'change'], true)) {
+            $cond .= ' ' . (string)($rule['Compare'] ?? '');
+        }
+
+        $tVid = (int)($rule['Target'] ?? 0);
+        $tName = ($tVid > 0 && IPS_VariableExists($tVid)) ? IPS_GetName($tVid) : ('#' . $tVid);
+        switch ((string)($rule['Action'] ?? 'on')) {
+            case 'off':    $do = $tName . ' ausschalten'; break;
+            case 'toggle': $do = $tName . ' umschalten'; break;
+            case 'value':  $do = $tName . ' = ' . (string)($rule['Value'] ?? ''); break;
+            default:       $do = $tName . ' einschalten'; break;
+        }
+
+        return sprintf('Wenn %s %s → %s', $srcName, $cond, $do);
+    }
+
+    /**
+     * Regeln als JSON für die Kachel: [{i, text, active}, ...]
+     */
+    public function GetDataActions(): string
+    {
+        $rules = json_decode((string)$this->ReadPropertyString('DataActions'), true);
+        $out = [];
+        if (is_array($rules)) {
+            foreach ($rules as $i => $rule) {
+                if (!is_array($rule)) continue;
+                $out[] = [
+                    'i'      => $i,
+                    'text'   => $this->describeDataAction($rule),
+                    'active' => (bool)($rule['Active'] ?? true)
+                ];
+            }
+        }
+        return json_encode($out);
+    }
+
+    /**
+     * Aktiviert/deaktiviert eine Regel (z. B. aus der Kachel). Schreibt die
+     * Eigenschaft und übernimmt sie – wie eine Änderung im Formular.
+     */
+    public function SetDataActionActive(int $Index, bool $Active): void
+    {
+        $rules = json_decode((string)$this->ReadPropertyString('DataActions'), true);
+        if (!is_array($rules) || !isset($rules[$Index]) || !is_array($rules[$Index])) {
+            return;
+        }
+        if ((bool)($rules[$Index]['Active'] ?? true) === $Active) {
+            return;
+        }
+        $rules[$Index]['Active'] = $Active;
+        IPS_SetProperty($this->InstanceID, 'DataActions', json_encode($rules));
+        IPS_ApplyChanges($this->InstanceID);
     }
 
     /** Entfernung zweier Koordinaten in Metern (Haversine). */

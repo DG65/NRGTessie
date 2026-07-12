@@ -2,6 +2,13 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.9.0] - 2026-06-24
+### Hinzugefuegt
+- Automationen (Wenn -> Dann): generische Regeln ueber beliebige Datenpunkte des Fahrzeugs (Property DataActions). Bedingungen: wird EIN/AUS, =, !=, >, >=, <, <=, aendert sich; Aktionen: Einschalten/Ausschalten/Umschalten/Wert setzen auf eine beliebige Zielvariable (RequestAction bzw. SetValue). Flankengesteuert - eine Regel feuert beim Eintreten der Bedingung, nicht bei jeder Datenmeldung; nach Uebernehmen wird der Ausgangszustand ohne Ausloesen neu eingelesen (Attribut RuleState). Datenpunkt-Auswahl dynamisch aus der Datenpunktliste + Geofence-Variablen.
+- Kachel: neuer Bereich "Automationen" - listet die Wenn->Dann-Regeln der Quelle mit menschenlesbarem Text und schaltet sie per Toggle aktiv/inaktiv (TESSIE_GetDataActions/TESSIE_SetDataActionActive). Abschaltbar ueber die neue Option "Automationen anzeigen".
+### Geaendert
+- Standort-Aktionen nutzen intern denselben Aktions-Executor wie die neuen Automationen (applyActionToVariable).
+
 ## [2.8.0] - 2026-06-23
 ### Hinzugefuegt
 - Standort-Aktionen: Regelliste in der Standort-Erkennung (Property GeoActions) - beim Ein-, Aus- oder Durchfahren eines Standorts wird eine beliebige Zielvariable geschaltet (Einschalten/Ausschalten/Umschalten/Wert setzen). Durchfahrt = Einfahrt mit Ausfahrt binnen 15 Minuten. Ausfuehrung per RequestAction (Variablen mit Aktion) bzw. SetValue; ausgeloest nur beim Zonenwechsel, die erste Positionsmeldung initialisiert nur den Zustand. Die Standort-Auswahl der Liste wird dynamisch aus den konfigurierten Geofences befuellt.

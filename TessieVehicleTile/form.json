@@ -31,6 +31,10 @@
         },
         {
           "type": "Label",
+          "caption": "Mit 'Automationen anzeigen' listet die Kachel die Wenn→Dann-Regeln der TessieVehicle-Quelle und schaltet sie per Schalter aktiv/inaktiv. Angelegt und bearbeitet werden die Regeln in der TessieVehicle-Instanz (Panel 'Automationen'). Ist die Kachel mehrfach verlinkt, wirken die Schalter überall auf dieselben Regeln."
+        },
+        {
+          "type": "Label",
           "caption": "Der Button 'Farben & Schrift auf Standard zurücksetzen' ändert nur das offene Formular – gespeichert wird erst mit 'Änderungen übernehmen'."
         },
         {
@@ -161,6 +165,11 @@
       "type": "CheckBox",
       "name": "ShowControls",
       "caption": "Bedien-Buttons anzeigen (Verriegeln, Klima, Laden)"
+    },
+    {
+      "type": "CheckBox",
+      "name": "ShowAutomations",
+      "caption": "Automationen anzeigen (Wenn→Dann-Regeln der Quelle, mit Ein/Aus-Schalter)"
     }
   ],
   "actions": [

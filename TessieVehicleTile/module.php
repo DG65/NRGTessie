@@ -60,6 +60,7 @@ class TessieVehicleTile extends IPSModule
         $this->RegisterPropertyString('FontFamily', self::DEF_FONT);
         $this->RegisterPropertyFloat('FontScale', self::DEF_SCALE);
         $this->RegisterPropertyBoolean('ShowControls', true);
+        $this->RegisterPropertyBoolean('ShowAutomations', true);
         $this->RegisterPropertyBoolean('AdoptVehicleName', true);
 
         $this->SetVisualizationType(1);
@@ -131,7 +132,21 @@ class TessieVehicleTile extends IPSModule
     public function RequestAction($Ident, $Value)
     {
         $src = $this->ResolveSource();
-        if ($src <= 0 || !isset(self::ACTION_MAP[$Ident])) {
+        if ($src <= 0) {
+            return;
+        }
+
+        // Automations-Toggle aus der Kachel: Regel in der Quelle ein-/ausschalten
+        if ($Ident === 'rule') {
+            $data = json_decode((string)$Value, true);
+            if (is_array($data) && isset($data['i'])) {
+                @TESSIE_SetDataActionActive($src, (int)$data['i'], (bool)($data['on'] ?? false));
+                $this->UpdateVisualizationValue($this->GetFullUpdateMessage());
+            }
+            return;
+        }
+
+        if (!isset(self::ACTION_MAP[$Ident])) {
             return;
         }
         $vid = @IPS_GetObjectIDByIdent(self::ACTION_MAP[$Ident], $src);
@@ -219,7 +234,8 @@ class TessieVehicleTile extends IPSModule
             'timeToFull'  => $this->ReadSourceValue($src, 'stat_tel_TimeToFullCharge'),
             'lat'         => $this->ReadSourceValue($src, 'stat_tel_Location_lat'),
             'lon'         => $this->ReadSourceValue($src, 'stat_tel_Location_lon'),
-            'location'    => $this->ReadSourceValue($src, 'stat_location_name')
+            'location'    => $this->ReadSourceValue($src, 'stat_location_name'),
+            'rules'       => $this->ReadSourceRules($src)
         ]));
     }
 
@@ -234,6 +250,17 @@ class TessieVehicleTile extends IPSModule
             return (int) $list[0];
         }
         return 0;
+    }
+
+    /** Wenn->Dann-Regeln der Quelle für die Kachel ([{i,text,active}] oder null). */
+    private function ReadSourceRules(int $instanceID): ?array
+    {
+        if (!$this->ReadPropertyBoolean('ShowAutomations')) {
+            return null;
+        }
+        $json = @TESSIE_GetDataActions($instanceID);
+        $rules = is_string($json) ? json_decode($json, true) : null;
+        return (is_array($rules) && count($rules) > 0) ? $rules : null;
     }
 
     private function ReadSourceValue(int $instanceID, string $ident)

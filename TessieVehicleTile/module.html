@@ -54,6 +54,16 @@
         .tsl-loc { margin-bottom: 12px; }
         .tsl-loc a { color: var(--accent); text-decoration: none; font-size: calc(13px * var(--scale)); }
 
+        .tsl-rules { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+        .tsl-rules .hd { font-size: calc(10px * var(--scale)); color: var(--textmuted); text-transform: uppercase; letter-spacing: .5px; }
+        .tsl-rule { display: flex; align-items: center; gap: 10px; background: var(--box); border-radius: 11px; padding: 8px 11px; }
+        .tsl-rule .t { flex: 1 1 auto; font-size: calc(12px * var(--scale)); color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .tsl-rule.off .t { color: var(--textmuted); }
+        .tsl-sw { flex: 0 0 auto; width: calc(36px * var(--scale)); height: calc(20px * var(--scale)); border: none; border-radius: 999px; background: var(--track); cursor: pointer; position: relative; padding: 0; }
+        .tsl-sw::after { content: ''; position: absolute; top: 2px; left: 2px; width: calc(16px * var(--scale)); height: calc(16px * var(--scale)); border-radius: 50%; background: #fff; transition: transform .15s ease; }
+        .tsl-sw.on { background: var(--accent); }
+        .tsl-sw.on::after { transform: translateX(calc(16px * var(--scale))); }
+
         .tsl-btns { display: flex; gap: 8px; flex-wrap: wrap; }
         .tsl-btn { flex: 1 1 30%; min-width: 84px; border: none; border-radius: 10px; padding: 10px 8px; font-size: calc(13px * var(--scale)); font-weight: 600; cursor: pointer; background: var(--box); color: var(--text); }
         .tsl-btn.on { color: var(--accent); }
@@ -96,6 +106,8 @@
         <div class="tsl-loc" id="tsl-loc-wrap" style="display:none">
             <a id="tsl-loc" href="#" target="_blank" rel="noopener">Karte öffnen</a>
         </div>
+
+        <div class="tsl-rules" id="tsl-rules" style="display:none"></div>
 
         <div class="tsl-btns" id="tsl-btns"></div>
     </div>
@@ -158,6 +170,33 @@
                 a.href = 'https://www.google.com/maps?q=' + d.lat + ',' + d.lon;
                 a.textContent = 'Karte: ' + Number(d.lat).toFixed(5) + ', ' + Number(d.lon).toFixed(5);
             } else { lw.style.display = 'none'; }
+
+            var rules = document.getElementById('tsl-rules');
+            rules.textContent = '';
+            if (d.rules && d.rules.length) {
+                rules.style.display = 'flex';
+                var hd = document.createElement('div');
+                hd.className = 'hd';
+                hd.textContent = 'Automationen';
+                rules.appendChild(hd);
+                d.rules.forEach(function (r) {
+                    var row = document.createElement('div');
+                    row.className = 'tsl-rule' + (r.active ? '' : ' off');
+                    var t = document.createElement('span');
+                    t.className = 't';
+                    t.textContent = r.text;
+                    t.title = r.text;
+                    var sw = document.createElement('button');
+                    sw.className = 'tsl-sw' + (r.active ? ' on' : '');
+                    sw.setAttribute('aria-label', (r.active ? 'Regel deaktivieren: ' : 'Regel aktivieren: ') + r.text);
+                    sw.onclick = function () { requestAction('rule', JSON.stringify({ i: r.i, on: !r.active })); };
+                    row.appendChild(t);
+                    row.appendChild(sw);
+                    rules.appendChild(row);
+                });
+            } else {
+                rules.style.display = 'none';
+            }
 
             var btns = document.getElementById('tsl-btns');
             btns.textContent = '';

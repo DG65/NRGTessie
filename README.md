@@ -18,6 +18,7 @@ Anbindung von Tesla-Fahrzeugen an IP-Symcon über die [Tessie-API](https://devel
 - **Optionale Linkstruktur**: gruppierter Kategoriebaum (Laden / Klima / Sicherheit / Sonstiges) mit Verknüpfungen auf die aktiven Variablen.
 - **Standort-Erkennung (Geofence)**: optionale Status-Variablen aus GPS-Position und konfigurierbaren Standorten (Zuhause + beliebige weitere, je mit Name und Radius). Je Standort eine Boolean-Variable plus eine Textvariable „Aktueller Standort" (Standortname bzw. „Unterwegs") – ideal als Auslöser für Automationen (z. B. Laden nur zu Hause).
 - **Standort-Aktionen**: schaltet beim Ein-, Aus- oder Durchfahren eines Standorts direkt eine beliebige Variable (Einschalten/Ausschalten/Umschalten/Wert setzen) – ohne separates IPS-Ereignis. Durchfahrt = Einfahrt mit Ausfahrt binnen 15 Minuten. Die Kachel zeigt den aktuellen Standort als 📍-Pill an.
+- **Automationen (Wenn → Dann)**: generische Regeln über beliebige Datenpunkte – „Wenn Ladestand ≥ 80 → Wallbox-Freigabe ausschalten", „Wenn Aktueller Standort = Zuhause → Garagentor einschalten". Bedingungen: wird EIN/AUS, =, ≠, >, ≥, <, ≤, ändert sich. Flankengesteuert (feuert beim Eintreten der Bedingung, nicht bei jeder Meldung). Die Kachel listet die Regeln und schaltet sie per Schalter aktiv/inaktiv.
 
 ## Enthaltene Module
 

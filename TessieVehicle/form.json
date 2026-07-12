@@ -59,6 +59,14 @@
                 },
                 {
                     "type": "Label",
+                    "caption": "── Automationen (Wenn → Dann) ──"
+                },
+                {
+                    "type": "Label",
+                    "caption": "Regeln über beliebige Datenpunkte: 'Wenn <Datenpunkt> <Bedingung> → <Zielvariable> <Aktion>'. Bedingungen: wird EIN/AUS (für Schalter), Vergleiche (=, ≠, >, ≥, <, ≤) für Zahlen und Texte, 'ändert sich' für jede Wertänderung. Beispiele: 'Wenn Ladestand ≥ 80 → Wallbox-Freigabe ausschalten', 'Wenn Aktueller Standort = Zuhause → Garagentor einschalten'. Regeln sind flankengesteuert: sie feuern beim Eintreten der Bedingung, nicht bei jeder Datenmeldung erneut – erst wenn die Bedingung zwischenzeitlich nicht mehr erfüllt war, feuert die Regel wieder. Nach 'Änderungen übernehmen' wird der Ausgangszustand neu eingelesen, ohne auszulösen. Die Kachel (TessieVehicleTile) zeigt die Regeln an und kann sie per Schalter aktivieren/deaktivieren."
+                },
+                {
+                    "type": "Label",
                     "caption": "── Linkstruktur ──"
                 },
                 {
@@ -143,6 +151,94 @@
         {
             "type": "Label",
             "caption": "Deaktivierte Datenpunkte werden ausgeblendet - Objekt-ID und Archivdaten bleiben erhalten. Neue Telemetrie wird nur angelegt, solange aktiviert. Zeilen per Drag & Drop sortieren - Variablen und Links folgen der Reihenfolge."
+        },
+        {
+            "type": "ExpansionPanel",
+            "caption": "Automationen (Wenn → Dann)",
+            "items": [
+                {
+                    "type": "Label",
+                    "caption": "Regeln über beliebige Datenpunkte des Fahrzeugs: sobald die Bedingung erfüllt wird, schaltet das Modul die Zielvariable. Flankengesteuert – eine Regel feuert beim Eintreten der Bedingung, nicht bei jeder Datenmeldung erneut. Die Kachel kann Regeln anzeigen und ein-/ausschalten."
+                },
+                {
+                    "type": "List",
+                    "name": "DataActions",
+                    "caption": "Regeln",
+                    "rowCount": 6,
+                    "add": true,
+                    "delete": true,
+                    "columns": [
+                        {
+                            "caption": "Aktiv",
+                            "name": "Active",
+                            "width": "70px",
+                            "add": true,
+                            "edit": { "type": "CheckBox" }
+                        },
+                        {
+                            "caption": "Wenn Datenpunkt",
+                            "name": "Source",
+                            "width": "230px",
+                            "add": "",
+                            "edit": { "type": "Select", "options": [] }
+                        },
+                        {
+                            "caption": "Bedingung",
+                            "name": "Op",
+                            "width": "140px",
+                            "add": "true",
+                            "edit": { "type": "Select", "options": [
+                                { "caption": "wird EIN (true)", "value": "true" },
+                                { "caption": "wird AUS (false)", "value": "false" },
+                                { "caption": "= (gleich)", "value": "eq" },
+                                { "caption": "≠ (ungleich)", "value": "ne" },
+                                { "caption": "> (größer)", "value": "gt" },
+                                { "caption": "≥ (größer gleich)", "value": "ge" },
+                                { "caption": "< (kleiner)", "value": "lt" },
+                                { "caption": "≤ (kleiner gleich)", "value": "le" },
+                                { "caption": "ändert sich", "value": "change" }
+                            ] }
+                        },
+                        {
+                            "caption": "Vergleichswert",
+                            "name": "Compare",
+                            "width": "115px",
+                            "add": "",
+                            "edit": { "type": "ValidationTextBox" }
+                        },
+                        {
+                            "caption": "Dann Zielvariable",
+                            "name": "Target",
+                            "width": "auto",
+                            "add": 0,
+                            "edit": { "type": "SelectVariable" }
+                        },
+                        {
+                            "caption": "Aktion",
+                            "name": "Action",
+                            "width": "140px",
+                            "add": "on",
+                            "edit": { "type": "Select", "options": [
+                                { "caption": "Einschalten", "value": "on" },
+                                { "caption": "Ausschalten", "value": "off" },
+                                { "caption": "Umschalten", "value": "toggle" },
+                                { "caption": "Wert setzen", "value": "value" }
+                            ] }
+                        },
+                        {
+                            "caption": "Wert",
+                            "name": "Value",
+                            "width": "100px",
+                            "add": "",
+                            "edit": { "type": "ValidationTextBox" }
+                        }
+                    ]
+                },
+                {
+                    "type": "Label",
+                    "caption": "'Vergleichswert' nur bei =, ≠, >, ≥, <, ≤ nötig; 'Wert' nur bei Aktion 'Wert setzen'. Zahlen mit Punkt oder Komma. Die Zielvariable wird per Aktion geschaltet (wie ein Klick in der Visualisierung); Variablen ohne Aktion werden direkt beschrieben."
+                }
+            ]
         },
         {
             "type": "ExpansionPanel",
