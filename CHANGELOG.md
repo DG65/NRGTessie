@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.7.0] - 2026-06-22
+### Hinzugefuegt
+- In-Modul-Dokumentation: Aufklappbares Panel "Dokumentation & Hilfe" als erstes Formularelement in allen drei Instanzen (TessieVehicle, TessieVehicleTile, TessieConfigurator) - erklaert Funktionsweise, Datenpunkte-Liste, Standort-Erkennung, Linkstruktur, Kachel-Optionen und Token-Erstellung, inklusive erklaerender Grafiken (Datenfluss Tessie-Cloud, Geofence-Prinzip).
+
 ## [2.6.1] - 2026-06-21
 ### Korrigiert (Review-Anpassung)
 - Translate() wird jetzt korrekt mit englischen Quellbegriffen aufgerufen ("On the road", "Away") und die deutschen Uebersetzungen ("Unterwegs", "Abwesend") stehen in der locale.json. Vorher wurden die deutschen Begriffe direkt als Quellstring uebergeben.
