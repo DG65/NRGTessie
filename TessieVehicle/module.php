@@ -62,6 +62,7 @@ class TessieVehicle extends IPSModule
     private const ATTR_TELEMETRY_REGISTRY  = 'TelemetryRegistry';
     private const ATTR_GEO_STATE           = 'GeoState';
     private const ATTR_RULE_STATE          = 'RuleState';
+    private const ATTR_REVIEW_HINT_GONE    = 'ReviewHintDismissed';
 
     // Durchfahrt = Einfahrt mit anschließender Ausfahrt binnen dieser Zeit
     private const GEO_PASS_MAX_SECONDS = 900;
@@ -138,6 +139,7 @@ class TessieVehicle extends IPSModule
         $this->RegisterAttributeString(self::ATTR_TELEMETRY_REGISTRY, json_encode(new stdClass()));
         $this->RegisterAttributeString(self::ATTR_GEO_STATE, '{}');
         $this->RegisterAttributeString(self::ATTR_RULE_STATE, '{}');
+        $this->RegisterAttributeBoolean(self::ATTR_REVIEW_HINT_GONE, false);
     }
 
 
@@ -305,6 +307,31 @@ class TessieVehicle extends IPSModule
         };
         $patch($form['elements']);
 
+        // Einmaliger Feedback-Hinweis: erscheint, bis er per Button ausgeblendet wird
+        // (Attribut, keine Eigenschaft – der Nutzer muss nichts übernehmen)
+        if (!$this->ReadAttributeBoolean(self::ATTR_REVIEW_HINT_GONE)) {
+            $form['elements'][] = [
+                'type'  => 'RowLayout',
+                'name'  => 'ReviewHint',
+                'items' => [
+                    [
+                        'type'    => 'Label',
+                        'caption' => '⭐ Gefällt dir dieses Modul? Über eine Bewertung im Module Store oder eine Rückmeldung in der Symcon-Community freue ich mich!'
+                    ],
+                    [
+                        'type'    => 'Label',
+                        'link'    => true,
+                        'caption' => 'https://community.symcon.de/c/erweiterungen/php-module-entwicklung/21'
+                    ],
+                    [
+                        'type'    => 'Button',
+                        'caption' => 'Nicht mehr anzeigen',
+                        'onClick' => 'TESSIE_DismissReviewHint($id);'
+                    ]
+                ]
+            ];
+        }
+
         // Telemetrie-Sammelbutton dynamisch beschriften
         foreach (($form['actions'] ?? []) as &$action) {
             if (($action['name'] ?? '') === 'ToggleTelemetry') {
@@ -328,6 +355,15 @@ class TessieVehicle extends IPSModule
         if ($categoryID > 0 && IPS_ObjectExists($categoryID) && IPS_GetParent($this->InstanceID) != $categoryID) {
             @IPS_SetParent($this->InstanceID, $categoryID);
         }
+    }
+
+    /**
+     * Blendet den Feedback-Hinweis dauerhaft aus (Attribut, kein Übernehmen nötig).
+     */
+    public function DismissReviewHint(): void
+    {
+        $this->WriteAttributeBoolean(self::ATTR_REVIEW_HINT_GONE, true);
+        $this->UpdateFormField('ReviewHint', 'visible', false);
     }
 
     public function ResetVisibleVars()

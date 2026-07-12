@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.10.1] - 2026-06-26
+### Hinzugefuegt
+- Einmaliger Feedback-Hinweis am Ende des TessieVehicle-Formulars (Bewertung im Module Store / Rueckmeldung in der Symcon-Community, mit Link). Ueber den Button "Nicht mehr anzeigen" verschwindet er dauerhaft (Attribut, kein Uebernehmen noetig).
+
 ## [2.10.0] - 2026-06-25
 ### Korrigiert
 - Automationen/Standort-Aktionen: Die dynamischen Auswahllisten (Datenpunkt bzw. Standort) blieben im Formular leer. Ursache: Iteration per Referenz ueber ($element['columns'] ?? []) - der ??-Ausdruck liefert eine Kopie, die Optionen gingen verloren. Jetzt wird direkt ueber $element['columns'] iteriert.
