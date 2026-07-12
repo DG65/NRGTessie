@@ -51,6 +51,14 @@
                 },
                 {
                     "type": "Label",
+                    "caption": "── Standort-Aktionen ──"
+                },
+                {
+                    "type": "Label",
+                    "caption": "Mit Standort-Aktionen schaltet das Modul beim Ein-, Aus- oder Durchfahren eines Standorts direkt eine beliebige Variable – ohne separates IPS-Ereignis. Beispiel: 'Durchfahrt Ortseingang → Wallbox-Freigabe einschalten'. Ereignisse: Einfahrt (Fahrzeug betritt die Zone), Ausfahrt (verlässt sie), Durchfahrt (Einfahrt mit Ausfahrt binnen 15 Minuten – z. B. Vorbeifahren ohne Parken). Die Zielvariable wird wie ein Klick in der Visualisierung geschaltet (per Aktion); Variablen ohne Aktion werden direkt beschrieben. Ausgelöst wird nur beim Zonenwechsel, nicht bei jeder Positionsmeldung. Hinweis: Die Reaktionszeit hängt von der GPS-Telemetrie ab; sehr kleine Zonen (< 50 m) können bei schneller Fahrt übersprungen werden."
+                },
+                {
+                    "type": "Label",
                     "caption": "── Linkstruktur ──"
                 },
                 {
@@ -230,6 +238,72 @@
                 {
                     "type": "Label",
                     "caption": "Der Name des Standorts wird als Variablenname und in 'Aktueller Standort' verwendet. Bei überlappenden Zonen gewinnt der nächstgelegene Standort."
+                },
+                {
+                    "type": "Label",
+                    "caption": "── Standort-Aktionen ──"
+                },
+                {
+                    "type": "Label",
+                    "caption": "Schaltet beim Ein-/Aus-/Durchfahren eines Standorts eine beliebige Variable – ganz ohne separates Ereignis. Durchfahrt = Einfahrt mit Ausfahrt binnen 15 Minuten."
+                },
+                {
+                    "type": "List",
+                    "name": "GeoActions",
+                    "caption": "Standort-Aktionen",
+                    "rowCount": 5,
+                    "add": true,
+                    "delete": true,
+                    "columns": [
+                        {
+                            "caption": "Standort",
+                            "name": "Fence",
+                            "width": "160px",
+                            "add": "Zuhause",
+                            "edit": { "type": "Select", "options": [ { "caption": "Zuhause", "value": "Zuhause" } ] }
+                        },
+                        {
+                            "caption": "Ereignis",
+                            "name": "Event",
+                            "width": "150px",
+                            "add": "enter",
+                            "edit": { "type": "Select", "options": [
+                                { "caption": "Einfahrt", "value": "enter" },
+                                { "caption": "Ausfahrt", "value": "exit" },
+                                { "caption": "Durchfahrt", "value": "pass" }
+                            ] }
+                        },
+                        {
+                            "caption": "Zielvariable",
+                            "name": "Target",
+                            "width": "auto",
+                            "add": 0,
+                            "edit": { "type": "SelectVariable" }
+                        },
+                        {
+                            "caption": "Aktion",
+                            "name": "Action",
+                            "width": "150px",
+                            "add": "on",
+                            "edit": { "type": "Select", "options": [
+                                { "caption": "Einschalten", "value": "on" },
+                                { "caption": "Ausschalten", "value": "off" },
+                                { "caption": "Umschalten", "value": "toggle" },
+                                { "caption": "Wert setzen", "value": "value" }
+                            ] }
+                        },
+                        {
+                            "caption": "Wert",
+                            "name": "Value",
+                            "width": "110px",
+                            "add": "",
+                            "edit": { "type": "ValidationTextBox" }
+                        }
+                    ]
+                },
+                {
+                    "type": "Label",
+                    "caption": "Die Zielvariable wird per Aktion geschaltet (wie ein Klick in der Visualisierung); 'Wert' nur bei Aktion 'Wert setzen' nötig. Neue Standorte erscheinen in der Auswahl nach 'Änderungen übernehmen'."
                 }
             ]
         }

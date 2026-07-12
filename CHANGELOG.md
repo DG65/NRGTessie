@@ -2,6 +2,11 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.8.0] - 2026-06-23
+### Hinzugefuegt
+- Standort-Aktionen: Regelliste in der Standort-Erkennung (Property GeoActions) - beim Ein-, Aus- oder Durchfahren eines Standorts wird eine beliebige Zielvariable geschaltet (Einschalten/Ausschalten/Umschalten/Wert setzen). Durchfahrt = Einfahrt mit Ausfahrt binnen 15 Minuten. Ausfuehrung per RequestAction (Variablen mit Aktion) bzw. SetValue; ausgeloest nur beim Zonenwechsel, die erste Positionsmeldung initialisiert nur den Zustand. Die Standort-Auswahl der Liste wird dynamisch aus den konfigurierten Geofences befuellt.
+- Kachel: zeigt den aktuellen Standort (Variable stat_location_name der Quelle) als Pin-Pill in der Statuszeile.
+
 ## [2.7.0] - 2026-06-22
 ### Hinzugefuegt
 - In-Modul-Dokumentation: Aufklappbares Panel "Dokumentation & Hilfe" als erstes Formularelement in allen drei Instanzen (TessieVehicle, TessieVehicleTile, TessieConfigurator) - erklaert Funktionsweise, Datenpunkte-Liste, Standort-Erkennung, Linkstruktur, Kachel-Optionen und Token-Erstellung, inklusive erklaerender Grafiken (Datenfluss Tessie-Cloud, Geofence-Prinzip).

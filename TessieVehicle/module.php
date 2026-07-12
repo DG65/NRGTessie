@@ -60,6 +60,10 @@ class TessieVehicle extends IPSModule
     private const ATTR_VEHICLE_NAME        = 'VehicleName';
     private const ATTR_LAST_LINKS_LOCATION = 'LastLinksLocation';
     private const ATTR_TELEMETRY_REGISTRY  = 'TelemetryRegistry';
+    private const ATTR_GEO_STATE           = 'GeoState';
+
+    // Durchfahrt = Einfahrt mit anschließender Ausfahrt binnen dieser Zeit
+    private const GEO_PASS_MAX_SECONDS = 900;
 
     // -------------------- Ident-Prefixe (Link-Baum) --------------------
     private const IDENT_ROOT_PREFIX = 'TESSIE_LINKROOT_';
@@ -110,6 +114,8 @@ class TessieVehicle extends IPSModule
         $this->RegisterPropertyInteger('HomeRadius', 100);
         // Weitere Standorte: [{Name, Location(JSON lat/lon), Radius}, ...]
         $this->RegisterPropertyString('GeofenceList', '[]');
+        // Standort-Aktionen: [{Fence, Event(enter|exit|pass), Target, Action(on|off|toggle|value), Value}, ...]
+        $this->RegisterPropertyString('GeoActions', '[]');
 
         // Eine Liste für ALLE Variablen (Bestand + Telemetrie)
         $this->RegisterPropertyString(self::PROP_VISIBLE_VARS, json_encode($this->getDefaultVisibleVars()));
@@ -127,6 +133,7 @@ class TessieVehicle extends IPSModule
         $this->RegisterAttributeString(self::ATTR_VEHICLE_NAME, '');
         $this->RegisterAttributeInteger(self::ATTR_LAST_LINKS_LOCATION, 0);
         $this->RegisterAttributeString(self::ATTR_TELEMETRY_REGISTRY, json_encode(new stdClass()));
+        $this->RegisterAttributeString(self::ATTR_GEO_STATE, '{}');
     }
 
 
@@ -239,17 +246,44 @@ class TessieVehicle extends IPSModule
         }
         if (!$hasTelemetry) $allTelemetryOn = false;
 
-        // form.json-Elemente befüllen: Datenpunkt-Liste + aktueller Ablageort der Instanz
-        foreach ($form['elements'] as &$element) {
-            $elName = $element['name'] ?? '';
-            if ($elName === 'VisibleVars') {
-                $element['values'] = $fullList;
-            } elseif ($elName === 'InstanceLocation') {
-                // Aktuellen Parent anzeigen; verschoben wird nur per onChange (siehe SetInstanceLocation)
-                $element['value'] = IPS_GetParent($this->InstanceID);
+        // Standort-Auswahl für die Aktionsliste: Zuhause + alle konfigurierten Standorte
+        $fenceOptions = [['caption' => 'Zuhause', 'value' => 'Zuhause']];
+        $geoList = json_decode((string)$this->ReadPropertyString('GeofenceList'), true);
+        if (is_array($geoList)) {
+            foreach ($geoList as $row) {
+                $n = trim((string)($row['Name'] ?? ''));
+                if ($n !== '' && $n !== 'Zuhause') {
+                    $fenceOptions[] = ['caption' => $n, 'value' => $n];
+                }
             }
         }
-        unset($element);
+
+        // form.json-Elemente befüllen (rekursiv, Listen liegen z. T. in ExpansionPanels):
+        // Datenpunkt-Liste, aktueller Ablageort, Standort-Optionen der Aktionsliste
+        $patch = function (array &$elements) use (&$patch, $fullList, $fenceOptions) {
+            foreach ($elements as &$element) {
+                if (!is_array($element)) continue;
+                $elName = $element['name'] ?? '';
+                if ($elName === 'VisibleVars') {
+                    $element['values'] = $fullList;
+                } elseif ($elName === 'InstanceLocation') {
+                    // Aktuellen Parent anzeigen; verschoben wird nur per onChange (siehe SetInstanceLocation)
+                    $element['value'] = IPS_GetParent($this->InstanceID);
+                } elseif ($elName === 'GeoActions') {
+                    foreach (($element['columns'] ?? []) as &$col) {
+                        if (($col['name'] ?? '') === 'Fence') {
+                            $col['edit']['options'] = $fenceOptions;
+                        }
+                    }
+                    unset($col);
+                }
+                if (isset($element['items']) && is_array($element['items'])) {
+                    $patch($element['items']);
+                }
+            }
+            unset($element);
+        };
+        $patch($form['elements']);
 
         // Telemetrie-Sammelbutton dynamisch beschriften
         foreach (($form['actions'] ?? []) as &$action) {
@@ -1426,13 +1460,42 @@ class TessieVehicle extends IPSModule
         $bestName = '';
         $bestDist = PHP_FLOAT_MAX;
 
+        // Vorheriger Zonen-Zustand für die Übergangs-Erkennung (Einfahrt/Ausfahrt/Durchfahrt)
+        $state = json_decode($this->ReadAttributeString(self::ATTR_GEO_STATE), true);
+        if (!is_array($state)) {
+            $state = [];
+        }
+        $stateChanged = false;
+        $now = time();
+        $seen = [];
+
         foreach ($this->getGeofences() as $f) {
             $dist = $this->haversineMeters($lat, $lon, $f['lat'], $f['lon']);
             $inside = ($dist <= $f['radius']);
+            $seen[$f['ident']] = true;
 
             $vid = @IPS_GetObjectIDByIdent($f['ident'], $this->InstanceID);
             if ($vid > 0 && GetValueBoolean($vid) !== $inside) {
                 SetValueBoolean($vid, $inside);
+            }
+
+            // Übergänge auswerten – die erste Positionsmeldung nach Anlage der Zone
+            // initialisiert nur den Zustand und löst noch keine Aktion aus.
+            if (!isset($state[$f['ident']])) {
+                $state[$f['ident']] = ['in' => $inside, 'since' => $now];
+                $stateChanged = true;
+            } elseif ((bool)$state[$f['ident']]['in'] !== $inside) {
+                if ($inside) {
+                    $this->executeGeoActions($f['name'], 'enter');
+                } else {
+                    $this->executeGeoActions($f['name'], 'exit');
+                    $dwell = $now - (int)($state[$f['ident']]['since'] ?? $now);
+                    if ($dwell <= self::GEO_PASS_MAX_SECONDS) {
+                        $this->executeGeoActions($f['name'], 'pass');
+                    }
+                }
+                $state[$f['ident']] = ['in' => $inside, 'since' => $now];
+                $stateChanged = true;
             }
 
             // Bei überlappenden Zonen gewinnt der nächstgelegene Standort
@@ -1442,12 +1505,89 @@ class TessieVehicle extends IPSModule
             }
         }
 
+        // Zustände entfernter Zonen aufräumen
+        foreach (array_keys($state) as $ident) {
+            if (!isset($seen[$ident])) {
+                unset($state[$ident]);
+                $stateChanged = true;
+            }
+        }
+        if ($stateChanged) {
+            $this->WriteAttributeString(self::ATTR_GEO_STATE, json_encode($state));
+        }
+
         $nameVid = @IPS_GetObjectIDByIdent(self::STAT_LOCATION_NAME, $this->InstanceID);
         if ($nameVid > 0) {
             $text = ($bestName !== '') ? $bestName : $this->Translate('On the road');
             if (GetValueString($nameVid) !== $text) {
                 SetValueString($nameVid, $text);
             }
+        }
+    }
+
+    /**
+     * Führt alle Standort-Aktionen aus, die auf den Standort ($fenceName) und das
+     * Ereignis ('enter'|'exit'|'pass') passen: schaltet die Zielvariable per
+     * RequestAction (falls sie eine Aktion hat) bzw. SetValue.
+     */
+    private function executeGeoActions(string $fenceName, string $event): void
+    {
+        $rules = json_decode((string)$this->ReadPropertyString('GeoActions'), true);
+        if (!is_array($rules)) {
+            return;
+        }
+
+        foreach ($rules as $rule) {
+            if (!is_array($rule)) continue;
+            if ((string)($rule['Fence'] ?? '') !== $fenceName) continue;
+            if ((string)($rule['Event'] ?? '') !== $event) continue;
+
+            $vid = (int)($rule['Target'] ?? 0);
+            if ($vid <= 0 || !IPS_VariableExists($vid)) {
+                $this->SendDebug('GeoAction', sprintf('%s/%s: Zielvariable %d existiert nicht', $fenceName, $event, $vid), 0);
+                continue;
+            }
+
+            $var = IPS_GetVariable($vid);
+            switch ((string)($rule['Action'] ?? 'on')) {
+                case 'off':    $value = false; break;
+                case 'toggle': $value = !(bool)GetValue($vid); break;
+                case 'value':  $value = $this->castToVariableType((string)($rule['Value'] ?? ''), (int)$var['VariableType']); break;
+                case 'on':
+                default:       $value = true; break;
+            }
+            // Bool-Aktionen auf Nicht-Bool-Variablen sinnvoll abbilden (0/1)
+            if (is_bool($value) && (int)$var['VariableType'] !== VARIABLETYPE_BOOLEAN) {
+                $value = $this->castToVariableType($value ? '1' : '0', (int)$var['VariableType']);
+            }
+
+            $hasAction = ((int)$var['VariableAction'] > 0 || (int)$var['VariableCustomAction'] > 0);
+            $ok = $hasAction ? @RequestAction($vid, $value) : @SetValue($vid, $value);
+
+            $this->SendDebug('GeoAction', sprintf(
+                '%s/%s -> %s #%d = %s (%s)',
+                $fenceName, $event, $hasAction ? 'RequestAction' : 'SetValue',
+                $vid, json_encode($value), ($ok === false) ? 'FEHLER' : 'ok'
+            ), 0);
+            if ($ok === false) {
+                $this->LogMessage(sprintf('Standort-Aktion %s/%s auf Variable #%d fehlgeschlagen', $fenceName, $event, $vid), KL_WARNING);
+            }
+        }
+    }
+
+    /** Wandelt den Regel-Wert (Text) in den Typ der Zielvariable um. */
+    private function castToVariableType(string $raw, int $type)
+    {
+        $raw = trim($raw);
+        switch ($type) {
+            case VARIABLETYPE_BOOLEAN:
+                return in_array(strtolower($raw), ['1', 'true', 'ein', 'on', 'ja', 'an'], true);
+            case VARIABLETYPE_INTEGER:
+                return (int)$raw;
+            case VARIABLETYPE_FLOAT:
+                return (float)str_replace(',', '.', $raw);
+            default:
+                return $raw;
         }
     }
 

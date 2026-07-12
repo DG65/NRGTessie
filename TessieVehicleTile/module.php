@@ -22,7 +22,8 @@ class TessieVehicleTile extends IPSModule
         'act_locked', 'act_climate', 'act_charging', 'act_charge_limit',
         'stat_tel_Soc', 'stat_tel_RatedRange', 'stat_tel_InsideTemp', 'stat_tel_OutsideTemp',
         'stat_ac_charging_power', 'stat_charge_amps_actual', 'stat_charge_amps_max',
-        'stat_tel_TimeToFullCharge', 'stat_tel_Location_lat', 'stat_tel_Location_lon'
+        'stat_tel_TimeToFullCharge', 'stat_tel_Location_lat', 'stat_tel_Location_lon',
+        'stat_location_name'
     ];
 
     // Aktions-Buttons der Kachel -> Idents der Aktions-Variablen in der Quelle
@@ -217,7 +218,8 @@ class TessieVehicleTile extends IPSModule
             'chargeLimit' => $this->ReadSourceValue($src, 'act_charge_limit'),
             'timeToFull'  => $this->ReadSourceValue($src, 'stat_tel_TimeToFullCharge'),
             'lat'         => $this->ReadSourceValue($src, 'stat_tel_Location_lat'),
-            'lon'         => $this->ReadSourceValue($src, 'stat_tel_Location_lon')
+            'lon'         => $this->ReadSourceValue($src, 'stat_tel_Location_lon'),
+            'location'    => $this->ReadSourceValue($src, 'stat_location_name')
         ]));
     }
 

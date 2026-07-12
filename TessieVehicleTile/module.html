@@ -82,6 +82,7 @@
         <div class="tsl-state">
             <span class="tsl-dot"></span>
             <span class="tsl-state-lbl" id="tsl-state">–</span>
+            <span class="tsl-pill" id="tsl-geoloc" style="display:none">–</span>
             <span class="tsl-pill" id="tsl-lock" style="margin-left:auto">–</span>
         </div>
 
@@ -121,6 +122,10 @@
             applyVar('--textmuted', d.textmuted);
             if (d.font) root.setProperty('--font', d.font);
             root.setProperty('--scale', d.scale || 1);
+
+            var geoloc = document.getElementById('tsl-geoloc');
+            if (d.location) { geoloc.textContent = '📍 ' + d.location; geoloc.style.display = ''; }
+            else { geoloc.style.display = 'none'; }
 
             var lock = document.getElementById('tsl-lock');
             if (d.locked === null || d.locked === undefined) { lock.textContent = '–'; lock.className = 'tsl-pill'; }
