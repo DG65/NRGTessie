@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.10.2] - 2026-06-27
+### Geaendert
+- Feedback-Hinweis verlinkt jetzt direkt auf den Modulvorstellungs-Thread in der Symcon-Community statt auf die Kategorie.
+
 ## [2.10.1] - 2026-06-26
 ### Hinzugefuegt
 - Einmaliger Feedback-Hinweis am Ende des TessieVehicle-Formulars (Bewertung im Module Store / Rueckmeldung in der Symcon-Community, mit Link). Ueber den Button "Nicht mehr anzeigen" verschwindet er dauerhaft (Attribut, kein Uebernehmen noetig).

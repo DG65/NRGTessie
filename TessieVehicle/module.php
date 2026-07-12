@@ -321,7 +321,7 @@ class TessieVehicle extends IPSModule
                     [
                         'type'    => 'Label',
                         'link'    => true,
-                        'caption' => 'https://community.symcon.de/c/erweiterungen/php-module-entwicklung/21'
+                        'caption' => 'https://community.symcon.de/t/modul-tessie-tesla-fahrzeuge-in-ip-symcon-steuerung-telemetrie-kachel/143995'
                     ],
                     [
                         'type'    => 'Button',
