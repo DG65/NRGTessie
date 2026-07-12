@@ -2,6 +2,12 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.11.0] - 2026-06-28
+### Geaendert
+- Standort-Aktionen in die Automationen integriert (Doppelung entfernt): Die separate Liste "Standort-Aktionen" entfaellt. Standort-Ereignisse laufen jetzt ueber die Wenn->Dann-Regeln - "wird EIN" auf einer Standort-Variable = Einfahrt, "wird AUS" = Ausfahrt, neue Bedingung "Durchfahrt (Standort)" = Ein- und Ausfahrt binnen 15 Minuten. Die Standorte selbst (Name/Position/Umkreis) werden weiterhin in der Standort-Erkennung definiert. Bestehende GeoActions-Regeln muessen einmalig als Automation neu angelegt werden.
+### Korrigiert
+- Kachel-Editor: Beim erneuten Oeffnen einer Regel wurde die Zielvariable nur als #ID angezeigt, wenn sie nicht unter den ersten 200 Listeneintraegen war. Jetzt wird der Name/Pfad aus der Gesamtliste nachgeschlagen; #ID erscheint nur noch bei tatsaechlich unbekannten Variablen.
+
 ## [2.10.2] - 2026-06-27
 ### Geaendert
 - Feedback-Hinweis verlinkt jetzt direkt auf den Modulvorstellungs-Thread in der Symcon-Community statt auf die Kategorie.

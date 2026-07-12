@@ -148,6 +148,7 @@
                 <option value="lt">&lt; (kleiner)</option>
                 <option value="le">&#8804; (kleiner gleich)</option>
                 <option value="change">ändert sich</option>
+                <option value="pass">Durchfahrt (Standort)</option>
             </select>
 
             <div id="ed-cmp-wrap">
@@ -364,11 +365,13 @@
                 if (String(t.v) === String(ED.rule.Target)) hasCurrent = true;
                 count++;
             });
-            // Aktuelles Ziel immer anbieten, auch wenn es nicht in der (gefilterten) Liste ist
+            // Aktuelles Ziel immer anbieten, auch wenn es nicht in der (gefilterten/gekappten)
+            // Liste ist – mit richtigem Namen aus der Gesamtliste, #ID nur als letzter Ausweg
             if (!hasCurrent && ED.rule.Target > 0) {
+                var known = (ED.data.targets || []).find(function (t) { return String(t.v) === String(ED.rule.Target); });
                 var cur = document.createElement('option');
                 cur.value = ED.rule.Target;
-                cur.textContent = '#' + ED.rule.Target;
+                cur.textContent = known ? (known.p || known.c) : ('#' + ED.rule.Target);
                 sel.insertBefore(cur, sel.firstChild);
             }
             if (ED.rule.Target > 0) sel.value = String(ED.rule.Target);

@@ -67,6 +67,10 @@ class TessieVehicle extends IPSModule
     // Durchfahrt = Einfahrt mit anschließender Ausfahrt binnen dieser Zeit
     private const GEO_PASS_MAX_SECONDS = 900;
 
+    // Durchfahrts-Ereignisse der aktuellen Datenmeldung (Ident => true);
+    // von updateHomeStatus gefüllt, von evaluateDataActions (Op 'pass') konsumiert
+    private $geoPassEvents = [];
+
     // -------------------- Ident-Prefixe (Link-Baum) --------------------
     private const IDENT_ROOT_PREFIX = 'TESSIE_LINKROOT_';
     private const IDENT_PURP_PREFIX = 'PURP_';
@@ -116,9 +120,9 @@ class TessieVehicle extends IPSModule
         $this->RegisterPropertyInteger('HomeRadius', 100);
         // Weitere Standorte: [{Name, Location(JSON lat/lon), Radius}, ...]
         $this->RegisterPropertyString('GeofenceList', '[]');
-        // Standort-Aktionen: [{Fence, Event(enter|exit|pass), Target, Action(on|off|toggle|value), Value}, ...]
-        $this->RegisterPropertyString('GeoActions', '[]');
         // Automationen (Wenn -> Dann): [{Active, Source(Ident), Op, Compare, Target, Action, Value}, ...]
+        // Standort-Ereignisse laufen ebenfalls hierüber: wird EIN/AUS auf der
+        // Standort-Variable = Einfahrt/Ausfahrt, Op 'pass' = Durchfahrt.
         $this->RegisterPropertyString('DataActions', '[]');
 
         // Eine Liste für ALLE Variablen (Bestand + Telemetrie)
@@ -256,24 +260,12 @@ class TessieVehicle extends IPSModule
         }
         if (!$hasTelemetry) $allTelemetryOn = false;
 
-        // Standort-Auswahl für die Aktionsliste: Zuhause + alle konfigurierten Standorte
-        $fenceOptions = [['caption' => 'Zuhause', 'value' => 'Zuhause']];
-        $geoList = json_decode((string)$this->ReadPropertyString('GeofenceList'), true);
-        if (is_array($geoList)) {
-            foreach ($geoList as $row) {
-                $n = trim((string)($row['Name'] ?? ''));
-                if ($n !== '' && $n !== 'Zuhause') {
-                    $fenceOptions[] = ['caption' => $n, 'value' => $n];
-                }
-            }
-        }
-
         // Datenpunkt-Auswahl für die Automationsliste: alle Datenpunkte + Geofence-Variablen
         $sourceOptions = $this->getAutomationSourceOptions($fullList);
 
         // form.json-Elemente befüllen (rekursiv, Listen liegen z. T. in ExpansionPanels):
-        // Datenpunkt-Liste, aktueller Ablageort, Standort-/Datenpunkt-Optionen der Aktionslisten
-        $patch = function (array &$elements) use (&$patch, $fullList, $fenceOptions, $sourceOptions) {
+        // Datenpunkt-Liste, aktueller Ablageort, Datenpunkt-Optionen der Automationsliste
+        $patch = function (array &$elements) use (&$patch, $fullList, $sourceOptions) {
             foreach ($elements as &$element) {
                 if (!is_array($element)) continue;
                 $elName = $element['name'] ?? '';
@@ -282,16 +274,9 @@ class TessieVehicle extends IPSModule
                 } elseif ($elName === 'InstanceLocation') {
                     // Aktuellen Parent anzeigen; verschoben wird nur per onChange (siehe SetInstanceLocation)
                     $element['value'] = IPS_GetParent($this->InstanceID);
-                } elseif ($elName === 'GeoActions' && isset($element['columns']) && is_array($element['columns'])) {
+                } elseif ($elName === 'DataActions' && isset($element['columns']) && is_array($element['columns'])) {
                     // Achtung: nicht über ($element['columns'] ?? []) iterieren – der ??-Ausdruck
                     // liefert eine Kopie, Referenz-Änderungen gingen verloren.
-                    foreach ($element['columns'] as &$col) {
-                        if (($col['name'] ?? '') === 'Fence') {
-                            $col['edit']['options'] = $fenceOptions;
-                        }
-                    }
-                    unset($col);
-                } elseif ($elName === 'DataActions' && isset($element['columns']) && is_array($element['columns'])) {
                     foreach ($element['columns'] as &$col) {
                         if (($col['name'] ?? '') === 'Source') {
                             $col['edit']['options'] = $sourceOptions;
@@ -1541,18 +1526,17 @@ class TessieVehicle extends IPSModule
             }
 
             // Übergänge auswerten – die erste Positionsmeldung nach Anlage der Zone
-            // initialisiert nur den Zustand und löst noch keine Aktion aus.
+            // initialisiert nur den Zustand. Ein-/Ausfahrt lösen die Automationen
+            // über die Standort-Variable aus (wird EIN/AUS); Durchfahrten werden
+            // hier erkannt und für Op 'pass' vorgemerkt.
             if (!isset($state[$f['ident']])) {
                 $state[$f['ident']] = ['in' => $inside, 'since' => $now];
                 $stateChanged = true;
             } elseif ((bool)$state[$f['ident']]['in'] !== $inside) {
-                if ($inside) {
-                    $this->executeGeoActions($f['name'], 'enter');
-                } else {
-                    $this->executeGeoActions($f['name'], 'exit');
+                if (!$inside) {
                     $dwell = $now - (int)($state[$f['ident']]['since'] ?? $now);
                     if ($dwell <= self::GEO_PASS_MAX_SECONDS) {
-                        $this->executeGeoActions($f['name'], 'pass');
+                        $this->geoPassEvents[$f['ident']] = true;
                     }
                 }
                 $state[$f['ident']] = ['in' => $inside, 'since' => $now];
@@ -1583,32 +1567,6 @@ class TessieVehicle extends IPSModule
             if (GetValueString($nameVid) !== $text) {
                 SetValueString($nameVid, $text);
             }
-        }
-    }
-
-    /**
-     * Führt alle Standort-Aktionen aus, die auf den Standort ($fenceName) und das
-     * Ereignis ('enter'|'exit'|'pass') passen: schaltet die Zielvariable per
-     * RequestAction (falls sie eine Aktion hat) bzw. SetValue.
-     */
-    private function executeGeoActions(string $fenceName, string $event): void
-    {
-        $rules = json_decode((string)$this->ReadPropertyString('GeoActions'), true);
-        if (!is_array($rules)) {
-            return;
-        }
-
-        foreach ($rules as $rule) {
-            if (!is_array($rule)) continue;
-            if ((string)($rule['Fence'] ?? '') !== $fenceName) continue;
-            if ((string)($rule['Event'] ?? '') !== $event) continue;
-
-            $this->applyActionToVariable(
-                (int)($rule['Target'] ?? 0),
-                (string)($rule['Action'] ?? 'on'),
-                (string)($rule['Value'] ?? ''),
-                sprintf('Standort %s/%s', $fenceName, $event)
-            );
         }
     }
 
@@ -1698,8 +1656,23 @@ class TessieVehicle extends IPSModule
             $vid = ($srcIdent !== '') ? @IPS_GetObjectIDByIdent($srcIdent, $this->InstanceID) : 0;
             if ($vid <= 0) continue;
 
-            $cur = GetValue($vid);
             $op = (string)($rule['Op'] ?? 'true');
+
+            // Durchfahrt (nur Standort-Variablen): Ereignis kommt aus updateHomeStatus,
+            // kein Flanken-Tracking über RuleState nötig
+            if ($op === 'pass') {
+                if ($fire && isset($this->geoPassEvents[$srcIdent]) && (bool)($rule['Active'] ?? true)) {
+                    $this->applyActionToVariable(
+                        (int)($rule['Target'] ?? 0),
+                        (string)($rule['Action'] ?? 'on'),
+                        (string)($rule['Value'] ?? ''),
+                        'Automation ' . $this->describeDataAction($rule)
+                    );
+                }
+                continue;
+            }
+
+            $cur = GetValue($vid);
             $cond = $this->evalRuleCondition($cur, $op, (string)($rule['Compare'] ?? ''));
             $serial = json_encode($cur);
 
@@ -1736,6 +1709,9 @@ class TessieVehicle extends IPSModule
         if ($stateChanged) {
             $this->WriteAttributeString(self::ATTR_RULE_STATE, json_encode($state));
         }
+
+        // Durchfahrts-Ereignisse sind verbraucht
+        $this->geoPassEvents = [];
     }
 
     /** Prüft, ob der aktuelle Wert die Bedingung erfüllt. */
@@ -1776,6 +1752,7 @@ class TessieVehicle extends IPSModule
     {
         $opText = [
             'true' => 'wird EIN', 'false' => 'wird AUS', 'change' => 'ändert sich',
+            'pass' => 'Durchfahrt',
             'eq' => '=', 'ne' => '≠', 'gt' => '>', 'ge' => '≥', 'lt' => '<', 'le' => '≤'
         ];
 
@@ -1785,7 +1762,7 @@ class TessieVehicle extends IPSModule
 
         $op = (string)($rule['Op'] ?? 'true');
         $cond = $opText[$op] ?? $op;
-        if (!in_array($op, ['true', 'false', 'change'], true)) {
+        if (!in_array($op, ['true', 'false', 'change', 'pass'], true)) {
             $cond .= ' ' . (string)($rule['Compare'] ?? '');
         }
 
@@ -1910,7 +1887,7 @@ class TessieVehicle extends IPSModule
         if (!is_array($in)) {
             return;
         }
-        $ops = ['true', 'false', 'eq', 'ne', 'gt', 'ge', 'lt', 'le', 'change'];
+        $ops = ['true', 'false', 'eq', 'ne', 'gt', 'ge', 'lt', 'le', 'change', 'pass'];
         $acts = ['on', 'off', 'toggle', 'value'];
         $rule = [
             'Active'  => (bool)($in['Active'] ?? true),
