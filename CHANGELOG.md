@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.16.1] - 2026-07-13
+### Behoben
+- Klimahaltung: Bezeichnung fuer Wert 3 von "Camping" auf "Camp-Modus" korrigiert (Name aus dem Fahrzeugmenue). Der Wert selbst war bereits korrekt (Kommando set_climate_keeper_mode nutzt mode=3 fuer Camp Mode); nur die Anzeige-Beschriftung war irrefuehrend. Hintergrund: die Fahrzeug-Telemetrie meldet diesen Zustand als "ClimateKeeperModeStateParty" zurueck (laut Tesla Fleet-Telemetry-Protokoll seit dessen Einfuehrung), waehrend das Schreib-Kommando weiterhin "Camp Mode" heisst - syncFromTelemetry() erkennt beide Begriffe und mappt sie auf denselben Wert.
+
 ## [2.16.0] - 2026-07-04
 ### Hinzugefuegt
 - Automationen-Editor der Kachel: Der Vergleichswert im "Wenn"-Bereich wird jetzt als Dropdown mit Klartext angeboten, sobald der gewaehlte Datenpunkt bekannte Profil-/Presentation-Werte hat (Sitzheizung Fahrer/Beifahrer, Klimahaltung, Innenraum-Ueberhitzeschutz-Limit) - analog zum bereits vorhandenen Dropdown fuer "Wert setzen" auf der Ziel-Seite (nach dem in StromGedachtWidget bewaehrten Muster). Zwei Verbesserungen dabei: Profilwerte werden sofort abgefragt, sobald eine Bedingungszeile aufgebaut wird (auch bei der automatischen Vorauswahl, nicht erst beim manuellen Wechsel); und wenn Profilwerte eintreffen waehrend die Bedingung noch auf "wird EIN/AUS" steht, springt sie automatisch auf "= (gleich)", da EIN/AUS bei einem mehrwertigen Datenpunkt keinen Sinn ergibt. Im klassischen Instanzformular (dort technisch nicht als Dropdown moeglich) listet ein Hilfetext die bekannten Werte zum Nachschlagen.

@@ -1387,7 +1387,12 @@ class TessieVehicle extends IPSModule
             case 'Tessie.TempC':             return $this->presValue(' °C', 1);
             case 'Tessie.TempSetC':          return $settable ? $this->presSlider(15, 28, 0.5, ' °C', 1) : $this->presValue(' °C', 1);
             case 'Tessie.SeatHeatLevel':     return $this->presEnum([0 => 'Aus', 1 => 'Niedrig', 2 => 'Mittel', 3 => 'Hoch']);
-            case 'Tessie.ClimateKeeperMode': return $this->presEnum([0 => 'Aus', 1 => 'Behalten', 2 => 'Hund', 3 => 'Camping']);
+            // Wert 3 = "Camp Mode" (so auch im Fahrzeugmenü benannt; Kommando
+            // set_climate_keeper_mode erwartet mode=3 für diesen Zustand). Die
+            // Fahrzeug-Telemetrie meldet den Zustand allerdings als "Party" zurück
+            // (ClimateKeeperModeStateParty) - daher matcht syncFromTelemetry() sowohl
+            // "party" als auch "camp" auf denselben Wert 3.
+            case 'Tessie.ClimateKeeperMode': return $this->presEnum([0 => 'Aus', 1 => 'Behalten', 2 => 'Hund', 3 => 'Camp-Modus']);
             case 'Tessie.COPTemp':           return $this->presEnum([1 => 'Niedrig', 2 => 'Mittel', 3 => 'Hoch']);
             default:                         return $this->presValue('', 0);
         }
