@@ -59,7 +59,7 @@ Präfix der öffentlichen Funktionen: `TESSIE`.
 
 ## Kachel (TessieVehicleTile)
 
-Für eine schöne Darstellung in der **Kacheln-Visualisierung** eine Instanz des Moduls **TessieVehicleTile** anlegen. Die Datenquelle wird automatisch erkannt, wenn es genau eine TessieVehicle-Instanz gibt – bei mehreren wählst du sie manuell aus. Die Kachel zeigt Akku-Ring/Ladestand, Reichweite, Temperaturen, Verriegelungs-/Klima-/Ladestatus, Lade-Details und Standort (mit Karten-Link) und bietet optional Bedien-Buttons (Verriegeln, Klima, Laden). Farben und Schrift sind konfigurierbar; ohne feste Farbe übernimmt die Kachel das IP-Symcon-Theme (hell/dunkel).
+Für eine schöne Darstellung in der **Kacheln-Visualisierung** eine Instanz des Moduls **TessieVehicleTile** anlegen. Die Datenquelle wird automatisch erkannt, wenn es genau eine TessieVehicle-Instanz gibt – bei mehreren wählst du sie manuell aus. Die Kachel zeigt Akku-Ring/Ladestand, Reichweite, Temperaturen, Verriegelungs-/Klima-/Ladestatus, Lade-Details und Standort (mit Karten-Link) und bietet optional frei konfigurierbare Bedien-Buttons: Anzahl, Reihenfolge und Funktion wählst du aus einem Katalog von 19 Aktionen (Verriegeln, Klima, Laden, Sentry Mode, Valet-Modus, Kofferraum/Heckklappe, Hupe, Lichthupe, Ladeport, Fenster, Sitz-/Lenkradheizung, Überhitzeschutz, Bio Defense u. a.) – jeweils mit optionaler eigener Beschriftung. Ein Button erscheint nur, wenn der zugehörige Datenpunkt in der Quelle aktiviert ist. Farben und Schrift sind konfigurierbar; ohne feste Farbe übernimmt die Kachel das IP-Symcon-Theme (hell/dunkel).
 
 Status-/Telemetriewerte (Ladestand, Reichweite, Temperaturen, Standort …) erscheinen nur, wenn die entsprechenden Datenpunkte in der TessieVehicle-Instanz aktiviert sind.
 

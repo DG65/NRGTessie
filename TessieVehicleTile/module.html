@@ -400,19 +400,18 @@
                 geo.style.display = 'none';
             }
 
+            // Frei konfigurierbare Buttons: Anzahl, Reihenfolge und Beschriftung
+            // kommen fertig berechnet vom Datenmodul (buildButtonPayload)
             var btns = document.getElementById('tsl-btns');
             btns.textContent = '';
-            if (d.controls) {
-                function addBtn(label, on, ident, value) {
-                    var b = document.createElement('button');
-                    b.className = 'tsl-btn' + (on ? ' on' : '');
-                    b.textContent = label;
-                    b.onclick = function () { requestAction(ident, value); };
-                    btns.appendChild(b);
-                }
-                addBtn(d.locked ? 'Entriegeln' : 'Verriegeln', false, 'lock', !d.locked);
-                addBtn(d.climate ? 'Klima aus' : 'Klima ein', !!d.climate, 'climate', !d.climate);
-                addBtn(d.charging ? 'Laden stop' : 'Laden start', !!d.charging, 'charge', !d.charging);
+            if (d.controls && Array.isArray(d.buttons)) {
+                d.buttons.forEach(function (b) {
+                    var el = document.createElement('button');
+                    el.className = 'tsl-btn' + (b.on ? ' on' : '');
+                    el.textContent = b.c;
+                    el.onclick = function () { requestAction(b.i, b.v); };
+                    btns.appendChild(el);
+                });
             }
         }
 

@@ -2,6 +2,12 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.13.0] - 2026-07-01
+### Hinzugefuegt
+- Bedien-Buttons der Kachel sind jetzt frei konfigurierbar: neue Liste "Buttons" waehlt Anzahl, Reihenfolge (Drag & Drop) und Funktion aus einem Katalog von 19 Aktionen (Verriegeln, Klima, Laden, Sentry Mode, Valet-Modus, Max Defrost, Lenkradheizung, Innenraum-Ueberhitzeschutz, Bio Defense Mode, HomeLink, vorderer/hinterer Kofferraum, Lichthupe, Hupe, Ladeport oeffnen/schliessen, Fenster lueften/schliessen) mit optionaler eigener Beschriftung je Button. Bestehende Kacheln zeigen nach dem Update unveraendert die bisherigen drei Buttons (Verriegeln/Klima/Laden). Ein Button erscheint nur, wenn der zugehoerige Datenpunkt in der TessieVehicle-Quelle aktiviert ist.
+### Geaendert
+- Die Kachel beobachtet (VM_UPDATE) jetzt nur noch die tatsaechlich konfigurierten Button-Variablen statt eines festen Satzes.
+
 ## [2.12.0] - 2026-06-30
 ### Hinzugefuegt
 - Standort-Verwaltung in der Kachel: Neuer Bereich "Standorte" unter den Automationen - Standort-Erkennung per Schalter aktivieren, Standorte anlegen/bearbeiten/loeschen (Name, Koordinaten, Umkreis). Die aktuelle Fahrzeugposition laesst sich per Knopf als Standort uebernehmen. Zuhause ist bearbeitbar (leer = Systemstandort); die Kartenauswahl bleibt im Instanzformular. Neue Public-API: TESSIE_GetGeofenceConfig, TESSIE_SetGeofenceEnabled, TESSIE_SetHomeGeofence, TESSIE_SetGeofence, TESSIE_DeleteGeofence.

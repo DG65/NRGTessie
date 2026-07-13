@@ -27,7 +27,7 @@
         },
         {
           "type": "Label",
-          "caption": "Mit 'Bedien-Buttons anzeigen' lassen sich Verriegeln, Klima und Laden direkt aus der Kachel schalten. Die Buttons lösen die entsprechenden Aktionsvariablen der TessieVehicle-Quelle aus – Berechtigungen und Verhalten sind also identisch zur Bedienung im Objektbaum."
+          "caption": "Mit 'Bedien-Buttons anzeigen' und der Liste 'Buttons' wählst du frei, welche und wie viele Aktionen die Kachel anbietet (z. B. nur Verriegeln, oder zusätzlich Sentry Mode, Hupe, Kofferraum, Fenster …) – inklusive Reihenfolge per Drag & Drop und optionaler eigener Beschriftung je Button. Die Buttons lösen die entsprechenden Aktionsvariablen der TessieVehicle-Quelle aus – Berechtigungen und Verhalten sind also identisch zur Bedienung im Objektbaum. Ein Button erscheint nur, wenn der zugehörige Datenpunkt dort aktiviert ist."
         },
         {
           "type": "Label",
@@ -168,7 +168,60 @@
     {
       "type": "CheckBox",
       "name": "ShowControls",
-      "caption": "Bedien-Buttons anzeigen (Verriegeln, Klima, Laden)"
+      "caption": "Bedien-Buttons anzeigen (siehe Liste 'Buttons' unten)"
+    },
+    {
+      "type": "List",
+      "name": "Buttons",
+      "caption": "Buttons",
+      "rowCount": 6,
+      "add": true,
+      "delete": true,
+      "changeOrder": true,
+      "columns": [
+        {
+          "caption": "Funktion",
+          "name": "Ident",
+          "width": "260px",
+          "add": "act_locked",
+          "edit": {
+            "type": "Select",
+            "options": [
+              { "caption": "Verriegelung", "value": "act_locked" },
+              { "caption": "Klimaanlage", "value": "act_climate" },
+              { "caption": "Laden", "value": "act_charging" },
+              { "caption": "Sentry Mode", "value": "act_sentry" },
+              { "caption": "Valet-Modus", "value": "act_valet" },
+              { "caption": "Max Defrost", "value": "act_defrost" },
+              { "caption": "Lenkradheizung", "value": "act_steering_wheel" },
+              { "caption": "Innenraum-Überhitzeschutz", "value": "act_cop_enabled" },
+              { "caption": "Überhitzeschutz: nur Lüfter", "value": "act_cop_fan_only" },
+              { "caption": "Bio Defense Mode", "value": "act_bio_defense" },
+              { "caption": "HomeLink auslösen", "value": "act_homelink" },
+              { "caption": "Vorderer Kofferraum öffnen", "value": "act_front_trunk" },
+              { "caption": "Heckklappe öffnen/schließen", "value": "act_rear_trunk" },
+              { "caption": "Lichthupe", "value": "act_flash" },
+              { "caption": "Hupe", "value": "act_honk" },
+              { "caption": "Ladeport öffnen", "value": "act_open_charge_port" },
+              { "caption": "Ladeport schließen", "value": "act_close_charge_port" },
+              { "caption": "Fenster lüften", "value": "act_vent_windows" },
+              { "caption": "Fenster schließen", "value": "act_close_windows" }
+            ]
+          }
+        },
+        {
+          "caption": "Eigene Beschriftung (optional)",
+          "name": "Label",
+          "width": "auto",
+          "add": "",
+          "edit": { "type": "ValidationTextBox" }
+        }
+      ],
+      "values": []
+    },
+    {
+      "type": "Label",
+      "caption": "Reihenfolge per Drag & Drop. Ein Button erscheint nur, wenn der zugehörige Datenpunkt in der TessieVehicle-Quelle aktiviert ist."
     },
     {
       "type": "CheckBox",

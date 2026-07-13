@@ -17,21 +17,46 @@ class TessieVehicleTile extends IPSModule
     // GUID des Datenmoduls TessieVehicle (für die Quellen-Auswahl)
     private const SOURCE_MODULE = '{3F1F7E31-8BA0-4B8F-9B62-47DAD7A0B6C9}';
 
-    // Quell-Variablen, auf deren Änderung die Kachel reagieren soll
-    private const WATCH_IDENTS = [
-        'act_locked', 'act_climate', 'act_charging', 'act_charge_limit',
+    // Immer beobachtete Quell-Variablen (Telemetrie/Status); die Aktions-Idents der
+    // konfigurierten Buttons kommen in getWatchIdents() dynamisch dazu.
+    private const BASE_WATCH_IDENTS = [
+        'act_charge_limit',
         'stat_tel_Soc', 'stat_tel_RatedRange', 'stat_tel_InsideTemp', 'stat_tel_OutsideTemp',
         'stat_ac_charging_power', 'stat_charge_amps_actual', 'stat_charge_amps_max',
         'stat_tel_TimeToFullCharge', 'stat_tel_Location_lat', 'stat_tel_Location_lon',
         'stat_location_name'
     ];
 
-    // Aktions-Buttons der Kachel -> Idents der Aktions-Variablen in der Quelle
-    private const ACTION_MAP = [
-        'lock'    => 'act_locked',
-        'climate' => 'act_climate',
-        'charge'  => 'act_charging'
+    // Katalog der in der Kachel wählbaren Buttons: Ident der Aktions-Variable in der
+    // TessieVehicle-Quelle => Anzeigename (Formular) + Verhalten.
+    // kind 'lock'/'climate'/'charge': historische Spezial-Beschriftung (Rückwärtskompatibilität);
+    // 'toggle': Ein/Aus-Variable, Beschriftung "<Name> einschalten/ausschalten";
+    // 'momentary': löst nur aus, kein dauerhafter Zustand (Modul setzt selbst auf false zurück).
+    private const BUTTON_CATALOG = [
+        'act_locked'            => ['name' => 'Verriegelung',                'kind' => 'lock'],
+        'act_climate'           => ['name' => 'Klimaanlage',                 'kind' => 'climate'],
+        'act_charging'          => ['name' => 'Laden',                       'kind' => 'charge'],
+        'act_sentry'            => ['name' => 'Sentry Mode',                 'kind' => 'toggle'],
+        'act_valet'             => ['name' => 'Valet-Modus',                 'kind' => 'toggle'],
+        'act_defrost'           => ['name' => 'Max Defrost',                 'kind' => 'toggle'],
+        'act_steering_wheel'    => ['name' => 'Lenkradheizung',              'kind' => 'toggle'],
+        'act_cop_enabled'       => ['name' => 'Innenraum-Überhitzeschutz',   'kind' => 'toggle'],
+        'act_cop_fan_only'      => ['name' => 'Überhitzeschutz: nur Lüfter', 'kind' => 'toggle'],
+        'act_bio_defense'       => ['name' => 'Bio Defense Mode',            'kind' => 'toggle'],
+        'act_homelink'          => ['name' => 'HomeLink auslösen',           'kind' => 'momentary'],
+        'act_front_trunk'       => ['name' => 'Vorderer Kofferraum öffnen',  'kind' => 'momentary'],
+        'act_rear_trunk'        => ['name' => 'Heckklappe öffnen/schließen', 'kind' => 'momentary'],
+        'act_flash'             => ['name' => 'Lichthupe',                   'kind' => 'momentary'],
+        'act_honk'              => ['name' => 'Hupe',                       'kind' => 'momentary'],
+        'act_open_charge_port'  => ['name' => 'Ladeport öffnen',            'kind' => 'momentary'],
+        'act_close_charge_port' => ['name' => 'Ladeport schließen',         'kind' => 'momentary'],
+        'act_vent_windows'      => ['name' => 'Fenster lüften',             'kind' => 'momentary'],
+        'act_close_windows'     => ['name' => 'Fenster schließen',          'kind' => 'momentary']
     ];
+
+    // Default-Belegung der Buttons-Liste: identisch zu den bisher fest verdrahteten
+    // drei Buttons, damit bestehende Kacheln nach dem Update unverändert aussehen.
+    private const DEFAULT_BUTTONS = '[{"Ident":"act_locked","Label":""},{"Ident":"act_climate","Label":""},{"Ident":"act_charging","Label":""}]';
 
     // Standardwerte (auch für „Zurücksetzen")
     private const DEF_CHARGING = 0x27D07F;
@@ -60,6 +85,7 @@ class TessieVehicleTile extends IPSModule
         $this->RegisterPropertyString('FontFamily', self::DEF_FONT);
         $this->RegisterPropertyFloat('FontScale', self::DEF_SCALE);
         $this->RegisterPropertyBoolean('ShowControls', true);
+        $this->RegisterPropertyString('Buttons', self::DEFAULT_BUTTONS);
         $this->RegisterPropertyBoolean('ShowAutomations', true);
         $this->RegisterPropertyBoolean('AdoptVehicleName', true);
 
@@ -91,7 +117,7 @@ class TessieVehicleTile extends IPSModule
         // Auf Änderungen der Quell-Variablen lauschen, damit die Kachel sich aktualisiert
         $src = $this->ResolveSource();
         if ($src > 0 && IPS_InstanceExists($src)) {
-            foreach (self::WATCH_IDENTS as $ident) {
+            foreach ($this->getWatchIdents() as $ident) {
                 $vid = @IPS_GetObjectIDByIdent($ident, $src);
                 if ($vid !== false && $vid > 0) {
                     $this->RegisterReference($vid);
@@ -197,10 +223,12 @@ class TessieVehicleTile extends IPSModule
             return;
         }
 
-        if (!isset(self::ACTION_MAP[$Ident])) {
+        // Konfigurierbare Buttons: Ident ist die Aktions-Variable der Quelle selbst
+        // (aus BUTTON_CATALOG, siehe getConfiguredButtons/buildButtonPayload)
+        if (!isset(self::BUTTON_CATALOG[$Ident])) {
             return;
         }
-        $vid = @IPS_GetObjectIDByIdent(self::ACTION_MAP[$Ident], $src);
+        $vid = @IPS_GetObjectIDByIdent($Ident, $src);
         if ($vid > 0) {
             @RequestAction($vid, $Value); // globale IPS-Funktion -> löst die Aktion der Quelle aus
         }
@@ -247,6 +275,7 @@ class TessieVehicleTile extends IPSModule
             'scale'     => $this->FontScaleValue(),
             'controls'  => $this->ReadPropertyBoolean('ShowControls')
         ];
+        $showButtons = $this->ReadPropertyBoolean('ShowControls');
 
         $cCharging = $this->ColorHex($this->ReadPropertyInteger('ColorCharging'), '#27d07f');
         $cReady    = $this->ColorHex($this->ReadPropertyInteger('ColorReady'), '#2bb3c0');
@@ -259,7 +288,8 @@ class TessieVehicleTile extends IPSModule
                 'stateLabel' => 'Keine Datenquelle',
                 'accent'     => $cIdle,
                 'cls'        => 'idle',
-                'controls'   => false
+                'controls'   => false,
+                'buttons'    => []
             ]));
         }
 
@@ -287,7 +317,8 @@ class TessieVehicleTile extends IPSModule
             'lon'         => $this->ReadSourceValue($src, 'stat_tel_Location_lon'),
             'location'    => $this->ReadSourceValue($src, 'stat_location_name'),
             'rules'       => $this->ReadSourceRules($src),
-            'geo'         => $this->ReadSourceGeo($src)
+            'geo'         => $this->ReadSourceGeo($src),
+            'buttons'     => $showButtons ? $this->buildButtonPayload($src) : []
         ]));
     }
 
@@ -328,6 +359,84 @@ class TessieVehicleTile extends IPSModule
         $json = @TESSIE_GetGeofenceConfig($instanceID);
         $geo = is_string($json) ? json_decode($json, true) : null;
         return is_array($geo) ? $geo : null;
+    }
+
+    /** Alle für die Beobachtung relevanten Idents: Basiswerte + konfigurierte Button-Aktionen. */
+    private function getWatchIdents(): array
+    {
+        $idents = self::BASE_WATCH_IDENTS;
+        foreach ($this->getConfiguredButtons() as $btn) {
+            $idents[] = $btn['ident'];
+        }
+        return array_values(array_unique($idents));
+    }
+
+    /** Konfigurierte Buttons aus der Property 'Buttons', auf bekannte Katalog-Idents gefiltert. */
+    private function getConfiguredButtons(): array
+    {
+        $raw = json_decode((string)$this->ReadPropertyString('Buttons'), true);
+        if (!is_array($raw)) {
+            return [];
+        }
+        $out = [];
+        foreach ($raw as $row) {
+            if (!is_array($row)) continue;
+            $ident = (string)($row['Ident'] ?? '');
+            if (!isset(self::BUTTON_CATALOG[$ident])) continue;
+            $out[] = ['ident' => $ident, 'label' => trim((string)($row['Label'] ?? ''))];
+        }
+        return $out;
+    }
+
+    /**
+     * Button-Payload für die Kachel: [{i:Ident, c:Beschriftung, on:hervorgehoben, v:zu sendender Wert}, ...]
+     * Buttons für (noch) nicht vorhandene Variablen (Datenpunkt deaktiviert/nicht empfangen) entfallen.
+     */
+    private function buildButtonPayload(int $src): array
+    {
+        $out = [];
+        foreach ($this->getConfiguredButtons() as $btn) {
+            $ident = $btn['ident'];
+            $cat = self::BUTTON_CATALOG[$ident];
+            $vid = @IPS_GetObjectIDByIdent($ident, $src);
+            if ($vid <= 0) {
+                continue;
+            }
+            $state = (bool)GetValue($vid);
+            $custom = $btn['label'];
+
+            switch ($cat['kind']) {
+                case 'lock':
+                    $caption = ($custom !== '') ? $custom : ($state ? 'Entriegeln' : 'Verriegeln');
+                    $on = false; // historisch: Schloss-Button hebt sich farblich nicht ab
+                    $value = !$state;
+                    break;
+                case 'climate':
+                    $caption = ($custom !== '') ? $custom : ($state ? 'Klima aus' : 'Klima ein');
+                    $on = $state;
+                    $value = !$state;
+                    break;
+                case 'charge':
+                    $caption = ($custom !== '') ? $custom : ($state ? 'Laden stop' : 'Laden start');
+                    $on = $state;
+                    $value = !$state;
+                    break;
+                case 'toggle':
+                    $caption = ($custom !== '') ? $custom : ($cat['name'] . ($state ? ' ausschalten' : ' einschalten'));
+                    $on = $state;
+                    $value = !$state;
+                    break;
+                case 'momentary':
+                default:
+                    $caption = ($custom !== '') ? $custom : $cat['name'];
+                    $on = false;
+                    $value = true;
+                    break;
+            }
+
+            $out[] = ['i' => $ident, 'c' => $caption, 'on' => $on, 'v' => $value];
+        }
+        return $out;
     }
 
     private function ReadSourceValue(int $instanceID, string $ident)
