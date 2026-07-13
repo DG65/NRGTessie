@@ -1636,6 +1636,32 @@ class TessieVehicle extends IPSModule
      * $fire=false aktualisiert nur den Zustand ohne auszulösen (Baseline nach
      * Übernehmen, verhindert Fehlauslösungen durch alte Flanken).
      */
+    /**
+     * Liest die Bedingungsliste einer Regel, egal ob im neuen Mehrfach-Format
+     * ({Conditions:[{Source,Op,Compare},...]}) oder im alten flachen Format
+     * (Source/Op/Compare direkt in der Regel – Bestand vor der UND-Unterstützung)
+     * gespeichert. Alle Bedingungen werden mit UND verknüpft ausgewertet.
+     */
+    private function normalizeRuleConditions(array $rule): array
+    {
+        if (isset($rule['Conditions']) && is_array($rule['Conditions'])) {
+            $out = [];
+            foreach ($rule['Conditions'] as $c) {
+                if (!is_array($c)) continue;
+                $src = (string)($c['Source'] ?? '');
+                if ($src === '') continue;
+                $out[] = ['Source' => $src, 'Op' => (string)($c['Op'] ?? 'true'), 'Compare' => (string)($c['Compare'] ?? '')];
+            }
+            return $out;
+        }
+        // Legacy: einzelne Bedingung flach in der Regel
+        $src = (string)($rule['Source'] ?? '');
+        if ($src === '') {
+            return [];
+        }
+        return [['Source' => $src, 'Op' => (string)($rule['Op'] ?? 'true'), 'Compare' => (string)($rule['Compare'] ?? '')]];
+    }
+
     private function evaluateDataActions(bool $fire = true): void
     {
         $rules = json_decode((string)$this->ReadPropertyString('DataActions'), true);
@@ -1652,40 +1678,72 @@ class TessieVehicle extends IPSModule
             if (!is_array($rule)) continue;
             $key = (string)$i;
 
-            $srcIdent = (string)($rule['Source'] ?? '');
-            $vid = ($srcIdent !== '') ? @IPS_GetObjectIDByIdent($srcIdent, $this->InstanceID) : 0;
-            if ($vid <= 0) continue;
+            $conditions = $this->normalizeRuleConditions($rule);
+            if (count($conditions) === 0) continue;
 
-            $op = (string)($rule['Op'] ?? 'true');
+            $prevState = $state[$key] ?? null;
+            // Zustand aus einer älteren Version (Schlüssel 'cond'/'val' statt 'overall'/'vals')
+            // nicht als Baseline verwenden, sonst könnte die Regel direkt nach dem Update
+            // fälschlich auslösen, falls die Bedingung zufällig schon erfüllt ist.
+            if (is_array($prevState) && !array_key_exists('overall', $prevState)) {
+                $prevState = null;
+            }
+            $prevVals = is_array($prevState['vals'] ?? null) ? $prevState['vals'] : [];
 
-            // Durchfahrt (nur Standort-Variablen): Ereignis kommt aus updateHomeStatus,
-            // kein Flanken-Tracking über RuleState nötig
-            if ($op === 'pass') {
-                if ($fire && isset($this->geoPassEvents[$srcIdent]) && (bool)($rule['Active'] ?? true)) {
-                    $this->applyActionToVariable(
-                        (int)($rule['Target'] ?? 0),
-                        (string)($rule['Action'] ?? 'on'),
-                        (string)($rule['Value'] ?? ''),
-                        'Automation ' . $this->describeDataAction($rule)
-                    );
+            $newVals = [];
+            $allSatisfied = true;
+            $hasMomentary = false;
+            $sourcesValid = true;
+
+            foreach ($conditions as $ci => $cond) {
+                $srcIdent = $cond['Source'];
+                $op = $cond['Op'];
+
+                if ($op === 'pass') {
+                    // Durchfahrt: Ereignis kommt aus updateHomeStatus, kein Wert-Tracking nötig
+                    $hasMomentary = true;
+                    if (!isset($this->geoPassEvents[$srcIdent])) {
+                        $allSatisfied = false;
+                    }
+                    continue;
                 }
-                continue;
+
+                $vid = @IPS_GetObjectIDByIdent($srcIdent, $this->InstanceID);
+                if ($vid <= 0) {
+                    $sourcesValid = false;
+                    break;
+                }
+                $cur = GetValue($vid);
+                $serial = json_encode($cur);
+                $newVals[$ci] = $serial;
+
+                if ($op === 'change') {
+                    $hasMomentary = true;
+                    // Erste Auswertung nach Anlage: nur Baseline, noch kein "hat sich geändert"
+                    $changed = array_key_exists($ci, $prevVals) && ($prevVals[$ci] !== $serial);
+                    if (!$changed) $allSatisfied = false;
+                } elseif (!$this->evalRuleCondition($cur, $op, $cond['Compare'])) {
+                    $allSatisfied = false;
+                }
             }
 
-            $cur = GetValue($vid);
-            $cond = $this->evalRuleCondition($cur, $op, (string)($rule['Compare'] ?? ''));
-            $serial = json_encode($cur);
+            if (!$sourcesValid) continue; // eine der Quellen existiert (aktuell) nicht
 
-            $prev = $state[$key] ?? null;
-            if ($op === 'change') {
-                $fireNow = ($prev !== null) && (($prev['val'] ?? null) !== $serial);
+            if ($hasMomentary) {
+                // Eine Durchfahrt/Änderung ist selbst schon einmalig – kein zusätzliches
+                // Flanken-Tracking nötig, die anderen (UND-verknüpften) Bedingungen gelten
+                // einfach im Moment des Ereignisses.
+                $fireNow = $allSatisfied;
             } else {
-                // Erste Auswertung nach Anlage: nur Baseline, kein Auslösen
-                $fireNow = ($prev !== null) && !(bool)($prev['cond'] ?? false) && $cond;
+                // Reine Vergleichsbedingungen: nur bei der Flanke "vorher nicht erfüllt,
+                // jetzt erfüllt" auslösen, nicht bei jeder Datenmeldung erneut.
+                $prevOverall = (bool)($prevState['overall'] ?? false);
+                $fireNow = ($prevState !== null) && !$prevOverall && $allSatisfied;
             }
 
-            if ($prev === null || ($prev['cond'] ?? null) !== $cond || ($prev['val'] ?? null) !== $serial) {
-                $state[$key] = ['cond' => $cond, 'val' => $serial];
+            $newState = ['overall' => $allSatisfied, 'vals' => $newVals];
+            if ($prevState === null || ($prevState['overall'] ?? null) !== $allSatisfied || ($prevState['vals'] ?? null) !== $newVals) {
+                $state[$key] = $newState;
                 $stateChanged = true;
             }
 
@@ -1747,8 +1805,8 @@ class TessieVehicle extends IPSModule
         return false;
     }
 
-    /** Menschenlesbare Beschreibung einer Regel, z. B. für Kachel und Debug. */
-    private function describeDataAction(array $rule): string
+    /** Menschenlesbare Beschreibung einer einzelnen Bedingung, z. B. „Ladestand ≥ 80". */
+    private function describeCondition(array $cond): string
     {
         $opText = [
             'true' => 'wird EIN', 'false' => 'wird AUS', 'change' => 'ändert sich',
@@ -1756,15 +1814,25 @@ class TessieVehicle extends IPSModule
             'eq' => '=', 'ne' => '≠', 'gt' => '>', 'ge' => '≥', 'lt' => '<', 'le' => '≤'
         ];
 
-        $srcIdent = (string)($rule['Source'] ?? '');
+        $srcIdent = (string)($cond['Source'] ?? '');
         $srcVid = ($srcIdent !== '') ? @IPS_GetObjectIDByIdent($srcIdent, $this->InstanceID) : 0;
         $srcName = ($srcVid > 0) ? IPS_GetName($srcVid) : $srcIdent;
 
-        $op = (string)($rule['Op'] ?? 'true');
-        $cond = $opText[$op] ?? $op;
+        $op = (string)($cond['Op'] ?? 'true');
+        $condText = $opText[$op] ?? $op;
         if (!in_array($op, ['true', 'false', 'change', 'pass'], true)) {
-            $cond .= ' ' . (string)($rule['Compare'] ?? '');
+            $condText .= ' ' . (string)($cond['Compare'] ?? '');
         }
+
+        return $srcName . ' ' . $condText;
+    }
+
+    /** Menschenlesbare Beschreibung einer Regel (alle Bedingungen mit UND), z. B. für Kachel und Debug. */
+    private function describeDataAction(array $rule): string
+    {
+        $conditions = $this->normalizeRuleConditions($rule);
+        $parts = array_map([$this, 'describeCondition'], $conditions);
+        $condText = (count($parts) > 0) ? implode(' UND ', $parts) : '?';
 
         $tVid = (int)($rule['Target'] ?? 0);
         $tName = ($tVid > 0 && IPS_VariableExists($tVid)) ? IPS_GetName($tVid) : ('#' . $tVid);
@@ -1775,7 +1843,7 @@ class TessieVehicle extends IPSModule
             default:       $do = $tName . ' einschalten'; break;
         }
 
-        return sprintf('Wenn %s %s → %s', $srcName, $cond, $do);
+        return sprintf('Wenn %s → %s', $condText, $do);
     }
 
     /** Datenpunkt-Optionen für Regelquellen: alle Datenpunkte + Geofence-Variablen. */
@@ -1879,7 +1947,7 @@ class TessieVehicle extends IPSModule
 
     /**
      * Legt eine Regel an oder überschreibt sie ($Index < 0 = anhängen).
-     * $RuleJSON: {Active, Source, Op, Compare, Target, Action, Value}
+     * $RuleJSON: {Active, Conditions:[{Source,Op,Compare},...] (mit UND verknüpft), Target, Action, Value}
      */
     public function SetDataAction(int $Index, string $RuleJSON): void
     {
@@ -1889,16 +1957,39 @@ class TessieVehicle extends IPSModule
         }
         $ops = ['true', 'false', 'eq', 'ne', 'gt', 'ge', 'lt', 'le', 'change', 'pass'];
         $acts = ['on', 'off', 'toggle', 'value'];
+
+        $conditions = [];
+        foreach ((array)($in['Conditions'] ?? []) as $c) {
+            if (!is_array($c)) continue;
+            $src = trim((string)($c['Source'] ?? ''));
+            if ($src === '') continue;
+            $conditions[] = [
+                'Source'  => $src,
+                'Op'      => in_array(($c['Op'] ?? ''), $ops, true) ? (string)$c['Op'] : 'true',
+                'Compare' => (string)($c['Compare'] ?? '')
+            ];
+        }
+        $conditions = array_slice($conditions, 0, 5); // mehr UND-Bedingungen sind praktisch nie sinnvoll
+        if (count($conditions) === 0) {
+            return;
+        }
+
         $rule = [
-            'Active'  => (bool)($in['Active'] ?? true),
-            'Source'  => (string)($in['Source'] ?? ''),
-            'Op'      => in_array(($in['Op'] ?? ''), $ops, true) ? (string)$in['Op'] : 'true',
-            'Compare' => (string)($in['Compare'] ?? ''),
-            'Target'  => (int)($in['Target'] ?? 0),
-            'Action'  => in_array(($in['Action'] ?? ''), $acts, true) ? (string)$in['Action'] : 'on',
-            'Value'   => (string)($in['Value'] ?? '')
+            'Active'     => (bool)($in['Active'] ?? true),
+            'Conditions' => $conditions,
+            // Erste Bedingung zusätzlich flach spiegeln: Damit zeigt die klassische
+            // Formular-Liste (Source/Op/Compare-Spalten) wenigstens die erste Bedingung
+            // an. Wird die Regel dort ohne die Kachel übernommen, geht das Formular nur
+            // von genau dieser einen Bedingung aus (die weiteren UND-Bedingungen entfallen
+            // dann) statt die Regel unbrauchbar zu machen.
+            'Source'     => $conditions[0]['Source'],
+            'Op'         => $conditions[0]['Op'],
+            'Compare'    => $conditions[0]['Compare'],
+            'Target'     => (int)($in['Target'] ?? 0),
+            'Action'     => in_array(($in['Action'] ?? ''), $acts, true) ? (string)$in['Action'] : 'on',
+            'Value'      => (string)($in['Value'] ?? '')
         ];
-        if ($rule['Source'] === '' || $rule['Target'] <= 0) {
+        if ($rule['Target'] <= 0) {
             return;
         }
 
@@ -2065,14 +2156,13 @@ class TessieVehicle extends IPSModule
                     'i'      => $i,
                     'text'   => $this->describeDataAction($rule),
                     'active' => (bool)($rule['Active'] ?? true),
-                    // Rohfelder, damit der Kachel-Editor die Regel laden kann
+                    // Rohfelder (normalisiert auf Conditions-Array), damit der Kachel-Editor
+                    // die Regel laden kann – auch für Bestandsregeln im alten flachen Format.
                     'rule'   => [
-                        'Source'  => (string)($rule['Source'] ?? ''),
-                        'Op'      => (string)($rule['Op'] ?? 'true'),
-                        'Compare' => (string)($rule['Compare'] ?? ''),
-                        'Target'  => (int)($rule['Target'] ?? 0),
-                        'Action'  => (string)($rule['Action'] ?? 'on'),
-                        'Value'   => (string)($rule['Value'] ?? '')
+                        'Conditions' => $this->normalizeRuleConditions($rule),
+                        'Target'     => (int)($rule['Target'] ?? 0),
+                        'Action'     => (string)($rule['Action'] ?? 'on'),
+                        'Value'      => (string)($rule['Value'] ?? '')
                     ]
                 ];
             }

@@ -223,6 +223,34 @@ class TessieVehicleTile extends IPSModule
             return;
         }
 
+        // Button-Verwaltung aus der Kachel: eigene Property, kein Aufruf über die Quelle
+        if ($Ident === 'btnEditor') {
+            $catalog = json_decode((string)$this->GetButtonCatalog(), true);
+            $this->UpdateVisualizationValue(json_encode(['btnCatalog' => is_array($catalog) ? $catalog : []]));
+            return;
+        }
+        if ($Ident === 'btnSave') {
+            $data = json_decode((string)$Value, true);
+            if (is_array($data) && isset($data['button'])) {
+                $this->SetButtonConfig((int)($data['i'] ?? -1), json_encode($data['button']));
+                $this->UpdateVisualizationValue($this->GetFullUpdateMessage());
+            }
+            return;
+        }
+        if ($Ident === 'btnDelete') {
+            $this->DeleteButtonConfig((int)$Value);
+            $this->UpdateVisualizationValue($this->GetFullUpdateMessage());
+            return;
+        }
+        if ($Ident === 'btnMove') {
+            $data = json_decode((string)$Value, true);
+            if (is_array($data) && isset($data['idx'], $data['dir'])) {
+                $this->MoveButtonConfig((int)$data['idx'], (string)$data['dir']);
+                $this->UpdateVisualizationValue($this->GetFullUpdateMessage());
+            }
+            return;
+        }
+
         // Konfigurierbare Buttons: Ident ist die Aktions-Variable der Quelle selbst
         // (aus BUTTON_CATALOG, siehe getConfiguredButtons/buildButtonPayload)
         if (!isset(self::BUTTON_CATALOG[$Ident])) {
@@ -371,19 +399,25 @@ class TessieVehicleTile extends IPSModule
         return array_values(array_unique($idents));
     }
 
-    /** Konfigurierte Buttons aus der Property 'Buttons', auf bekannte Katalog-Idents gefiltert. */
-    private function getConfiguredButtons(): array
+    /** Rohe Buttons-Liste (Property), unabhängig von Gültigkeit – für Verwaltung (Speichern/Löschen/Verschieben). */
+    private function getButtonRowsRaw(): array
     {
         $raw = json_decode((string)$this->ReadPropertyString('Buttons'), true);
-        if (!is_array($raw)) {
-            return [];
-        }
+        return is_array($raw) ? array_values($raw) : [];
+    }
+
+    /**
+     * Konfigurierte Buttons aus der Property 'Buttons', auf bekannte Katalog-Idents gefiltert.
+     * 'idx' ist die Position in der rohen Property-Liste (für Bearbeiten/Löschen/Verschieben aus der Kachel).
+     */
+    private function getConfiguredButtons(): array
+    {
         $out = [];
-        foreach ($raw as $row) {
+        foreach ($this->getButtonRowsRaw() as $idx => $row) {
             if (!is_array($row)) continue;
             $ident = (string)($row['Ident'] ?? '');
             if (!isset(self::BUTTON_CATALOG[$ident])) continue;
-            $out[] = ['ident' => $ident, 'label' => trim((string)($row['Label'] ?? ''))];
+            $out[] = ['idx' => $idx, 'ident' => $ident, 'label' => trim((string)($row['Label'] ?? ''))];
         }
         return $out;
     }
@@ -434,9 +468,72 @@ class TessieVehicleTile extends IPSModule
                     break;
             }
 
-            $out[] = ['i' => $ident, 'c' => $caption, 'on' => $on, 'v' => $value];
+            $out[] = ['i' => $ident, 'idx' => $btn['idx'], 'n' => $cat['name'], 'label' => $custom, 'c' => $caption, 'on' => $on, 'v' => $value];
         }
         return $out;
+    }
+
+    /** Katalog aller wählbaren Button-Funktionen für den Kachel-Editor: [{v:Ident, c:Name}]. */
+    public function GetButtonCatalog(): string
+    {
+        $out = [];
+        foreach (self::BUTTON_CATALOG as $ident => $cat) {
+            $out[] = ['v' => $ident, 'c' => $cat['name']];
+        }
+        return json_encode($out);
+    }
+
+    /**
+     * Legt einen Button an oder überschreibt ihn ($Index < 0 = anhängen).
+     * $JSON: {Ident, Label}. Eigene Property der Kachel – kein Aufruf über die Quelle nötig.
+     */
+    public function SetButtonConfig(int $Index, string $JSON): void
+    {
+        $in = json_decode($JSON, true);
+        if (!is_array($in)) {
+            return;
+        }
+        $ident = (string)($in['Ident'] ?? '');
+        if (!isset(self::BUTTON_CATALOG[$ident])) {
+            return;
+        }
+        $row = ['Ident' => $ident, 'Label' => trim((string)($in['Label'] ?? ''))];
+
+        $rows = $this->getButtonRowsRaw();
+        if ($Index >= 0 && isset($rows[$Index])) {
+            $rows[$Index] = $row;
+        } else {
+            $rows[] = $row;
+        }
+        IPS_SetProperty($this->InstanceID, 'Buttons', json_encode(array_values($rows)));
+        IPS_ApplyChanges($this->InstanceID);
+    }
+
+    /** Löscht einen Button (z. B. aus der Kachel). */
+    public function DeleteButtonConfig(int $Index): void
+    {
+        $rows = $this->getButtonRowsRaw();
+        if (!isset($rows[$Index])) {
+            return;
+        }
+        unset($rows[$Index]);
+        IPS_SetProperty($this->InstanceID, 'Buttons', json_encode(array_values($rows)));
+        IPS_ApplyChanges($this->InstanceID);
+    }
+
+    /** Verschiebt einen Button um eine Position ('up'/'down') für die Reihenfolge. */
+    public function MoveButtonConfig(int $Index, string $Direction): void
+    {
+        $rows = $this->getButtonRowsRaw();
+        $target = $Index + (($Direction === 'up') ? -1 : 1);
+        if (!isset($rows[$Index]) || !isset($rows[$target])) {
+            return;
+        }
+        $tmp = $rows[$Index];
+        $rows[$Index] = $rows[$target];
+        $rows[$target] = $tmp;
+        IPS_SetProperty($this->InstanceID, 'Buttons', json_encode(array_values($rows)));
+        IPS_ApplyChanges($this->InstanceID);
     }
 
     private function ReadSourceValue(int $instanceID, string $ident)

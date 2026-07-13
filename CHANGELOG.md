@@ -2,6 +2,11 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.14.0] - 2026-07-02
+### Hinzugefuegt
+- Buttons vollstaendig in der Kachel verwaltbar: Stift-Symbol neben "Buttons" schaltet in eine Verwaltungsansicht (Funktion/Beschriftung aendern via Editor-Overlay, Reihenfolge per Auf/Ab-Pfeile, Loeschen mit Rueckfrage, "+ Neuer Button"). Schreibt direkt die eigene Buttons-Eigenschaft der Kachel-Instanz, keine Quellen-Instanz noetig. Neue Public-API: TESSIE TILE-eigene Methoden GetButtonCatalog/SetButtonConfig/DeleteButtonConfig/MoveButtonConfig.
+- Automationen: mehrere Bedingungen pro Regel, mit UND verknuepft (z. B. "Wenn Zu Hause wird EIN UND Ladestand < 30 % -> Ladeport oeffnen"). Neues Speicherformat 'Conditions' (Liste von {Source,Op,Compare}), Regel feuert erst wenn ALLE Bedingungen gleichzeitig erfuellt sind (weiterhin flankengesteuert; Durchfahrt/aendert-sich-Bedingungen bleiben momentan). Bestehende Regeln im alten flachen Format funktionieren unveraendert weiter. Der Kachel-Regeleditor erlaubt beliebig viele UND-Bedingungen ("+ Bedingung"); die klassische Formular-Liste bleibt auf eine Bedingung beschraenkt und zeigt bei Mehrfachregeln nur die erste (siehe Doku-Hinweis im Formular).
+
 ## [2.13.0] - 2026-07-01
 ### Hinzugefuegt
 - Bedien-Buttons der Kachel sind jetzt frei konfigurierbar: neue Liste "Buttons" waehlt Anzahl, Reihenfolge (Drag & Drop) und Funktion aus einem Katalog von 19 Aktionen (Verriegeln, Klima, Laden, Sentry Mode, Valet-Modus, Max Defrost, Lenkradheizung, Innenraum-Ueberhitzeschutz, Bio Defense Mode, HomeLink, vorderer/hinterer Kofferraum, Lichthupe, Hupe, Ladeport oeffnen/schliessen, Fenster lueften/schliessen) mit optionaler eigener Beschriftung je Button. Bestehende Kacheln zeigen nach dem Update unveraendert die bisherigen drei Buttons (Verriegeln/Klima/Laden). Ein Button erscheint nur, wenn der zugehoerige Datenpunkt in der TessieVehicle-Quelle aktiviert ist.

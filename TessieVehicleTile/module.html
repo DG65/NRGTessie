@@ -81,6 +81,10 @@
         .tsl-ed-actions { display: flex; gap: 8px; margin-top: 16px; }
         .tsl-ed-actions .tsl-btn { flex: 1 1 auto; }
         .tsl-ed-hint { font-size: calc(11px * var(--scale)); color: var(--textmuted); margin-top: 6px; }
+        .ed-cond-box { border: 1px solid var(--track); border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; }
+        .ed-cond-hd { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+        .ed-cond-tag { font-size: calc(10px * var(--scale)); font-weight: 700; letter-spacing: .5px; color: var(--accent); text-transform: uppercase; }
+        .ed-cond-box select, .ed-cond-box input { margin-top: 6px; }
 
         .tsl-btns { display: flex; gap: 8px; flex-wrap: wrap; }
         .tsl-btn { flex: 1 1 30%; min-width: 84px; border: none; border-radius: 10px; padding: 10px 8px; font-size: calc(13px * var(--scale)); font-weight: 600; cursor: pointer; background: var(--box); color: var(--text); }
@@ -129,7 +133,34 @@
 
         <div class="tsl-rules" id="tsl-geo" style="display:none"></div>
 
-        <div class="tsl-btns" id="tsl-btns"></div>
+        <div class="tsl-rules" id="tsl-btnarea" style="display:none">
+            <div class="hdrow">
+                <div class="hd">Buttons</div>
+                <div style="display:flex;gap:8px;align-items:center">
+                    <button class="tsl-add" id="btn-add">+ Neuer Button</button>
+                    <button class="tsl-ico" id="btn-editmode" title="Buttons bearbeiten">✎</button>
+                </div>
+            </div>
+            <div id="btn-rows" style="display:none"></div>
+            <div class="tsl-btns" id="tsl-btns"></div>
+        </div>
+    </div>
+
+    <div class="tsl-ed" id="tsl-bed">
+        <div class="tsl-ed-card">
+            <h3 id="bed-title">Button bearbeiten</h3>
+
+            <label for="bed-fn">Funktion</label>
+            <select id="bed-fn"></select>
+
+            <label for="bed-label">Eigene Beschriftung (optional)</label>
+            <input id="bed-label" type="text" placeholder="leer = automatisch">
+
+            <div class="tsl-ed-actions">
+                <button class="tsl-btn" id="bed-cancel">Abbrechen</button>
+                <button class="tsl-btn on" id="bed-save">Speichern</button>
+            </div>
+        </div>
     </div>
 
     <div class="tsl-ed" id="tsl-ged">
@@ -162,29 +193,11 @@
         <div class="tsl-ed-card">
             <h3 id="ed-title">Regel bearbeiten</h3>
 
-            <label for="ed-src">Wenn Datenpunkt</label>
-            <select id="ed-src"></select>
+            <label>Wenn (mehrere Bedingungen werden mit UND verknüpft)</label>
+            <div id="ed-conditions"></div>
+            <button class="tsl-add" type="button" id="ed-addcond">+ Bedingung (UND)</button>
 
-            <label for="ed-op">Bedingung</label>
-            <select id="ed-op">
-                <option value="true">wird EIN (true)</option>
-                <option value="false">wird AUS (false)</option>
-                <option value="eq">= (gleich)</option>
-                <option value="ne">&#8800; (ungleich)</option>
-                <option value="gt">&gt; (größer)</option>
-                <option value="ge">&#8805; (größer gleich)</option>
-                <option value="lt">&lt; (kleiner)</option>
-                <option value="le">&#8804; (kleiner gleich)</option>
-                <option value="change">ändert sich</option>
-                <option value="pass">Durchfahrt (Standort)</option>
-            </select>
-
-            <div id="ed-cmp-wrap">
-                <label for="ed-cmp">Vergleichswert</label>
-                <input id="ed-cmp" type="text" placeholder="z. B. 80 oder Zuhause">
-            </div>
-
-            <label for="ed-tfilter">Dann Zielvariable</label>
+            <label for="ed-tfilter" style="margin-top:14px">Dann Zielvariable</label>
             <input id="ed-tfilter" type="text" placeholder="Suchen (Name oder Pfad) …" autocomplete="off">
             <select id="ed-target" size="1" style="margin-top:6px"></select>
             <div class="tsl-ed-hint">Angeboten werden schaltbare Variablen (mit Aktion). Andere Ziele lassen sich im Instanzformular wählen.</div>
@@ -223,9 +236,12 @@
             var d = (typeof payload === 'string') ? JSON.parse(payload) : payload;
             if (!d) return;
 
-            // Teil-Nachrichten für den Regel-Editor (kein vollständiges Kachel-Update)
+            // Teil-Nachrichten für Regel-/Button-Editor (kein vollständiges Kachel-Update)
             if (d.editor !== undefined) { ED.data = d.editor; edOpenNow(); return; }
             if (d.targetOpts !== undefined) { edApplyTargetOpts(d.targetOpts); return; }
+            if (d.btnCatalog !== undefined) { BED.catalog = d.btnCatalog; bedOpenNow(); return; }
+
+            LAST_MSG = d;
 
             var root = document.documentElement.style;
             function applyVar(name, val) { if (val) { root.setProperty(name, val); } else { root.removeProperty(name); } }
@@ -400,20 +416,157 @@
                 geo.style.display = 'none';
             }
 
-            // Frei konfigurierbare Buttons: Anzahl, Reihenfolge und Beschriftung
-            // kommen fertig berechnet vom Datenmodul (buildButtonPayload)
+            renderButtons(d);
+        }
+
+        // ------------------------------------------------------------------
+        // Buttons: normale Ansicht (klickbare Aktionen) und Verwaltungs-Ansicht
+        // (Reihenfolge/Funktion/Beschriftung bearbeiten), Daten kommen fertig
+        // berechnet vom Datenmodul (buildButtonPayload)
+        // ------------------------------------------------------------------
+        var LAST_MSG = null;
+        var BTN_EDIT_MODE = false;
+
+        function renderButtons(d) {
+            var area = document.getElementById('tsl-btnarea');
+            var add = document.getElementById('btn-add');
+            var rowsWrap = document.getElementById('btn-rows');
             var btns = document.getElementById('tsl-btns');
+
+            if (!d.controls) {
+                area.style.display = 'none';
+                return;
+            }
+            area.style.display = 'flex';
+            add.style.display = BTN_EDIT_MODE ? '' : 'none';
+
+            rowsWrap.textContent = '';
             btns.textContent = '';
-            if (d.controls && Array.isArray(d.buttons)) {
-                d.buttons.forEach(function (b) {
-                    var el = document.createElement('button');
-                    el.className = 'tsl-btn' + (b.on ? ' on' : '');
-                    el.textContent = b.c;
-                    el.onclick = function () { requestAction(b.i, b.v); };
-                    btns.appendChild(el);
+
+            if (BTN_EDIT_MODE) {
+                rowsWrap.style.display = '';
+                btns.style.display = 'none';
+                var list = Array.isArray(d.buttons) ? d.buttons : [];
+                if (!list.length) {
+                    var hint = document.createElement('div');
+                    hint.className = 't';
+                    hint.style.color = 'var(--textmuted)';
+                    hint.style.fontSize = 'calc(12px * var(--scale))';
+                    hint.textContent = 'Noch keine Buttons – „+ Neuer Button" antippen.';
+                    rowsWrap.appendChild(hint);
+                }
+                list.forEach(function (b, pos) {
+                    var row = document.createElement('div');
+                    row.className = 'tsl-rule';
+                    var t = document.createElement('span');
+                    t.className = 't';
+                    t.textContent = b.n + (b.label ? ' — "' + b.label + '"' : '');
+                    t.title = t.textContent;
+                    row.appendChild(t);
+
+                    var up = document.createElement('button');
+                    up.className = 'tsl-ico';
+                    up.textContent = '▲';
+                    up.title = 'Nach oben';
+                    up.disabled = (pos === 0);
+                    up.style.opacity = up.disabled ? 0.3 : '';
+                    up.onclick = function () { requestAction('btnMove', JSON.stringify({ idx: b.idx, dir: 'up' })); };
+                    row.appendChild(up);
+
+                    var down = document.createElement('button');
+                    down.className = 'tsl-ico';
+                    down.textContent = '▼';
+                    down.title = 'Nach unten';
+                    down.disabled = (pos === list.length - 1);
+                    down.style.opacity = down.disabled ? 0.3 : '';
+                    down.onclick = function () { requestAction('btnMove', JSON.stringify({ idx: b.idx, dir: 'down' })); };
+                    row.appendChild(down);
+
+                    var ed = document.createElement('button');
+                    ed.className = 'tsl-ico';
+                    ed.textContent = '✎';
+                    ed.title = 'Button bearbeiten';
+                    ed.onclick = function () { bedOpen(b.idx, { Ident: b.i, Label: b.label }); };
+                    row.appendChild(ed);
+
+                    var del = document.createElement('button');
+                    del.className = 'tsl-ico';
+                    del.textContent = '\u{1F5D1}';
+                    del.title = 'Button löschen';
+                    del.onclick = function () {
+                        if (del.dataset.confirm === '1') { requestAction('btnDelete', b.idx); return; }
+                        del.dataset.confirm = '1';
+                        del.textContent = 'Sicher?';
+                        del.className = 'tsl-ico warn';
+                        setTimeout(function () { del.dataset.confirm = ''; del.textContent = '\u{1F5D1}'; del.className = 'tsl-ico'; }, 3000);
+                    };
+                    row.appendChild(del);
+
+                    rowsWrap.appendChild(row);
                 });
+            } else {
+                rowsWrap.style.display = 'none';
+                btns.style.display = 'flex';
+                if (Array.isArray(d.buttons)) {
+                    d.buttons.forEach(function (b) {
+                        var el = document.createElement('button');
+                        el.className = 'tsl-btn' + (b.on ? ' on' : '');
+                        el.textContent = b.c;
+                        el.onclick = function () { requestAction(b.i, b.v); };
+                        btns.appendChild(el);
+                    });
+                }
             }
         }
+
+        document.getElementById('btn-editmode').onclick = function () {
+            BTN_EDIT_MODE = !BTN_EDIT_MODE;
+            this.textContent = BTN_EDIT_MODE ? '✓' : '✎';
+            this.title = BTN_EDIT_MODE ? 'Fertig' : 'Buttons bearbeiten';
+            if (LAST_MSG) renderButtons(LAST_MSG);
+        };
+        document.getElementById('btn-add').onclick = function () { bedOpen(-1, null); };
+
+        // ------------------------------------------------------------------
+        // Button-Editor
+        // ------------------------------------------------------------------
+        var BED = { catalog: null, i: -1, button: null, pendingOpen: false };
+
+        function bedOpen(i, button) {
+            BED.i = i;
+            BED.button = button || { Ident: 'act_locked', Label: '' };
+            if (BED.catalog) { bedOpenNow(); }
+            else { BED.pendingOpen = true; requestAction('btnEditor', ''); }
+        }
+
+        function bedOpenNow() {
+            if (!BED.catalog) return;
+            BED.pendingOpen = false;
+            var sel = document.getElementById('bed-fn');
+            sel.textContent = '';
+            BED.catalog.forEach(function (o) {
+                var e = document.createElement('option');
+                e.value = o.v; e.textContent = o.c;
+                sel.appendChild(e);
+            });
+            sel.value = BED.button.Ident;
+            document.getElementById('bed-label').value = BED.button.Label || '';
+            document.getElementById('bed-title').textContent = (BED.i < 0) ? 'Neuer Button' : 'Button bearbeiten';
+            document.getElementById('tsl-bed').classList.add('open');
+        }
+
+        function bedClose() { document.getElementById('tsl-bed').classList.remove('open'); }
+
+        document.getElementById('bed-cancel').onclick = bedClose;
+        document.getElementById('tsl-bed').onclick = function (ev) { if (ev.target === this) bedClose(); };
+        document.getElementById('bed-save').onclick = function () {
+            var button = {
+                Ident: document.getElementById('bed-fn').value,
+                Label: document.getElementById('bed-label').value
+            };
+            requestAction('btnSave', JSON.stringify({ i: BED.i, button: button }));
+            bedClose();
+        };
 
         // ------------------------------------------------------------------
         // Standort-Editor
@@ -468,28 +621,104 @@
         // ------------------------------------------------------------------
         var ED = { data: null, i: -1, rule: null, active: true, pendingOpen: false };
         var NUM_OPS = ['eq', 'ne', 'gt', 'ge', 'lt', 'le'];
+        var OP_OPTIONS = [
+            { v: 'true', c: 'wird EIN (true)' },
+            { v: 'false', c: 'wird AUS (false)' },
+            { v: 'eq', c: '= (gleich)' },
+            { v: 'ne', c: '≠ (ungleich)' },
+            { v: 'gt', c: '> (größer)' },
+            { v: 'ge', c: '≥ (größer gleich)' },
+            { v: 'lt', c: '< (kleiner)' },
+            { v: 'le', c: '≤ (kleiner gleich)' },
+            { v: 'change', c: 'ändert sich' },
+            { v: 'pass', c: 'Durchfahrt (Standort)' }
+        ];
 
         function edOpen(i, rule, active) {
             ED.i = i;
-            ED.rule = rule || { Source: '', Op: 'true', Compare: '', Target: 0, Action: 'on', Value: '' };
+            ED.rule = rule || { Conditions: [], Target: 0, Action: 'on', Value: '' };
             ED.active = (active === undefined) ? true : !!active;
             if (ED.data) { edOpenNow(); }
             else { ED.pendingOpen = true; requestAction('ruleEditor', ''); }
         }
 
-        function edOpenNow() {
-            if (!ED.data) return;
-            if (ED.pendingOpen) ED.pendingOpen = false;
-            var src = document.getElementById('ed-src');
-            src.textContent = '';
+        function edBuildConditionRow(cond) {
+            cond = cond || { Source: '', Op: 'true', Compare: '' };
+            var box = document.createElement('div');
+            box.className = 'ed-cond-box';
+
+            var hd = document.createElement('div');
+            hd.className = 'ed-cond-hd';
+            var tag = document.createElement('span');
+            tag.className = 'ed-cond-tag';
+            hd.appendChild(tag);
+            var del = document.createElement('button');
+            del.type = 'button';
+            del.className = 'tsl-ico warn';
+            del.textContent = '\u{1F5D1}';
+            del.title = 'Bedingung entfernen';
+            del.onclick = function () { box.remove(); edRefreshConditionTags(); };
+            hd.appendChild(del);
+            box.appendChild(hd);
+
+            var src = document.createElement('select');
+            src.className = 'ed-cond-src';
             (ED.data.sources || []).forEach(function (s) {
                 var o = document.createElement('option');
                 o.value = s.v; o.textContent = s.c;
                 src.appendChild(o);
             });
-            if (ED.rule.Source) src.value = ED.rule.Source;
-            document.getElementById('ed-op').value = ED.rule.Op || 'true';
-            document.getElementById('ed-cmp').value = ED.rule.Compare || '';
+            if (cond.Source) src.value = cond.Source;
+            box.appendChild(src);
+
+            var op = document.createElement('select');
+            op.className = 'ed-cond-op';
+            OP_OPTIONS.forEach(function (o) {
+                var e = document.createElement('option');
+                e.value = o.v; e.textContent = o.c;
+                op.appendChild(e);
+            });
+            op.value = cond.Op || 'true';
+            box.appendChild(op);
+
+            var cmp = document.createElement('input');
+            cmp.type = 'text';
+            cmp.className = 'ed-cond-cmp';
+            cmp.placeholder = 'Vergleichswert';
+            cmp.value = cond.Compare || '';
+            box.appendChild(cmp);
+
+            function syncCmp() { cmp.style.display = (NUM_OPS.indexOf(op.value) >= 0) ? '' : 'none'; }
+            op.onchange = syncCmp;
+            syncCmp();
+
+            return box;
+        }
+
+        function edRefreshConditionTags() {
+            var boxes = document.querySelectorAll('#ed-conditions .ed-cond-box');
+            boxes.forEach(function (box, idx) {
+                box.querySelector('.ed-cond-tag').textContent = (idx === 0) ? 'WENN' : 'UND';
+                var del = box.querySelector('.tsl-ico');
+                del.style.visibility = (boxes.length > 1) ? 'visible' : 'hidden';
+            });
+        }
+
+        document.getElementById('ed-addcond').onclick = function () {
+            document.getElementById('ed-conditions').appendChild(edBuildConditionRow(null));
+            edRefreshConditionTags();
+        };
+
+        function edOpenNow() {
+            if (!ED.data) return;
+            if (ED.pendingOpen) ED.pendingOpen = false;
+
+            var condsWrap = document.getElementById('ed-conditions');
+            condsWrap.textContent = '';
+            var conds = (ED.rule.Conditions && ED.rule.Conditions.length) ? ED.rule.Conditions : [null];
+            conds.forEach(function (c) { condsWrap.appendChild(edBuildConditionRow(c)); });
+            edRefreshConditionTags();
+
             document.getElementById('ed-tfilter').value = '';
             edRenderTargets('');
             document.getElementById('ed-act').value = ED.rule.Action || 'on';
@@ -527,8 +756,6 @@
         }
 
         function edSync() {
-            var op = document.getElementById('ed-op').value;
-            document.getElementById('ed-cmp-wrap').style.display = (NUM_OPS.indexOf(op) >= 0) ? 'block' : 'none';
             var isValue = (document.getElementById('ed-act').value === 'value');
             document.getElementById('ed-val-wrap').style.display = isValue ? 'block' : 'none';
             if (isValue) {
@@ -565,24 +792,33 @@
 
         function edClose() { document.getElementById('tsl-ed').classList.remove('open'); }
 
-        document.getElementById('ed-op').onchange = edSync;
         document.getElementById('ed-act').onchange = edSync;
         document.getElementById('ed-target').onchange = edSync;
         document.getElementById('ed-tfilter').oninput = function () { edRenderTargets(this.value); edSync(); };
         document.getElementById('ed-cancel').onclick = edClose;
         document.getElementById('tsl-ed').onclick = function (ev) { if (ev.target === this) edClose(); };
         document.getElementById('ed-save').onclick = function () {
+            var conditions = [];
+            document.querySelectorAll('#ed-conditions .ed-cond-box').forEach(function (box) {
+                var src = box.querySelector('.ed-cond-src').value;
+                if (!src) return;
+                conditions.push({
+                    Source: src,
+                    Op: box.querySelector('.ed-cond-op').value,
+                    Compare: box.querySelector('.ed-cond-cmp').value
+                });
+            });
+            if (!conditions.length) return;
+
             var valSel = document.getElementById('ed-val-sel');
             var rule = {
                 Active: ED.active,
-                Source: document.getElementById('ed-src').value,
-                Op: document.getElementById('ed-op').value,
-                Compare: document.getElementById('ed-cmp').value,
+                Conditions: conditions,
                 Target: parseInt(document.getElementById('ed-target').value || '0', 10),
                 Action: document.getElementById('ed-act').value,
                 Value: (valSel.style.display !== 'none') ? valSel.value : document.getElementById('ed-val').value
             };
-            if (!rule.Source || !(rule.Target > 0)) return;
+            if (!(rule.Target > 0)) return;
             requestAction('ruleSave', JSON.stringify({ i: ED.i, rule: rule }));
             edClose();
         };
