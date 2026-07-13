@@ -184,6 +184,15 @@ class TessieVehicleTile extends IPSModule
             $this->UpdateVisualizationValue(json_encode(['targetOpts' => ['vid' => $vid, 'options' => is_array($opts) ? $opts : []]]));
             return;
         }
+        if ($Ident === 'condOpts') {
+            // Profilwerte des gewählten Wenn-Datenpunkts (z. B. Sitzheizung, Klimahaltung)
+            // für den Vergleichswert-Dropdown im Regel-Editor; leer = freie Eingabe
+            $source = (string)$Value;
+            $vid = ($source !== '') ? @IPS_GetObjectIDByIdent($source, $src) : false;
+            $opts = ($vid !== false && $vid > 0) ? json_decode((string)@TESSIE_GetTargetValueOptions($src, $vid), true) : [];
+            $this->UpdateVisualizationValue(json_encode(['condOpts' => ['source' => $source, 'options' => is_array($opts) ? $opts : []]]));
+            return;
+        }
         if ($Ident === 'ruleSave') {
             $data = json_decode((string)$Value, true);
             if (is_array($data) && isset($data['rule'])) {

@@ -31,7 +31,7 @@
         },
         {
           "type": "Label",
-          "caption": "Mit 'Automationen anzeigen' verwaltet die Kachel die Wenn→Dann-Regeln der TessieVehicle-Quelle vollständig: '+ Neue Regel' legt eine Regel an, ✎ bearbeitet, der Papierkorb löscht (mit Rückfrage), der Schalter aktiviert/deaktiviert. Im Editor werden als Ziel schaltbare Variablen (mit Aktion) angeboten – per Suchfeld filterbar; bei 'Wert setzen' erscheinen die im Profil/der Darstellung definierten Werte als Auswahlliste. Ist die Kachel mehrfach verlinkt, wirken alle Änderungen überall auf dieselben Regeln."
+          "caption": "Mit 'Automationen anzeigen' verwaltet die Kachel die Wenn→Dann-Regeln der TessieVehicle-Quelle vollständig: '+ Neue Regel' legt eine Regel an, ✎ bearbeitet, der Papierkorb löscht (mit Rückfrage), der Schalter aktiviert/deaktiviert. Im Editor werden als Ziel schaltbare Variablen (mit Aktion) angeboten – per Suchfeld filterbar; bei 'Wert setzen' erscheinen die im Profil/der Darstellung definierten Werte als Auswahlliste. Genauso beim 'Wenn'-Vergleichswert: hat der gewählte Datenpunkt bekannte Werte (z. B. Sitzheizung, Klimahaltung), erscheint dort ebenfalls eine Auswahlliste statt Freitext, und die Bedingung springt automatisch von 'wird EIN/AUS' auf '=', da das bei mehrwertigen Datenpunkten sinnvoller ist. Ist die Kachel mehrfach verlinkt, wirken alle Änderungen überall auf dieselben Regeln."
         },
         {
           "type": "Label",

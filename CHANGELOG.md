@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.16.0] - 2026-07-04
+### Hinzugefuegt
+- Automationen-Editor der Kachel: Der Vergleichswert im "Wenn"-Bereich wird jetzt als Dropdown mit Klartext angeboten, sobald der gewaehlte Datenpunkt bekannte Profil-/Presentation-Werte hat (Sitzheizung Fahrer/Beifahrer, Klimahaltung, Innenraum-Ueberhitzeschutz-Limit) - analog zum bereits vorhandenen Dropdown fuer "Wert setzen" auf der Ziel-Seite (nach dem in StromGedachtWidget bewaehrten Muster). Zwei Verbesserungen dabei: Profilwerte werden sofort abgefragt, sobald eine Bedingungszeile aufgebaut wird (auch bei der automatischen Vorauswahl, nicht erst beim manuellen Wechsel); und wenn Profilwerte eintreffen waehrend die Bedingung noch auf "wird EIN/AUS" steht, springt sie automatisch auf "= (gleich)", da EIN/AUS bei einem mehrwertigen Datenpunkt keinen Sinn ergibt. Im klassischen Instanzformular (dort technisch nicht als Dropdown moeglich) listet ein Hilfetext die bekannten Werte zum Nachschlagen.
+
 ## [2.15.0] - 2026-07-03
 ### Behoben
 - "Aktueller Standort" blieb nach Anlegen/Aendern eines Standorts (z. B. ueber die Kachel) bis zur naechsten GPS-Telemetriemeldung auf dem alten Wert stehen (z. B. weiterhin "Unterwegs" trotz neu eingerichtetem, zutreffendem Standort). ApplyChanges wertet die Standort-Erkennung jetzt sofort mit der zuletzt bekannten Position neu aus.

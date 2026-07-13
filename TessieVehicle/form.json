@@ -55,7 +55,7 @@
                 },
                 {
                     "type": "Label",
-                    "caption": "Regeln über beliebige Datenpunkte: 'Wenn <Datenpunkt> <Bedingung> → <Zielvariable> <Aktion>'. Bedingungen: wird EIN/AUS (für Schalter), Vergleiche (=, ≠, >, ≥, <, ≤) für Zahlen und Texte, 'ändert sich' für jede Wertänderung, 'Durchfahrt (Standort)' für Standort-Variablen. Beispiele: 'Wenn Ladestand ≥ 80 → Wallbox-Freigabe ausschalten', 'Wenn Zu Hause wird EIN → Garagentor einschalten' (= Einfahrt), 'Wenn Ortseingang Durchfahrt → Heizung einschalten'. Regeln sind flankengesteuert: sie feuern beim Eintreten der Bedingung, nicht bei jeder Datenmeldung erneut – erst wenn die Bedingung zwischenzeitlich nicht mehr erfüllt war, feuert die Regel wieder. Nach 'Änderungen übernehmen' wird der Ausgangszustand neu eingelesen, ohne auszulösen. Die Regeln lassen sich komplett in der Kachel (TessieVehicleTile) verwalten. Eine Regel kann auch MEHRERE Bedingungen mit UND verknüpfen (im Instanzformular derzeit nur über den Kachel-Editor einstellbar, siehe unten) – Beispiel: 'Wenn Zu Hause wird EIN UND Ladestand < 30 → Ladeport öffnen'. Bei mehreren Bedingungen feuert die Regel, sobald ALLE gleichzeitig erfüllt sind (wieder flankengesteuert). Die Liste unten zeigt bei einer solchen Regel nur die erste Bedingung – wird die Regel HIER (ohne die Kachel) übernommen, bleibt nur diese erste Bedingung erhalten, weitere UND-Bedingungen entfallen dann."
+                    "caption": "Regeln über beliebige Datenpunkte: 'Wenn <Datenpunkt> <Bedingung> → <Zielvariable> <Aktion>'. Bedingungen: wird EIN/AUS (für Schalter), Vergleiche (=, ≠, >, ≥, <, ≤) für Zahlen und Texte, 'ändert sich' für jede Wertänderung, 'Durchfahrt (Standort)' für Standort-Variablen. Beispiele: 'Wenn Ladestand ≥ 80 → Wallbox-Freigabe ausschalten', 'Wenn Zu Hause wird EIN → Garagentor einschalten' (= Einfahrt), 'Wenn Ortseingang Durchfahrt → Heizung einschalten'. Regeln sind flankengesteuert: sie feuern beim Eintreten der Bedingung, nicht bei jeder Datenmeldung erneut – erst wenn die Bedingung zwischenzeitlich nicht mehr erfüllt war, feuert die Regel wieder. Nach 'Änderungen übernehmen' wird der Ausgangszustand neu eingelesen, ohne auszulösen. Die Regeln lassen sich komplett in der Kachel (TessieVehicleTile) verwalten. Eine Regel kann auch MEHRERE Bedingungen mit UND verknüpfen (im Instanzformular derzeit nur über den Kachel-Editor einstellbar, siehe unten) – Beispiel: 'Wenn Zu Hause wird EIN UND Ladestand < 30 → Ladeport öffnen'. Bei mehreren Bedingungen feuert die Regel, sobald ALLE gleichzeitig erfüllt sind (wieder flankengesteuert). Die Liste unten zeigt bei einer solchen Regel nur die erste Bedingung – wird die Regel HIER (ohne die Kachel) übernommen, bleibt nur diese erste Bedingung erhalten, weitere UND-Bedingungen entfallen dann. Datenpunkte mit festen Werten (Sitzheizung, Klimahaltung, Überhitzeschutz-Limit) zeigen den Vergleichswert in der Kachel als Dropdown mit Klartext an, sobald =/≠/… gewählt ist – wechselt die Bedingung dabei automatisch von 'wird EIN/AUS' auf '=', da das bei mehrwertigen Datenpunkten sinnvoller ist."
                 },
                 {
                     "type": "Label",
@@ -293,6 +293,22 @@
                 {
                     "type": "Label",
                     "caption": "'Vergleichswert' nur bei =, ≠, >, ≥, <, ≤ nötig; 'Wert' nur bei Aktion 'Wert setzen'. Zahlen mit Punkt oder Komma. Die Zielvariable wird per Aktion geschaltet (wie ein Klick in der Visualisierung); Variablen ohne Aktion werden direkt beschrieben."
+                },
+                {
+                    "type": "Label",
+                    "caption": "Werte zum Nachschlagen (die Kachel bietet diese als Dropdown an, hier nur als Freitext möglich):"
+                },
+                {
+                    "type": "Label",
+                    "caption": "Sitzheizung Fahrer/Beifahrer: 0 Aus · 1 Niedrig · 2 Mittel · 3 Hoch"
+                },
+                {
+                    "type": "Label",
+                    "caption": "Klimahaltung: 0 Aus · 1 Behalten · 2 Hund · 3 Camping"
+                },
+                {
+                    "type": "Label",
+                    "caption": "Innenraum-Überhitzeschutz: Temperaturlimit: 1 Niedrig · 2 Mittel · 3 Hoch"
                 },
                 {
                     "type": "Label",
