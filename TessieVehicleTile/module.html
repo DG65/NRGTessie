@@ -85,6 +85,9 @@
         .ed-cond-hd { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
         .ed-cond-tag { font-size: calc(10px * var(--scale)); font-weight: 700; letter-spacing: .5px; color: var(--accent); text-transform: uppercase; }
         .ed-cond-box select, .ed-cond-box input { margin-top: 6px; }
+        .ged-icon-picks { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+        .ged-icon-pick { border: 1px solid var(--track); background: var(--box); border-radius: 8px; width: calc(32px * var(--scale)); height: calc(32px * var(--scale)); font-size: calc(16px * var(--scale)); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
+        .ged-icon-pick:hover { border-color: var(--accent); }
 
         .tsl-btns { display: flex; gap: 8px; flex-wrap: wrap; }
         .tsl-btn { flex: 1 1 30%; min-width: 84px; border: none; border-radius: 10px; padding: 10px 8px; font-size: calc(13px * var(--scale)); font-weight: 600; cursor: pointer; background: var(--box); color: var(--text); }
@@ -170,6 +173,12 @@
             <label for="ged-name">Name</label>
             <input id="ged-name" type="text" placeholder="z. B. Arbeit">
 
+            <div id="ged-icon-wrap">
+                <label for="ged-icon">Icon (optional, für die Kachel)</label>
+                <input id="ged-icon" type="text" placeholder="📍 (Standard)" maxlength="4">
+                <div class="ged-icon-picks" id="ged-icon-picks"></div>
+            </div>
+
             <label for="ged-lat">Breitengrad</label>
             <input id="ged-lat" type="text" placeholder="z. B. 48.340874" inputmode="decimal">
 
@@ -254,8 +263,16 @@
             root.setProperty('--scale', d.scale || 1);
 
             var geoloc = document.getElementById('tsl-geoloc');
-            if (d.location) { geoloc.textContent = '📍 ' + d.location; geoloc.style.display = ''; }
-            else { geoloc.style.display = 'none'; }
+            if (d.location) {
+                var locIcon = '📍';
+                if (d.location === 'Zuhause') { locIcon = '🏠'; }
+                else if (d.geo && Array.isArray(d.geo.fences)) {
+                    var match = d.geo.fences.find(function (f) { return f.name === d.location; });
+                    if (match && match.icon) locIcon = match.icon;
+                }
+                geoloc.textContent = locIcon + ' ' + d.location;
+                geoloc.style.display = '';
+            } else { geoloc.style.display = 'none'; }
 
             var lock = document.getElementById('tsl-lock');
             if (d.locked === null || d.locked === undefined) { lock.textContent = '–'; lock.className = 'tsl-pill'; }
@@ -407,7 +424,7 @@
                     var hl = '🏠 Zuhause · ' + (h.radius || 100) + ' m' + (h.fromSystem ? ' (Systemstandort)' : (h.lat === null || h.lat === undefined ? ' (kein Standort!)' : ''));
                     fenceRow(hl, function () { gedOpen('home', h); }, null);
                     (d.geo.fences || []).forEach(function (f) {
-                        fenceRow('📍 ' + f.name + ' · ' + f.radius + ' m' + (f.lat === null || f.lat === undefined ? ' (ungültig!)' : ''),
+                        fenceRow((f.icon || '📍') + ' ' + f.name + ' · ' + f.radius + ' m' + (f.lat === null || f.lat === undefined ? ' (ungültig!)' : ''),
                             function () { gedOpen(f.i, f); },
                             function () { requestAction('fenceDelete', f.i); });
                     });
@@ -573,6 +590,7 @@
         // ------------------------------------------------------------------
         var LAST_POS = null;            // letzte bekannte Fahrzeugposition
         var GED = { i: -1 };            // 'home' oder Index in GeofenceList
+        var ICON_PICKS = ['📍', '🏢', '💼', '🏫', '🏥', '🛒', '⛽', '🅿️', '🏋️', '👪'];
 
         function gedOpen(i, fence) {
             GED.i = i;
@@ -582,6 +600,25 @@
             var name = document.getElementById('ged-name');
             name.value = isHome ? 'Zuhause' : (f.name || '');
             name.disabled = isHome;
+
+            var iconWrap = document.getElementById('ged-icon-wrap');
+            iconWrap.style.display = isHome ? 'none' : ''; // Zuhause bleibt fest bei 🏠
+            if (!isHome) {
+                var iconInput = document.getElementById('ged-icon');
+                iconInput.value = (f.icon && f.icon !== '📍') ? f.icon : '';
+                var picks = document.getElementById('ged-icon-picks');
+                picks.textContent = '';
+                ICON_PICKS.forEach(function (ic) {
+                    var b = document.createElement('button');
+                    b.type = 'button';
+                    b.className = 'ged-icon-pick';
+                    b.textContent = ic;
+                    b.title = ic;
+                    b.onclick = function () { iconInput.value = (ic === '📍') ? '' : ic; };
+                    picks.appendChild(b);
+                });
+            }
+
             document.getElementById('ged-lat').value = (f.lat === null || f.lat === undefined) ? '' : f.lat;
             document.getElementById('ged-lon').value = (f.lon === null || f.lon === undefined) ? '' : f.lon;
             document.getElementById('ged-radius').value = f.radius || 100;
@@ -611,8 +648,9 @@
                 return;
             }
             var name = document.getElementById('ged-name').value.trim();
+            var icon = document.getElementById('ged-icon').value.trim();
             if (!name || !lat || !lon) return;
-            requestAction('fenceSave', JSON.stringify({ i: GED.i, fence: { name: name, lat: lat, lon: lon, radius: radius } }));
+            requestAction('fenceSave', JSON.stringify({ i: GED.i, fence: { name: name, lat: lat, lon: lon, radius: radius, icon: icon } }));
             gedClose();
         };
 

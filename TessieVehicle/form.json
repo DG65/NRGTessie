@@ -329,6 +329,15 @@
                     "delete": true,
                     "columns": [
                         {
+                            "caption": "Icon",
+                            "name": "Icon",
+                            "width": "70px",
+                            "add": "",
+                            "edit": {
+                                "type": "ValidationTextBox"
+                            }
+                        },
+                        {
                             "caption": "Name",
                             "name": "Name",
                             "width": "200px",
@@ -362,7 +371,7 @@
                 },
                 {
                     "type": "Label",
-                    "caption": "Der Name des Standorts wird als Variablenname und in 'Aktueller Standort' verwendet. Bei überlappenden Zonen gewinnt der nächstgelegene Standort."
+                    "caption": "Der Name des Standorts wird als Variablenname und in 'Aktueller Standort' verwendet. Bei überlappenden Zonen gewinnt der nächstgelegene Standort. 'Icon' ist ein optionales Emoji für die Kachel (z. B. 🏢 für Arbeit) – leer lassen für den Standard-Pin 📍."
                 }
             ]
         },

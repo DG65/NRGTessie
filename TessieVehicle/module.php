@@ -170,6 +170,21 @@ class TessieVehicle extends IPSModule
         // selten gesendete/stale Datenpunkte) nachträglich lesbar machen
         $this->migrateTelemetryValues();
 
+        // Standort-Erkennung sofort mit der letzten bekannten Position neu auswerten
+        // (z. B. nach Anlegen/Ändern eines Standorts über die Kachel) – sonst bliebe
+        // "Aktueller Standort" bis zur nächsten GPS-Meldung auf dem alten Stand stehen.
+        if ($this->ReadPropertyBoolean('HomeDetection')) {
+            $latVid = @IPS_GetObjectIDByIdent('stat_tel_Location_lat', $this->InstanceID);
+            $lonVid = @IPS_GetObjectIDByIdent('stat_tel_Location_lon', $this->InstanceID);
+            if ($latVid > 0 && $lonVid > 0) {
+                $lat = GetValueFloat($latVid);
+                $lon = GetValueFloat($lonVid);
+                if (is_finite($lat) && is_finite($lon) && !($lat == 0.0 && $lon == 0.0)) {
+                    try { $this->updateHomeStatus($lat, $lon); } catch (Throwable $e) { /* ignorieren */ }
+                }
+            }
+        }
+
         // Automations-Baseline: Zustände neu einlesen, ohne auszulösen
         // (verhindert Fehlauslösungen durch bereits erfüllte Bedingungen)
         try { $this->evaluateDataActions(false); } catch (Throwable $e) { /* ignorieren */ }
@@ -2037,9 +2052,11 @@ class TessieVehicle extends IPSModule
             foreach ($list as $i => $row) {
                 if (!is_array($row)) continue;
                 $pos = $parse($row['Location'] ?? '');
+                $icon = trim((string)($row['Icon'] ?? ''));
                 $fences[] = [
                     'i'      => $i,
                     'name'   => (string)($row['Name'] ?? ''),
+                    'icon'   => ($icon !== '') ? $icon : '📍',
                     'lat'    => $pos[0] ?? null,
                     'lon'    => $pos[1] ?? null,
                     'radius' => max(1, (int)($row['Radius'] ?? 100))
@@ -2085,7 +2102,7 @@ class TessieVehicle extends IPSModule
 
     /**
      * Legt einen weiteren Standort an oder überschreibt ihn ($Index < 0 = anhängen).
-     * $JSON: {name, lat, lon, radius}
+     * $JSON: {name, lat, lon, radius, icon}
      */
     public function SetGeofence(int $Index, string $JSON): void
     {
@@ -2099,10 +2116,19 @@ class TessieVehicle extends IPSModule
         if ($name === '' || $name === 'Zuhause' || !is_finite($lat) || !is_finite($lon) || ($lat == 0.0 && $lon == 0.0)) {
             return;
         }
+        // Icon: einzelnes Emoji/Symbol, grob auf wenige Zeichen begrenzt (Sicherheitsnetz
+        // gegen versehentlich eingefügten Fließtext); leer = Standard-Pin in der Kachel.
+        $icon = trim((string)($in['icon'] ?? ''));
+        if (function_exists('mb_substr')) {
+            $icon = mb_substr($icon, 0, 4);
+        } else {
+            $icon = substr($icon, 0, 16);
+        }
         $row = [
             'Name'     => $name,
             'Location' => json_encode(['latitude' => $lat, 'longitude' => $lon]),
-            'Radius'   => min(5000, max(10, (int)($in['radius'] ?? 100)))
+            'Radius'   => min(5000, max(10, (int)($in['radius'] ?? 100))),
+            'Icon'     => $icon
         ];
 
         $list = json_decode((string)$this->ReadPropertyString('GeofenceList'), true);

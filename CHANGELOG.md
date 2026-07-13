@@ -2,6 +2,12 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.15.0] - 2026-07-03
+### Behoben
+- "Aktueller Standort" blieb nach Anlegen/Aendern eines Standorts (z. B. ueber die Kachel) bis zur naechsten GPS-Telemetriemeldung auf dem alten Wert stehen (z. B. weiterhin "Unterwegs" trotz neu eingerichtetem, zutreffendem Standort). ApplyChanges wertet die Standort-Erkennung jetzt sofort mit der zuletzt bekannten Position neu aus.
+### Hinzugefuegt
+- Optionales Icon/Emoji je weiterem Standort (Feld 'Icon' in der Standortliste bzw. Icon-Eingabe mit Vorschlaegen im Kachel-Editor) statt des festen Pin-Symbols - erscheint in der Standortliste und in der "Aktueller Standort"-Anzeige der Kachel. Zuhause bleibt bei 🏠.
+
 ## [2.14.0] - 2026-07-02
 ### Hinzugefuegt
 - Buttons vollstaendig in der Kachel verwaltbar: Stift-Symbol neben "Buttons" schaltet in eine Verwaltungsansicht (Funktion/Beschriftung aendern via Editor-Overlay, Reihenfolge per Auf/Ab-Pfeile, Loeschen mit Rueckfrage, "+ Neuer Button"). Schreibt direkt die eigene Buttons-Eigenschaft der Kachel-Instanz, keine Quellen-Instanz noetig. Neue Public-API: TESSIE TILE-eigene Methoden GetButtonCatalog/SetButtonConfig/DeleteButtonConfig/MoveButtonConfig.
