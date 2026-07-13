@@ -172,6 +172,31 @@ class TessieVehicleTile extends IPSModule
             return;
         }
 
+        // Standort-Verwaltung aus der Kachel (Geofences der Quelle)
+        if ($Ident === 'geoEnable') {
+            @TESSIE_SetGeofenceEnabled($src, (bool)$Value);
+            $this->UpdateVisualizationValue($this->GetFullUpdateMessage());
+            return;
+        }
+        if ($Ident === 'homeSave') {
+            @TESSIE_SetHomeGeofence($src, (string)$Value);
+            $this->UpdateVisualizationValue($this->GetFullUpdateMessage());
+            return;
+        }
+        if ($Ident === 'fenceSave') {
+            $data = json_decode((string)$Value, true);
+            if (is_array($data) && isset($data['fence'])) {
+                @TESSIE_SetGeofence($src, (int)($data['i'] ?? -1), json_encode($data['fence']));
+                $this->UpdateVisualizationValue($this->GetFullUpdateMessage());
+            }
+            return;
+        }
+        if ($Ident === 'fenceDelete') {
+            @TESSIE_DeleteGeofence($src, (int)$Value);
+            $this->UpdateVisualizationValue($this->GetFullUpdateMessage());
+            return;
+        }
+
         if (!isset(self::ACTION_MAP[$Ident])) {
             return;
         }
@@ -261,7 +286,8 @@ class TessieVehicleTile extends IPSModule
             'lat'         => $this->ReadSourceValue($src, 'stat_tel_Location_lat'),
             'lon'         => $this->ReadSourceValue($src, 'stat_tel_Location_lon'),
             'location'    => $this->ReadSourceValue($src, 'stat_location_name'),
-            'rules'       => $this->ReadSourceRules($src)
+            'rules'       => $this->ReadSourceRules($src),
+            'geo'         => $this->ReadSourceGeo($src)
         ]));
     }
 
@@ -291,6 +317,17 @@ class TessieVehicleTile extends IPSModule
         $json = @TESSIE_GetDataActions($instanceID);
         $rules = is_string($json) ? json_decode($json, true) : null;
         return is_array($rules) ? $rules : null;
+    }
+
+    /** Standort-Konfiguration der Quelle für die Kachel (oder null, wenn ausgeblendet). */
+    private function ReadSourceGeo(int $instanceID): ?array
+    {
+        if (!$this->ReadPropertyBoolean('ShowAutomations')) {
+            return null;
+        }
+        $json = @TESSIE_GetGeofenceConfig($instanceID);
+        $geo = is_string($json) ? json_decode($json, true) : null;
+        return is_array($geo) ? $geo : null;
     }
 
     private function ReadSourceValue(int $instanceID, string $ident)

@@ -1915,6 +1915,130 @@ class TessieVehicle extends IPSModule
         IPS_ApplyChanges($this->InstanceID);
     }
 
+    /**
+     * Standort-Konfiguration für die Kachel:
+     * {enabled, home:{lat,lon,radius,fromSystem}, fences:[{i,name,lat,lon,radius}]}
+     */
+    public function GetGeofenceConfig(): string
+    {
+        $parse = function ($locJson) {
+            $loc = json_decode((string)$locJson, true);
+            if (!is_array($loc) || !isset($loc['latitude'], $loc['longitude'])) return null;
+            $lat = (float)$loc['latitude'];
+            $lon = (float)$loc['longitude'];
+            if (($lat == 0.0 && $lon == 0.0) || !is_finite($lat) || !is_finite($lon)) return null;
+            return [$lat, $lon];
+        };
+
+        $own = $parse($this->ReadPropertyString('HomeLocation'));
+        $sys = ($own === null) ? $parse($this->getSystemLocation()) : null;
+        $eff = $own ?? $sys;
+        $home = [
+            'lat'        => $eff[0] ?? null,
+            'lon'        => $eff[1] ?? null,
+            'radius'     => max(1, (int)$this->ReadPropertyInteger('HomeRadius')),
+            'fromSystem' => ($own === null && $sys !== null)
+        ];
+
+        $fences = [];
+        $list = json_decode((string)$this->ReadPropertyString('GeofenceList'), true);
+        if (is_array($list)) {
+            foreach ($list as $i => $row) {
+                if (!is_array($row)) continue;
+                $pos = $parse($row['Location'] ?? '');
+                $fences[] = [
+                    'i'      => $i,
+                    'name'   => (string)($row['Name'] ?? ''),
+                    'lat'    => $pos[0] ?? null,
+                    'lon'    => $pos[1] ?? null,
+                    'radius' => max(1, (int)($row['Radius'] ?? 100))
+                ];
+            }
+        }
+
+        return json_encode([
+            'enabled' => $this->ReadPropertyBoolean('HomeDetection'),
+            'home'    => $home,
+            'fences'  => $fences
+        ]);
+    }
+
+    /** Schaltet die Standort-Erkennung ein/aus (z. B. aus der Kachel). */
+    public function SetGeofenceEnabled(bool $Enabled): void
+    {
+        if ($this->ReadPropertyBoolean('HomeDetection') === $Enabled) {
+            return;
+        }
+        IPS_SetProperty($this->InstanceID, 'HomeDetection', $Enabled);
+        IPS_ApplyChanges($this->InstanceID);
+    }
+
+    /**
+     * Setzt den Zuhause-Standort ({lat, lon, radius}); lat/lon leer/null = Systemstandort.
+     */
+    public function SetHomeGeofence(string $JSON): void
+    {
+        $in = json_decode($JSON, true);
+        if (!is_array($in)) {
+            return;
+        }
+        $lat = isset($in['lat']) && $in['lat'] !== '' && $in['lat'] !== null ? (float)$in['lat'] : null;
+        $lon = isset($in['lon']) && $in['lon'] !== '' && $in['lon'] !== null ? (float)$in['lon'] : null;
+        $loc = ($lat !== null && $lon !== null && is_finite($lat) && is_finite($lon))
+            ? json_encode(['latitude' => $lat, 'longitude' => $lon])
+            : '';
+        IPS_SetProperty($this->InstanceID, 'HomeLocation', $loc);
+        IPS_SetProperty($this->InstanceID, 'HomeRadius', min(5000, max(10, (int)($in['radius'] ?? 100))));
+        IPS_ApplyChanges($this->InstanceID);
+    }
+
+    /**
+     * Legt einen weiteren Standort an oder überschreibt ihn ($Index < 0 = anhängen).
+     * $JSON: {name, lat, lon, radius}
+     */
+    public function SetGeofence(int $Index, string $JSON): void
+    {
+        $in = json_decode($JSON, true);
+        if (!is_array($in)) {
+            return;
+        }
+        $name = trim((string)($in['name'] ?? ''));
+        $lat = (float)($in['lat'] ?? NAN);
+        $lon = (float)($in['lon'] ?? NAN);
+        if ($name === '' || $name === 'Zuhause' || !is_finite($lat) || !is_finite($lon) || ($lat == 0.0 && $lon == 0.0)) {
+            return;
+        }
+        $row = [
+            'Name'     => $name,
+            'Location' => json_encode(['latitude' => $lat, 'longitude' => $lon]),
+            'Radius'   => min(5000, max(10, (int)($in['radius'] ?? 100)))
+        ];
+
+        $list = json_decode((string)$this->ReadPropertyString('GeofenceList'), true);
+        if (!is_array($list)) {
+            $list = [];
+        }
+        if ($Index >= 0 && isset($list[$Index])) {
+            $list[$Index] = $row;
+        } else {
+            $list[] = $row;
+        }
+        IPS_SetProperty($this->InstanceID, 'GeofenceList', json_encode(array_values($list)));
+        IPS_ApplyChanges($this->InstanceID);
+    }
+
+    /** Löscht einen weiteren Standort (z. B. aus der Kachel). */
+    public function DeleteGeofence(int $Index): void
+    {
+        $list = json_decode((string)$this->ReadPropertyString('GeofenceList'), true);
+        if (!is_array($list) || !isset($list[$Index])) {
+            return;
+        }
+        unset($list[$Index]);
+        IPS_SetProperty($this->InstanceID, 'GeofenceList', json_encode(array_values($list)));
+        IPS_ApplyChanges($this->InstanceID);
+    }
+
     /** Löscht eine Regel (z. B. aus der Kachel). */
     public function DeleteDataAction(int $Index): void
     {

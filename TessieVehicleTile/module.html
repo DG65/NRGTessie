@@ -127,7 +127,35 @@
 
         <div class="tsl-rules" id="tsl-rules" style="display:none"></div>
 
+        <div class="tsl-rules" id="tsl-geo" style="display:none"></div>
+
         <div class="tsl-btns" id="tsl-btns"></div>
+    </div>
+
+    <div class="tsl-ed" id="tsl-ged">
+        <div class="tsl-ed-card">
+            <h3 id="ged-title">Standort bearbeiten</h3>
+
+            <label for="ged-name">Name</label>
+            <input id="ged-name" type="text" placeholder="z. B. Arbeit">
+
+            <label for="ged-lat">Breitengrad</label>
+            <input id="ged-lat" type="text" placeholder="z. B. 48.340874" inputmode="decimal">
+
+            <label for="ged-lon">Längengrad</label>
+            <input id="ged-lon" type="text" placeholder="z. B. 8.032679" inputmode="decimal">
+
+            <button class="tsl-btn" id="ged-carpos" style="margin-top:8px">📍 Aktuelle Fahrzeugposition übernehmen</button>
+            <div class="tsl-ed-hint" id="ged-hint"></div>
+
+            <label for="ged-radius">Umkreis (m)</label>
+            <input id="ged-radius" type="number" min="10" max="5000" step="10" value="100">
+
+            <div class="tsl-ed-actions">
+                <button class="tsl-btn" id="ged-cancel">Abbrechen</button>
+                <button class="tsl-btn on" id="ged-save">Speichern</button>
+            </div>
+        </div>
     </div>
 
     <div class="tsl-ed" id="tsl-ed">
@@ -298,6 +326,80 @@
                 rules.style.display = 'none';
             }
 
+            // Standorte (Geofence) – Verwaltung wie bei den Regeln
+            LAST_POS = (d.lat !== null && d.lat !== undefined && d.lon !== null && d.lon !== undefined)
+                ? { lat: Number(d.lat), lon: Number(d.lon) } : LAST_POS;
+            var geo = document.getElementById('tsl-geo');
+            geo.textContent = '';
+            if (d.geo) {
+                geo.style.display = 'flex';
+                var ghd = document.createElement('div');
+                ghd.className = 'hdrow';
+                var gt = document.createElement('div');
+                gt.className = 'hd';
+                gt.textContent = 'Standorte';
+                ghd.appendChild(gt);
+                var gr = document.createElement('div');
+                gr.style.display = 'flex'; gr.style.gap = '8px'; gr.style.alignItems = 'center';
+                if (d.geo.enabled) {
+                    var gadd = document.createElement('button');
+                    gadd.className = 'tsl-add';
+                    gadd.textContent = '+ Neuer Standort';
+                    gadd.onclick = function () { gedOpen(-1, null); };
+                    gr.appendChild(gadd);
+                }
+                var gsw = document.createElement('button');
+                gsw.className = 'tsl-sw' + (d.geo.enabled ? ' on' : '');
+                gsw.title = 'Standort-Erkennung ' + (d.geo.enabled ? 'deaktivieren' : 'aktivieren');
+                gsw.onclick = function () { requestAction('geoEnable', !d.geo.enabled); };
+                gr.appendChild(gsw);
+                ghd.appendChild(gr);
+                geo.appendChild(ghd);
+
+                if (d.geo.enabled) {
+                    function fenceRow(label, onEdit, onDelete) {
+                        var row = document.createElement('div');
+                        row.className = 'tsl-rule';
+                        var t = document.createElement('span');
+                        t.className = 't';
+                        t.textContent = label;
+                        t.title = label;
+                        row.appendChild(t);
+                        var ed = document.createElement('button');
+                        ed.className = 'tsl-ico';
+                        ed.textContent = '✎';
+                        ed.title = 'Standort bearbeiten';
+                        ed.onclick = onEdit;
+                        row.appendChild(ed);
+                        if (onDelete) {
+                            var del = document.createElement('button');
+                            del.className = 'tsl-ico';
+                            del.textContent = '\u{1F5D1}';
+                            del.title = 'Standort löschen';
+                            del.onclick = function () {
+                                if (del.dataset.confirm === '1') { onDelete(); return; }
+                                del.dataset.confirm = '1';
+                                del.textContent = 'Sicher?';
+                                del.className = 'tsl-ico warn';
+                                setTimeout(function () { del.dataset.confirm = ''; del.textContent = '\u{1F5D1}'; del.className = 'tsl-ico'; }, 3000);
+                            };
+                            row.appendChild(del);
+                        }
+                        geo.appendChild(row);
+                    }
+                    var h = d.geo.home || {};
+                    var hl = '🏠 Zuhause · ' + (h.radius || 100) + ' m' + (h.fromSystem ? ' (Systemstandort)' : (h.lat === null || h.lat === undefined ? ' (kein Standort!)' : ''));
+                    fenceRow(hl, function () { gedOpen('home', h); }, null);
+                    (d.geo.fences || []).forEach(function (f) {
+                        fenceRow('📍 ' + f.name + ' · ' + f.radius + ' m' + (f.lat === null || f.lat === undefined ? ' (ungültig!)' : ''),
+                            function () { gedOpen(f.i, f); },
+                            function () { requestAction('fenceDelete', f.i); });
+                    });
+                }
+            } else {
+                geo.style.display = 'none';
+            }
+
             var btns = document.getElementById('tsl-btns');
             btns.textContent = '';
             if (d.controls) {
@@ -313,6 +415,54 @@
                 addBtn(d.charging ? 'Laden stop' : 'Laden start', !!d.charging, 'charge', !d.charging);
             }
         }
+
+        // ------------------------------------------------------------------
+        // Standort-Editor
+        // ------------------------------------------------------------------
+        var LAST_POS = null;            // letzte bekannte Fahrzeugposition
+        var GED = { i: -1 };            // 'home' oder Index in GeofenceList
+
+        function gedOpen(i, fence) {
+            GED.i = i;
+            var isHome = (i === 'home');
+            var f = fence || {};
+            document.getElementById('ged-title').textContent = isHome ? 'Zuhause bearbeiten' : (i < 0 ? 'Neuer Standort' : 'Standort bearbeiten');
+            var name = document.getElementById('ged-name');
+            name.value = isHome ? 'Zuhause' : (f.name || '');
+            name.disabled = isHome;
+            document.getElementById('ged-lat').value = (f.lat === null || f.lat === undefined) ? '' : f.lat;
+            document.getElementById('ged-lon').value = (f.lon === null || f.lon === undefined) ? '' : f.lon;
+            document.getElementById('ged-radius').value = f.radius || 100;
+            document.getElementById('ged-hint').textContent = isHome
+                ? 'Leer lassen = Systemstandort aus der Kern-Instanz \'Location\'. Kartenauswahl gibt es im Instanzformular.'
+                : 'Koordinaten eintragen oder die Fahrzeugposition übernehmen. Kartenauswahl gibt es im Instanzformular.';
+            document.getElementById('ged-carpos').disabled = !LAST_POS;
+            document.getElementById('tsl-ged').classList.add('open');
+        }
+
+        function gedClose() { document.getElementById('tsl-ged').classList.remove('open'); }
+
+        document.getElementById('ged-carpos').onclick = function () {
+            if (!LAST_POS) return;
+            document.getElementById('ged-lat').value = LAST_POS.lat.toFixed(6);
+            document.getElementById('ged-lon').value = LAST_POS.lon.toFixed(6);
+        };
+        document.getElementById('ged-cancel').onclick = gedClose;
+        document.getElementById('tsl-ged').onclick = function (ev) { if (ev.target === this) gedClose(); };
+        document.getElementById('ged-save').onclick = function () {
+            var lat = document.getElementById('ged-lat').value.replace(',', '.').trim();
+            var lon = document.getElementById('ged-lon').value.replace(',', '.').trim();
+            var radius = parseInt(document.getElementById('ged-radius').value || '100', 10);
+            if (GED.i === 'home') {
+                requestAction('homeSave', JSON.stringify({ lat: lat, lon: lon, radius: radius }));
+                gedClose();
+                return;
+            }
+            var name = document.getElementById('ged-name').value.trim();
+            if (!name || !lat || !lon) return;
+            requestAction('fenceSave', JSON.stringify({ i: GED.i, fence: { name: name, lat: lat, lon: lon, radius: radius } }));
+            gedClose();
+        };
 
         // ------------------------------------------------------------------
         // Regel-Editor

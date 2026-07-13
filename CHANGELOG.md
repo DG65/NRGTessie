@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.12.0] - 2026-06-30
+### Hinzugefuegt
+- Standort-Verwaltung in der Kachel: Neuer Bereich "Standorte" unter den Automationen - Standort-Erkennung per Schalter aktivieren, Standorte anlegen/bearbeiten/loeschen (Name, Koordinaten, Umkreis). Die aktuelle Fahrzeugposition laesst sich per Knopf als Standort uebernehmen. Zuhause ist bearbeitbar (leer = Systemstandort); die Kartenauswahl bleibt im Instanzformular. Neue Public-API: TESSIE_GetGeofenceConfig, TESSIE_SetGeofenceEnabled, TESSIE_SetHomeGeofence, TESSIE_SetGeofence, TESSIE_DeleteGeofence.
+
 ## [2.11.1] - 2026-06-29
 ### Geaendert
 - Das separate Panel "Standort-Erkennung (Geofence)" entfaellt: Die Standort-Definition (Aktivierung, Zuhause, weitere Standorte mit Umkreis) ist jetzt als Abschnitt "Standorte (Geofence)" direkt im Panel "Automationen (Wenn -> Dann)" integriert - alles Standortbezogene an einem Ort. Eigenschaften unveraendert, keine Neukonfiguration noetig.

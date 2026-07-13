@@ -35,6 +35,10 @@
         },
         {
           "type": "Label",
+          "caption": "Darunter verwaltet die Kachel auch die Standorte (Geofence): Schalter aktiviert die Standort-Erkennung, '+ Neuer Standort' legt einen Ort an (Koordinaten eintippen oder aktuelle Fahrzeugposition übernehmen – praktisch: hinfahren und speichern), ✎ bearbeitet Zuhause und weitere Orte, der Papierkorb löscht. Die Kartenauswahl gibt es weiterhin im Instanzformular; Zuhause ohne Koordinaten nutzt den Systemstandort."
+        },
+        {
+          "type": "Label",
           "caption": "Der Button 'Farben & Schrift auf Standard zurücksetzen' ändert nur das offene Formular – gespeichert wird erst mit 'Änderungen übernehmen'."
         },
         {
