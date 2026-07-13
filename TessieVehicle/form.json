@@ -35,7 +35,7 @@
                 },
                 {
                     "type": "Label",
-                    "caption": "── Standort-Erkennung (Geofence) ──"
+                    "caption": "── Standorte (Geofence) ──"
                 },
                 {
                     "type": "Label",
@@ -293,38 +293,11 @@
                 {
                     "type": "Label",
                     "caption": "'Vergleichswert' nur bei =, ≠, >, ≥, <, ≤ nötig; 'Wert' nur bei Aktion 'Wert setzen'. Zahlen mit Punkt oder Komma. Die Zielvariable wird per Aktion geschaltet (wie ein Klick in der Visualisierung); Variablen ohne Aktion werden direkt beschrieben."
-                }
-            ]
-        },
-        {
-            "type": "ExpansionPanel",
-            "caption": "Linkstruktur",
-            "items": [
+                },
                 {
                     "type": "Label",
-                    "caption": "Erzeugt am gewählten Zielort einen gruppierten Kategoriebaum (Laden, Klima, Sicherheit, Sonstiges) mit Links auf alle aktiven Datenpunkte. Links deaktivierter Datenpunkte werden automatisch entfernt."
+                    "caption": "── Standorte (Geofence) ──"
                 },
-                {
-                    "type": "CheckBox",
-                    "name": "CreateLinks",
-                    "caption": "Linkstruktur erzeugen"
-                },
-                {
-                    "type": "SelectCategory",
-                    "name": "LinksLocation",
-                    "caption": "Zielkategorie"
-                },
-                {
-                    "type": "CheckBox",
-                    "name": "CleanupLinks",
-                    "caption": "Links automatisch bereinigen"
-                }
-            ]
-        },
-        {
-            "type": "ExpansionPanel",
-            "caption": "Standort-Erkennung (Geofence)",
-            "items": [
                 {
                     "type": "Label",
                     "caption": "Legt je Standort eine Status-Variable an ('Zu Hause' bzw. Standortname), die true wird, sobald die Fahrzeugposition innerhalb des Radius liegt, sowie eine Textvariable 'Aktueller Standort' (Standortname bzw. 'Unterwegs'). Benötigt aktive GPS-Telemetrie (Datenpunkt 'Fahrzeugposition'). Bei Deaktivierung oder Entfernen bleiben die Variablen erhalten (nur ausgeblendet)."
@@ -390,10 +363,31 @@
                 {
                     "type": "Label",
                     "caption": "Der Name des Standorts wird als Variablenname und in 'Aktueller Standort' verwendet. Bei überlappenden Zonen gewinnt der nächstgelegene Standort."
-                },
+                }
+            ]
+        },
+        {
+            "type": "ExpansionPanel",
+            "caption": "Linkstruktur",
+            "items": [
                 {
                     "type": "Label",
-                    "caption": "Aktionen beim Ein-, Aus- oder Durchfahren eines Standorts definierst du unter 'Automationen (Wenn → Dann)': Die Standort-Variablen stehen dort als Datenpunkte zur Verfügung (wird EIN = Einfahrt, wird AUS = Ausfahrt, Durchfahrt = Ein- und Ausfahrt binnen 15 Minuten)."
+                    "caption": "Erzeugt am gewählten Zielort einen gruppierten Kategoriebaum (Laden, Klima, Sicherheit, Sonstiges) mit Links auf alle aktiven Datenpunkte. Links deaktivierter Datenpunkte werden automatisch entfernt."
+                },
+                {
+                    "type": "CheckBox",
+                    "name": "CreateLinks",
+                    "caption": "Linkstruktur erzeugen"
+                },
+                {
+                    "type": "SelectCategory",
+                    "name": "LinksLocation",
+                    "caption": "Zielkategorie"
+                },
+                {
+                    "type": "CheckBox",
+                    "name": "CleanupLinks",
+                    "caption": "Links automatisch bereinigen"
                 }
             ]
         }

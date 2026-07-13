@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.11.1] - 2026-06-29
+### Geaendert
+- Das separate Panel "Standort-Erkennung (Geofence)" entfaellt: Die Standort-Definition (Aktivierung, Zuhause, weitere Standorte mit Umkreis) ist jetzt als Abschnitt "Standorte (Geofence)" direkt im Panel "Automationen (Wenn -> Dann)" integriert - alles Standortbezogene an einem Ort. Eigenschaften unveraendert, keine Neukonfiguration noetig.
+
 ## [2.11.0] - 2026-06-28
 ### Geaendert
 - Standort-Aktionen in die Automationen integriert (Doppelung entfernt): Die separate Liste "Standort-Aktionen" entfaellt. Standort-Ereignisse laufen jetzt ueber die Wenn->Dann-Regeln - "wird EIN" auf einer Standort-Variable = Einfahrt, "wird AUS" = Ausfahrt, neue Bedingung "Durchfahrt (Standort)" = Ein- und Ausfahrt binnen 15 Minuten. Die Standorte selbst (Name/Position/Umkreis) werden weiterhin in der Standort-Erkennung definiert. Bestehende GeoActions-Regeln muessen einmalig als Automation neu angelegt werden.
