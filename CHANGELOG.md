@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.16.1] - 2026-07-14 (Metadaten)
+### Geaendert
+- Autor in library.json/LICENSE/README auf "DG65" umgestellt (statt Klarname).
+
 ## [2.16.1] - 2026-07-13
 ### Behoben
 - Klimahaltung: Bezeichnung fuer Wert 3 von "Camping" auf "Camp-Modus" korrigiert (Name aus dem Fahrzeugmenue). Der Wert selbst war bereits korrekt (Kommando set_climate_keeper_mode nutzt mode=3 fuer Camp Mode); nur die Anzeige-Beschriftung war irrefuehrend. Hintergrund: die Fahrzeug-Telemetrie meldet diesen Zustand als "ClimateKeeperModeStateParty" zurueck (laut Tesla Fleet-Telemetry-Protokoll seit dessen Einfuehrung), waehrend das Schreib-Kommando weiterhin "Camp Mode" heisst - syncFromTelemetry() erkennt beide Begriffe und mappt sie auf denselben Wert.
