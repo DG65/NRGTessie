@@ -63,6 +63,26 @@ Für eine schöne Darstellung in der **Kacheln-Visualisierung** eine Instanz des
 
 Status-/Telemetriewerte (Ladestand, Reichweite, Temperaturen, Standort …) erscheinen nur, wenn die entsprechenden Datenpunkte in der TessieVehicle-Instanz aktiviert sind.
 
+## Integration in andere Module
+
+`TESSIE_GetVehicleState($id)` liefert eine herstellerneutrale Zustandsabfrage als JSON – gedacht für Module wie eine Wallbox-/Stromfluss-Kachel, die ein Fahrzeug automatisch statt per manuell eingetragener Variablen-ID zuordnen wollen:
+
+```json
+{
+  "instanceID": 41537,
+  "name": "Schneeflocke",
+  "vin": "5YJ...",
+  "socID": 16201,
+  "soc": 92.0,
+  "connected": true
+}
+```
+
+- `socID`: Variablen-ID des Ladestands (0, falls der Datenpunkt nicht aktiviert ist)
+- `connected`: ob ein Ladekabel gesteckt ist (nicht: ob gerade aktiv geladen wird) – ermittelt primär über den Datenpunkt „Ladestatus (Detail)", ersatzweise über den Ladestatus; `null`, falls keine der beiden Quellen verfügbar ist
+
+Rein additive, lesende Funktion – ändert nichts am Modulverhalten. Fremde Module sollten den Aufruf hinter `function_exists('TESSIE_GetVehicleState')` absichern.
+
 ## Changelog
 
 Alle Änderungen sind in [CHANGELOG.md](CHANGELOG.md) dokumentiert (Format nach [Keep a Changelog](https://keepachangelog.com/de/)).

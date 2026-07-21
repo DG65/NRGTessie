@@ -2030,6 +2030,47 @@ class TessieVehicle extends IPSModule
      * Standort-Konfiguration für die Kachel:
      * {enabled, home:{lat,lon,radius,fromSystem}, fences:[{i,name,lat,lon,radius}]}
      */
+    /**
+     * Bestimmt bestmöglich, ob ein Ladekabel gesteckt ist (nicht: ob gerade aktiv geladen wird).
+     * Primär über den Telemetrie-Datenpunkt "Ladestatus (Detail)" (Tesla-Zustände: Disconnected/
+     * NoPower/Starting/Charging/Complete/Stopped – alles außer Disconnected = angesteckt).
+     * Fällt auf "wird gerade geladen" zurück, falls dieser Datenpunkt (noch) nicht aktiv ist.
+     * null = keine der beiden Quellen verfügbar (unbekannt).
+     */
+    private function isVehicleConnected(): ?bool
+    {
+        $vid = @IPS_GetObjectIDByIdent('stat_tel_DetailedChargeState', $this->InstanceID);
+        if ($vid > 0) {
+            $s = strtolower((string)@GetValueString($vid));
+            if ($s !== '') {
+                return (strpos($s, 'disconnected') === false && strpos($s, 'getrennt') === false);
+            }
+        }
+        $chargingVid = @IPS_GetObjectIDByIdent(self::ACT_START_CHARGING, $this->InstanceID);
+        if ($chargingVid > 0) {
+            return (bool)@GetValueBoolean($chargingVid);
+        }
+        return null;
+    }
+
+    /**
+     * Öffentliche Zustandsabfrage für andere Module (z. B. eine Wallbox-/Stromfluss-Kachel):
+     * liefert Name, VIN, Ladestand-Variable und "angesteckt"-Zustand als JSON. Rein additiv/
+     * lesend – ändert nichts am Modulverhalten, unabhängig davon, ob es genutzt wird.
+     */
+    public function GetVehicleState(): string
+    {
+        $socVid = @IPS_GetObjectIDByIdent('stat_tel_Soc', $this->InstanceID);
+        return json_encode([
+            'instanceID' => $this->InstanceID,
+            'name'       => IPS_GetName($this->InstanceID),
+            'vin'        => trim((string)$this->ReadPropertyString('VIN')),
+            'socID'      => ($socVid > 0) ? $socVid : 0,
+            'soc'        => ($socVid > 0) ? @GetValueFloat($socVid) : null,
+            'connected'  => $this->isVehicleConnected()
+        ]);
+    }
+
     public function GetGeofenceConfig(): string
     {
         $parse = function ($locJson) {

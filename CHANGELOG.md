@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.17.0] - 2026-07-15
+### Hinzugefuegt
+- Neue oeffentliche Funktion `TESSIE_GetVehicleState($id)`: liefert Name, VIN, Ladestand-Variablen-ID/-Wert und einen "angesteckt"-Zustand als JSON - fuer die automatische Fahrzeugzuordnung in fremden Modulen (z. B. eine Wallbox-/Stromfluss-Kachel), ohne dass Nutzer Variablen-IDs manuell eintragen muessen. "Angesteckt" wird primaer aus dem Datenpunkt "Ladestatus (Detail)" ermittelt (alle Zustaende ausser "getrennt"), ersatzweise aus dem Ladestatus. Rein additiv/lesend, aendert nichts am bestehenden Verhalten.
+
 ## [2.16.1] - 2026-07-14 (Metadaten)
 ### Geaendert
 - Autor in library.json/LICENSE/README auf "DG65" umgestellt (statt Klarname).
