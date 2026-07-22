@@ -49,15 +49,16 @@ class TessieConfigurator extends IPSModule
                 'expanded' => false,
                 'items' => [
                     ['type' => 'Label', 'caption' => '── Funktionsweise ──'],
-                    ['type' => 'Label', 'caption' => 'Der Konfigurator listet alle Fahrzeuge deines Tessie-Kontos auf und legt per Klick auf \'Erstellen\' die passende TessieVehicle-Instanz samt Telemetrie-Verbindung (WebSocket) an. Ein einziger Token genügt für REST-Abfragen und Telemetrie.'],
-                    ['type' => 'Label', 'caption' => '── Token erstellen ──'],
-                    ['type' => 'Label', 'caption' => 'Auf my.tessie.com anmelden → Einstellungen → API → Access Token erzeugen und hier eintragen. Der Token wird nur lokal in deiner IP-Symcon-Installation gespeichert. Nach \'Änderungen übernehmen\' erscheinen die Fahrzeuge in der Liste.'],
+                    ['type' => 'Label', 'caption' => 'Der Konfigurator listet alle Fahrzeuge deines Tessie-Kontos auf und legt per Klick auf \'Erstellen\' die passende TessieVehicle-Instanz samt Telemetrie-Verbindung (WebSocket) an. Ein einziger Zugangsschlüssel genügt sowohl für die Abfragen als auch für die Telemetrie.'],
+                    ['type' => 'Label', 'caption' => '── Zugangsschlüssel erstellen ──'],
+                    ['type' => 'Label', 'caption' => 'Auf my.tessie.com anmelden, dort unter Einstellungen → API einen Zugangsschlüssel erzeugen (in der Tessie-Oberfläche heißt er \'Access Token\') und hier eintragen. Gespeichert wird er ausschließlich lokal in deiner IP-Symcon-Installation. Nach \'Änderungen übernehmen\' erscheinen die Fahrzeuge in der Liste.'],
                     ['type' => 'Label', 'caption' => '── Weitere Hilfe ──'],
                     ['type' => 'Label', 'caption' => 'Ausführliche Dokumentation: github.com/DG65/Tessie. Das Modul ist ein privates Community-Projekt und steht in keiner Verbindung zu Tesla, Inc. oder Tessie.']
                 ]
             ],
             ['type' => 'Label', 'label' => 'Tessie Konfigurator – Fahrzeuge'],
-            ['type' => 'ValidationTextBox', 'name' => 'Token', 'caption' => 'Tessie Token (ein Token für REST + Telemetrie)']
+            // Eigenschaftsname 'Token' bleibt unverändert (Code-Bezeichner), nur die Beschriftung ist deutsch
+            ['type' => 'ValidationTextBox', 'name' => 'Token', 'caption' => 'Tessie-Zugangsschlüssel (bei Tessie \'Access Token\'; gilt für Abfragen und Telemetrie)']
         ];
 
         $values = [];

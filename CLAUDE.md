@@ -35,10 +35,20 @@ Verbund-Regel (Anweisung von Dietmar, 22.07.2026): keine vermeidbaren Anglizisme
 
 **Deutsch ist alles, was der Nutzer sieht:** Formularbeschriftungen, Hinweis-/Warntexte, Bestätigungsdialoge, Fehler- und Statusmeldungen, Rückgabe-Texte, Log-Meldungen, Variablen- und Profilnamen, Kachel-Oberfläche, README.
 
-Ersetzungen: Button → Schaltfläche, Drag & Drop → Ziehen und Ablegen, Link → Verknüpfung, Event → Ereignis, Dry-Run → Probelauf, Scan → Suche.
+Ersetzungen: Button → Schaltfläche, Drag & Drop → Ziehen und Ablegen, Link → Verknüpfung, Event → Ereignis, Dry-Run → Probelauf, Token → Zugangsschlüssel.
+
+**Vorgehen: satzweise umformulieren, nicht Wörter tauschen.** Wer den Satz neu schreibt, baut die typischen Fehler gar nicht erst ein (im Verbund von ChargerHub bestätigt). Drei Fallen aus der Praxis der anderen Module:
+1. **Genus-Kongruenz** — „Button" (m) → „Schaltfläche" (f) bricht Artikel und Adjektivendungen: „Der Button" → „**Die** Schaltfläche", „einen zuverlässigen…" → „eine zuverlässig**e**…".
+2. **Objekt-Verwechslung bei „scannen"** — unterscheiden, ob etwas *abgesucht* wird (→ durchsuchen/absuchen) oder etwas *gefunden* werden soll (→ finden). Englisch steht beide Male dasselbe Wort.
+3. **Fachbegriffe nicht überdehnen** (Liste unten).
+
+**Fachbegriffe, die hier bewusst englisch bleiben:** SoC, Supercharger, API, REST, WebSocket, Telemetrie-Feldnamen, IP-Symcon-Begriffe (WebFront, SelectVariable, Presentation, Ident) sowie Produkt-/Markennamen (Tesla, Tessie, HomeLink). Faustregel: eindeutschen, wo es das Verständnis verbessert; stehen lassen, wo der englische Begriff der Fachbegriff oder ein Produktname **ist**.
+
+**Begriffe aus fremden Oberflächen:** deutsch zuerst, Originalbezeichnung in Klammern als Suchhilfe — z. B. „Zugangsschlüssel (bei Tessie 'Access Token')". So bleibt auffindbar, wonach man beim Anbieter suchen muss.
 
 **Ausgenommen (bleibt englisch, Umbenennen würde Verträge brechen):**
-- Bezeichner im Code: Klassen-, Methoden-, Variablen-, Property-Namen und **vor allem IDENTS**
+- Bezeichner im Code: Klassen-, Methoden-, Variablen-, Property-Namen und **vor allem IDENTS** (z. B. bleibt die Eigenschaft `Token` im Konfigurator so heißen — nur ihre Beschriftung ist deutsch)
+- Formularelementtypen (`"type": "Button"`, `"type": "List"`) sind Code, keine Anzeigetexte
 - **IDENTS SIND API und werden nie umbenannt** (Verbund-Konvention) — Anzeigenamen dürfen sich ändern, Idents nie
 - feststehende IP-Symcon-/Technikbegriffe sowie die Feldnamen der Tessie-/Tesla-API
 - Produkt-/Markennamen (Tesla, Tessie, HomeLink)

@@ -27,7 +27,7 @@
         },
         {
           "type": "Label",
-          "caption": "Mit 'Bedien-Schaltflächen anzeigen' und der Liste 'Schaltflächen' wählst du frei, welche und wie viele Aktionen die Kachel anbietet (z. B. nur Verriegeln, oder zusätzlich Wächtermodus, Hupe, Kofferraum, Fenster …) – inklusive Reihenfolge per Ziehen und Ablegen und optionaler eigener Beschriftung je Schaltfläche. Die Schaltflächen lösen die entsprechenden Aktionsvariablen der TessieVehicle-Quelle aus – Berechtigungen und Verhalten sind also identisch zur Bedienung im Objektbaum. Eine Schaltfläche erscheint nur, wenn der zugehörige Datenpunkt dort aktiviert ist. Über den Stift ✎ oben rechts im Bedienbereich lässt sich dieselbe Liste auch direkt in der Kachel verwalten (hinzufügen, Funktion/Beschriftung ändern, Reihenfolge per ▲▼, löschen)."
+          "caption": "Mit 'Bedien-Schaltflächen anzeigen' und der Liste 'Schaltflächen' wählst du frei, welche und wie viele Aktionen die Kachel anbietet – etwa nur Verriegeln, oder zusätzlich Wächtermodus, Hupe, Kofferraum und Fenster. Die Reihenfolge legst du per Ziehen und Ablegen fest, je Schaltfläche ist eine eigene Beschriftung möglich. Die Schaltflächen lösen die entsprechenden Aktionsvariablen der TessieVehicle-Quelle aus – Berechtigungen und Verhalten sind also identisch zur Bedienung im Objektbaum. Eine Schaltfläche erscheint nur, wenn der zugehörige Datenpunkt dort aktiviert ist. Über den Stift ✎ oben rechts im Bedienbereich lässt sich dieselbe Liste auch direkt in der Kachel verwalten (hinzufügen, Funktion/Beschriftung ändern, Reihenfolge per ▲▼, löschen)."
         },
         {
           "type": "Label",

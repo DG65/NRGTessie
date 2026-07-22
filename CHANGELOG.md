@@ -2,6 +2,11 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.18.1] - 2026-07-22
+### Geaendert (Nachtrag zur Sprachregel)
+- "Token" heisst in der Oberflaeche jetzt "Zugangsschluessel"; wo Tessie den englischen Begriff selbst verwendet, steht er als Suchhilfe in Klammern dahinter ("bei Tessie 'Access Token'"). Der Eigenschaftsname Token bleibt unveraendert - bestehende Konfigurationen behalten ihren eingetragenen Schluessel.
+- Umstaendlichen Hilfetext der Kachel neu formuliert (statt Wort-fuer-Wort-Ersetzung), CLAUDE.md um die Fachbegriffs-Ausnahmeliste (SoC, Supercharger, API, REST, WebSocket, IP-Symcon-Begriffe, Produktnamen) und die drei Praxisfallen der Umstellung ergaenzt.
+
 ## [2.18.0] - 2026-07-22
 ### Geaendert (Sprachregel des Modul-Verbunds: alles Nutzersichtbare auf Deutsch)
 - Variablen- und Anzeigenamen eingedeutscht: "Sentry Mode" -> "Waechtermodus", "Max Defrost" -> "Max. Entfrosten", "Bio Defense Mode" -> "Biowaffen-Schutzmodus" (Bezeichnungen der deutschen Tesla-Bedienungsanleitung). Bestehende Installationen werden automatisch umbenannt, sofern der alte Standardname unveraendert war - selbst vergebene Namen bleiben erhalten. Die Idents (act_sentry, act_defrost, act_bio_defense) bleiben unveraendert, bestehende Verknuepfungen, Archivdaten und Automationen also ebenfalls.

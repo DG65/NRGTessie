@@ -7,7 +7,7 @@ Anbindung von Tesla-Fahrzeugen an IP-Symcon über die [Tessie-API](https://devel
 ## Funktionen
 
 - **Fahrzeugsteuerung** über die Tessie-REST-API: Ver-/Entriegeln, Klima ein/aus, Solltemperaturen, Sitz-/Lenkradheizung, Laden starten/stoppen, Ladelimit, Ladestrom, Ladeport, Fenster lüften/schließen, Hupe, Lichthupe, Wächtermodus/Valet-Modus, vorderer Kofferraum/Heckklappe, HomeLink, Innenraum-Überhitzeschutz, Klimahaltung u. a.
-- **Live-Telemetrie** über den Tessie-WebSocket-Stream (Token kompatibel als `?access_token=…` in der URL).
+- **Live-Telemetrie** über den Tessie-WebSocket-Stream (Zugangsschlüssel wird als `?access_token=…` in der URL mitgegeben).
 - **Automatische Telemetrie-Variablen**: neue Datenpunkte werden bei Bedarf angelegt; Werte werden **lesbar** aufbereitet
   - Enum-Zustände als Klartext (z. B. `DefrostModeStateOff` → „Entfroster: aus") über `locale.json`, mit generischem Fallback für unbekannte Codes,
   - Einheiten metrisch (mph→km/h, mi→km), GPS-Koordinaten mit 6 Nachkommastellen,
@@ -23,7 +23,7 @@ Anbindung von Tesla-Fahrzeugen an IP-Symcon über die [Tessie-API](https://devel
 
 | Modul | Typ | Beschreibung |
 |------|-----|--------------|
-| **TessieConfigurator** | 4 (Configurator) | Liest die Fahrzeuge zum Tessie-Token aus und legt je Fahrzeug eine TessieVehicle-Instanz samt WebSocket-Client an. |
+| **TessieConfigurator** | 4 (Configurator) | Liest die Fahrzeuge zum Tessie-Zugangsschlüssel aus und legt je Fahrzeug eine TessieVehicle-Instanz samt WebSocket-Client an. |
 | **TessieVehicle** | 3 (Device) | Steuerung und Telemetrie eines Fahrzeugs. Hängt unter einem MQTT/WebSocket-Client. |
 | **TessieVehicleTile** | 3 (Visualisierung) | Eigenständige HTML-Kachel für die Kacheln-Visualisierung: zeigt Ladestand, Reichweite, Status, Lade-Details und Standort einer TessieVehicle-Instanz und bietet optional Bedien-Schaltflächen. Bewusst von der Datenlogik getrennt. |
 
@@ -32,15 +32,15 @@ Präfix der öffentlichen Funktionen: `TESSIE`.
 ## Voraussetzungen
 
 - IP-Symcon ab Version 9.0
-- Ein [Tessie](https://tessie.com/)-Konto mit **API-Token** (deckt REST und Telemetrie ab)
+- Ein [Tessie](https://tessie.com/)-Konto mit **Zugangsschlüssel** (bei Tessie „Access Token") – er deckt Abfragen und Telemetrie gemeinsam ab
 
-> Warum Tessie statt der offiziellen Tesla-API? Tessie ist ein etablierter Drittanbieter-Dienst, der den Zugriff über ein einfaches Token kapselt. Die **Tesla Fleet API** verlangt von Drittanbietern nutzungsabhängige Gebühren (pro Befehl/Abruf), eine eigene Entwickler-/Domain-Registrierung und ist deutlich aufwändiger einzurichten. Über das Tessie-Abo ist die API hingegen ohne zusätzliche Pro-Nutzung-Kosten und mit minimalem Setup nutzbar – das macht die Anbindung in IP-Symcon praktikabel.
+> Warum Tessie statt der offiziellen Tesla-API? Tessie ist ein etablierter Drittanbieter-Dienst, der den Zugriff über einen einfachen Zugangsschlüssel kapselt. Die **Tesla Fleet API** verlangt von Drittanbietern nutzungsabhängige Gebühren (pro Befehl/Abruf), eine eigene Entwickler-/Domain-Registrierung und ist deutlich aufwändiger einzurichten. Über das Tessie-Abo ist die API hingegen ohne zusätzliche Pro-Nutzung-Kosten und mit minimalem Setup nutzbar – das macht die Anbindung in IP-Symcon praktikabel.
 
 ## Installation
 
 1. Im IP-Symcon **Module Store** nach **„Tessie"** suchen und installieren.
    _Alternativ_ unter **Kern-Instanzen → Modules** das Repository manuell hinzufügen: `https://github.com/DG65/Tessie`
-2. Eine Instanz des **Tessie Configurator** anlegen und den Tessie-Token eintragen.
+2. Eine Instanz des **Tessie Configurator** anlegen und den Tessie-Zugangsschlüssel eintragen.
 3. Im Configurator die gefundenen Fahrzeuge anlegen – TessieVehicle und WebSocket-Client werden automatisch erzeugt.
 4. Optional eine Instanz **TessieVehicleTile** für die Kachel-Visualisierung anlegen (siehe unten).
 
@@ -98,7 +98,7 @@ Dieses Modul steuert ein reales Fahrzeug (u. a. Ver-/Entriegeln, Fenster, Koffer
 - Die Software wird **ohne jede Gewährleistung** bereitgestellt (siehe [Lizenz](#lizenz)). Es wird keine Haftung für Schäden, Fehlfunktionen, Datenverlust, unbeabsichtigte Fahrzeugaktionen oder Folgen aus der Nutzung übernommen, soweit gesetzlich zulässig.
 - Funktion und Verfügbarkeit hängen von der Tessie-API, dem Fahrzeug und der Netzwerkverbindung ab und können sich jederzeit ändern.
 - Sicherheitsrelevante Aktionen (z. B. Entriegeln, Fenster/Kofferraum öffnen) sollten nicht ungeprüft automatisiert werden. Stelle sicher, dass keine Personen, Tiere oder Gegenstände gefährdet werden.
-- Der API-Token gewährt weitreichenden Zugriff auf das Fahrzeug – bitte entsprechend vertraulich behandeln.
+- Der Zugangsschlüssel gewährt weitreichenden Zugriff auf das Fahrzeug – bitte entsprechend vertraulich behandeln.
 
 ## Lizenz
 
