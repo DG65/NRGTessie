@@ -502,7 +502,7 @@ class TessieVehicle extends IPSModule
     {
         return [
             ['Ident' => self::ACT_LOCKED,               'Name' => 'Verriegelt',                      'Enabled' => true],
-            ['Ident' => self::ACT_SENTRY_MODE,          'Name' => 'Sentry Mode',                     'Enabled' => true],
+            ['Ident' => self::ACT_SENTRY_MODE,          'Name' => 'Wächtermodus',                     'Enabled' => true],
             ['Ident' => self::ACT_VALET_MODE,           'Name' => 'Valet-Modus',                     'Enabled' => true],
             ['Ident' => self::ACT_FLASH,                'Name' => 'Licht blinken',                   'Enabled' => true],
             ['Ident' => self::ACT_HONK,                 'Name' => 'Hupe',                            'Enabled' => true],
@@ -515,14 +515,14 @@ class TessieVehicle extends IPSModule
             ['Ident' => self::ACT_COP_ENABLED, 'Name' => 'Innenraum-Überhitzeschutz', 'Enabled' => true],
             ['Ident' => self::ACT_COP_FAN_ONLY, 'Name' => 'Innenraum-Überhitzeschutz: nur Lüfter', 'Enabled' => true],
             ['Ident' => self::ACT_COP_TEMP, 'Name' => 'Innenraum-Überhitzeschutz: Temperaturlimit', 'Enabled' => true],
-            ['Ident' => self::ACT_BIO_DEFENSE, 'Name' => 'Bio Defense Mode', 'Enabled' => true],
+            ['Ident' => self::ACT_BIO_DEFENSE, 'Name' => 'Biowaffen-Schutzmodus', 'Enabled' => true],
             ['Ident' => self::ACT_HOMELINK, 'Name' => 'HomeLink auslösen', 'Enabled' => false],
             ['Ident' => self::ACT_FRONT_TRUNK, 'Name' => 'Vorderer Kofferraum öffnen', 'Enabled' => false],
             ['Ident' => self::ACT_REAR_TRUNK, 'Name' => 'Heckklappe öffnen/schließen', 'Enabled' => false],
 
 ['Ident' => self::ACT_TEMP_DRIVER,          'Name' => 'Solltemperatur Fahrer (°C)',      'Enabled' => true],
             ['Ident' => self::ACT_TEMP_PASSENGER,       'Name' => 'Solltemperatur Beifahrer (°C)',   'Enabled' => true],
-            ['Ident' => self::ACT_DEFROST,              'Name' => 'Max Defrost',                      'Enabled' => true],
+            ['Ident' => self::ACT_DEFROST,              'Name' => 'Max. Entfrosten',                      'Enabled' => true],
             ['Ident' => self::ACT_STEERING_WHEEL_HEATER,'Name' => 'Lenkradheizung',                  'Enabled' => true],
             ['Ident' => self::ACT_SEAT_HEAT_DRIVER,     'Name' => 'Sitzheizung Fahrer',              'Enabled' => true],
             ['Ident' => self::ACT_SEAT_HEAT_PASSENGER,  'Name' => 'Sitzheizung Beifahrer',           'Enabled' => true],
@@ -2306,7 +2306,7 @@ class TessieVehicle extends IPSModule
         $this->MaintainVariable(self::ACT_COP_TEMP, 'Innenraum-Überhitzeschutz: Temperaturlimit', VARIABLETYPE_INTEGER, $this->presFor('Tessie.COPTemp', true), $pos(self::ACT_COP_TEMP), true);
         if ($keep(self::ACT_COP_TEMP)) $this->EnableAction(self::ACT_COP_TEMP);
 
-        $this->MaintainVariable(self::ACT_BIO_DEFENSE, 'Bio Defense Mode', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_BIO_DEFENSE), true);
+        $this->MaintainVariable(self::ACT_BIO_DEFENSE, 'Biowaffen-Schutzmodus', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_BIO_DEFENSE), true);
         if ($keep(self::ACT_BIO_DEFENSE)) $this->EnableAction(self::ACT_BIO_DEFENSE);
 
         $this->MaintainVariable(self::ACT_HOMELINK, 'HomeLink auslösen', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_HOMELINK), true);
@@ -2333,7 +2333,7 @@ class TessieVehicle extends IPSModule
         $this->MaintainVariable(self::ACT_HONK, 'Hupe', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_HONK), true);
         if ($keep(self::ACT_HONK)) $this->EnableAction(self::ACT_HONK);
 
-        $this->MaintainVariable(self::ACT_SENTRY_MODE, 'Sentry Mode', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_SENTRY_MODE), true);
+        $this->MaintainVariable(self::ACT_SENTRY_MODE, 'Wächtermodus', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_SENTRY_MODE), true);
         if ($keep(self::ACT_SENTRY_MODE)) $this->EnableAction(self::ACT_SENTRY_MODE);
 
         $this->MaintainVariable(self::ACT_VALET_MODE, 'Valet-Modus', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_VALET_MODE), true);
@@ -2345,7 +2345,7 @@ class TessieVehicle extends IPSModule
         $this->MaintainVariable(self::ACT_CLOSE_WINDOWS, 'Fenster schließen', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_CLOSE_WINDOWS), true);
         if ($keep(self::ACT_CLOSE_WINDOWS)) $this->EnableAction(self::ACT_CLOSE_WINDOWS);
 
-        $this->MaintainVariable(self::ACT_DEFROST, 'Max Defrost', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_DEFROST), true);
+        $this->MaintainVariable(self::ACT_DEFROST, 'Max. Entfrosten', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_DEFROST), true);
         if ($keep(self::ACT_DEFROST)) $this->EnableAction(self::ACT_DEFROST);
 
         $this->MaintainVariable(self::ACT_STEERING_WHEEL_HEATER, 'Lenkradheizung', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_STEERING_WHEEL_HEATER), true);
@@ -2463,7 +2463,11 @@ class TessieVehicle extends IPSModule
         $renames = [
             self::ACT_CLIMATE_KEEPER_MODE => ['Climate Keeper Mode' => 'Klimahaltung'],
             self::ACT_FRONT_TRUNK         => ['Front-Trunk öffnen' => 'Vorderer Kofferraum öffnen'],
-            self::ACT_REAR_TRUNK          => ['Rear-Trunk öffnen/schließen' => 'Heckklappe öffnen/schließen']
+            self::ACT_REAR_TRUNK          => ['Rear-Trunk öffnen/schließen' => 'Heckklappe öffnen/schließen'],
+            // Deutsche Bezeichnungen analog Tesla-Bedienungsanleitung (Sprachregel des Modul-Verbunds)
+            self::ACT_SENTRY_MODE         => ['Sentry Mode' => 'Wächtermodus'],
+            self::ACT_DEFROST             => ['Max Defrost' => 'Max. Entfrosten'],
+            self::ACT_BIO_DEFENSE         => ['Bio Defense Mode' => 'Biowaffen-Schutzmodus']
         ];
         foreach ($renames as $ident => $map) {
             $vid = @IPS_GetObjectIDByIdent($ident, $this->InstanceID);

@@ -2,6 +2,12 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.18.0] - 2026-07-22
+### Geaendert (Sprachregel des Modul-Verbunds: alles Nutzersichtbare auf Deutsch)
+- Variablen- und Anzeigenamen eingedeutscht: "Sentry Mode" -> "Waechtermodus", "Max Defrost" -> "Max. Entfrosten", "Bio Defense Mode" -> "Biowaffen-Schutzmodus" (Bezeichnungen der deutschen Tesla-Bedienungsanleitung). Bestehende Installationen werden automatisch umbenannt, sofern der alte Standardname unveraendert war - selbst vergebene Namen bleiben erhalten. Die Idents (act_sentry, act_defrost, act_bio_defense) bleiben unveraendert, bestehende Verknuepfungen, Archivdaten und Automationen also ebenfalls.
+- Anglizismen in Formularen, Kachel und README ersetzt: "Button" -> "Schaltflaeche", "Drag & Drop" -> "Ziehen und Ablegen".
+- CLAUDE.md dokumentiert die Sprachregel samt Ausnahmen (Idents/Code-Bezeichner/API-Feldnamen/Markennamen bleiben englisch; Translate() erwartet weiterhin englische Quellstrings).
+
 ## [2.17.0] - 2026-07-15
 ### Hinzugefuegt
 - Neue oeffentliche Funktion `TESSIE_GetVehicleState($id)`: liefert Name, VIN, Ladestand-Variablen-ID/-Wert und einen "angesteckt"-Zustand als JSON - fuer die automatische Fahrzeugzuordnung in fremden Modulen (z. B. eine Wallbox-/Stromfluss-Kachel), ohne dass Nutzer Variablen-IDs manuell eintragen muessen. "Angesteckt" wird primaer aus dem Datenpunkt "Ladestatus (Detail)" ermittelt (alle Zustaende ausser "getrennt"), ersatzweise aus dem Ladestatus. Rein additiv/lesend, aendert nichts am bestehenden Verhalten.

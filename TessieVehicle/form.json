@@ -27,11 +27,11 @@
                 },
                 {
                     "type": "Label",
-                    "caption": "Jede Zeile ist eine Variable der Instanz. 'Aktiv' blendet den Datenpunkt ein oder aus – deaktivierte Variablen werden nur versteckt, Objekt-ID und Archivdaten bleiben erhalten. Die Reihenfolge per Drag & Drop bestimmt auch die Position im Objektbaum. 'Empfangen' zeigt, ob das Fahrzeug diesen Wert schon einmal geliefert hat. Telemetrie-Datenpunkte (Ident 'stat_tel_…') erscheinen automatisch, sobald das Fahrzeug sie erstmals sendet."
+                    "caption": "Jede Zeile ist eine Variable der Instanz. 'Aktiv' blendet den Datenpunkt ein oder aus – deaktivierte Variablen werden nur versteckt, Objekt-ID und Archivdaten bleiben erhalten. Die Reihenfolge per Ziehen und Ablegen bestimmt auch die Position im Objektbaum. 'Empfangen' zeigt, ob das Fahrzeug diesen Wert schon einmal geliefert hat. Telemetrie-Datenpunkte (Ident 'stat_tel_…') erscheinen automatisch, sobald das Fahrzeug sie erstmals sendet."
                 },
                 {
                     "type": "Label",
-                    "caption": "Die Buttons unten setzen die Liste nur im offenen Formular zurück bzw. um – gespeichert wird erst mit 'Änderungen übernehmen'."
+                    "caption": "Die Schaltflächen unten setzen die Liste nur im offenen Formular zurück bzw. um – gespeichert wird erst mit 'Änderungen übernehmen'."
                 },
                 {
                     "type": "Label",
@@ -146,7 +146,7 @@
         },
         {
             "type": "Label",
-            "caption": "Deaktivierte Datenpunkte werden ausgeblendet - Objekt-ID und Archivdaten bleiben erhalten. Neue Telemetrie wird nur angelegt, solange aktiviert. Zeilen per Drag & Drop sortieren - Variablen und Links folgen der Reihenfolge."
+            "caption": "Deaktivierte Datenpunkte werden ausgeblendet - Objekt-ID und Archivdaten bleiben erhalten. Neue Telemetrie wird nur angelegt, solange aktiviert. Zeilen per Ziehen und Ablegen sortieren - Variablen und Links folgen der Reihenfolge."
         },
         {
             "type": "ExpansionPanel",
@@ -444,7 +444,7 @@
         },
         {
             "type": "Label",
-            "caption": "Name/Ident sind schreibgeschützt - du änderst nur 'Aktiv'. Reihenfolge per Drag & Drop (danach Übernehmen)."
+            "caption": "Name/Ident sind schreibgeschützt - du änderst nur 'Aktiv'. Reihenfolge per Ziehen und Ablegen (danach Übernehmen)."
         }
     ],
     "status": []

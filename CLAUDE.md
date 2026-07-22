@@ -29,6 +29,26 @@ Rein additiv/lesend. Aufrufer sollten `function_exists('TESSIE_GetVehicleState')
 
 **Wichtig:** Da InverterHub Variablen-**IDs** speichert, übersteht eine Umbenennung von Telemetrie-Variablen das problemlos — ein **Neuanlegen** (neue Objekt-ID, z. B. weil ein Datenpunkt gelöscht und neu erzeugt wird) aber nicht. Falls das ansteht: InverterHub-Seite vorher informieren, damit sie es im Changelog erwähnen können.
 
+## Sprachregel: alles Nutzersichtbare auf Deutsch
+
+Verbund-Regel (Anweisung von Dietmar, 22.07.2026): keine vermeidbaren Anglizismen, keine englischen Ausdrücke oder Sätze in nutzersichtbaren Texten.
+
+**Deutsch ist alles, was der Nutzer sieht:** Formularbeschriftungen, Hinweis-/Warntexte, Bestätigungsdialoge, Fehler- und Statusmeldungen, Rückgabe-Texte, Log-Meldungen, Variablen- und Profilnamen, Kachel-Oberfläche, README.
+
+Ersetzungen: Button → Schaltfläche, Drag & Drop → Ziehen und Ablegen, Link → Verknüpfung, Event → Ereignis, Dry-Run → Probelauf, Scan → Suche.
+
+**Ausgenommen (bleibt englisch, Umbenennen würde Verträge brechen):**
+- Bezeichner im Code: Klassen-, Methoden-, Variablen-, Property-Namen und **vor allem IDENTS**
+- **IDENTS SIND API und werden nie umbenannt** (Verbund-Konvention) — Anzeigenamen dürfen sich ändern, Idents nie
+- feststehende IP-Symcon-/Technikbegriffe sowie die Feldnamen der Tessie-/Tesla-API
+- Produkt-/Markennamen (Tesla, Tessie, HomeLink)
+
+**Besonderheit hier:** Tesla-API-Zustände (`ClimateKeeperModeStateParty`, `DetailedChargeStateCharging` …) sind Schnittstelle und bleiben als Schlüssel unverändert — beim **Anzeigen** greift die Übersetzung über `locale.json` bzw. deutsche Profil-Beschriftungen. Für Feature-Namen die Bezeichnungen der deutschen Tesla-Bedienungsanleitung verwenden (Wächtermodus, Biowaffen-Schutzmodus, Max. Entfrosten, Camp-Modus).
+
+Achtung `$this->Translate()`: übersetzt **von Englisch** in die Serversprache — der Quellstring im Code bleibt also englisch, die deutsche Fassung gehört in `locale.json`. Das ist kein Verstoß gegen die Sprachregel.
+
+Werden Anzeigenamen bestehender Variablen geändert, gehört ein Eintrag in die `$renames`-Tabelle in `ensureVariables()` dazu (benennt nur um, wenn der alte Default noch unverändert ist — vom Nutzer angepasste Namen bleiben erhalten).
+
 ## Weitere Hinweise
 
 Siehe `README.md` für Nutzerdokumentation, `CHANGELOG.md` für die Versionshistorie. Enum-/Profilwerte, die von Tesla stammen (z. B. Klimahaltung, Ladestatus), vor Änderungen möglichst gegen die offizielle [Tesla Fleet Telemetry Proto-Definition](https://github.com/teslamotors/fleet-telemetry/blob/main/protos/vehicle_data.proto) verifizieren statt zu raten — hat sich beim Klimahaltung-„Camping"/„Party"-Fall bewährt (siehe CHANGELOG 2.16.1).

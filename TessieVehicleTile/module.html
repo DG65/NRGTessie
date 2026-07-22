@@ -138,10 +138,10 @@
 
         <div class="tsl-rules" id="tsl-btnarea" style="display:none">
             <div class="hdrow">
-                <div class="hd">Buttons</div>
+                <div class="hd">Schaltflächen</div>
                 <div style="display:flex;gap:8px;align-items:center">
-                    <button class="tsl-add" id="btn-add">+ Neuer Button</button>
-                    <button class="tsl-ico" id="btn-editmode" title="Buttons bearbeiten">✎</button>
+                    <button class="tsl-add" id="btn-add">+ Neue Schaltfläche</button>
+                    <button class="tsl-ico" id="btn-editmode" title="Schaltflächen bearbeiten">✎</button>
                 </div>
             </div>
             <div id="btn-rows" style="display:none"></div>
@@ -151,7 +151,7 @@
 
     <div class="tsl-ed" id="tsl-bed">
         <div class="tsl-ed-card">
-            <h3 id="bed-title">Button bearbeiten</h3>
+            <h3 id="bed-title">Schaltfläche bearbeiten</h3>
 
             <label for="bed-fn">Funktion</label>
             <select id="bed-fn"></select>
@@ -470,7 +470,7 @@
                     hint.className = 't';
                     hint.style.color = 'var(--textmuted)';
                     hint.style.fontSize = 'calc(12px * var(--scale))';
-                    hint.textContent = 'Noch keine Buttons – „+ Neuer Button" antippen.';
+                    hint.textContent = 'Noch keine Schaltflächen – „+ Neue Schaltfläche" antippen.';
                     rowsWrap.appendChild(hint);
                 }
                 list.forEach(function (b, pos) {
@@ -503,14 +503,14 @@
                     var ed = document.createElement('button');
                     ed.className = 'tsl-ico';
                     ed.textContent = '✎';
-                    ed.title = 'Button bearbeiten';
+                    ed.title = 'Schaltfläche bearbeiten';
                     ed.onclick = function () { bedOpen(b.idx, { Ident: b.i, Label: b.label }); };
                     row.appendChild(ed);
 
                     var del = document.createElement('button');
                     del.className = 'tsl-ico';
                     del.textContent = '\u{1F5D1}';
-                    del.title = 'Button löschen';
+                    del.title = 'Schaltfläche löschen';
                     del.onclick = function () {
                         if (del.dataset.confirm === '1') { requestAction('btnDelete', b.idx); return; }
                         del.dataset.confirm = '1';
@@ -540,7 +540,7 @@
         document.getElementById('btn-editmode').onclick = function () {
             BTN_EDIT_MODE = !BTN_EDIT_MODE;
             this.textContent = BTN_EDIT_MODE ? '✓' : '✎';
-            this.title = BTN_EDIT_MODE ? 'Fertig' : 'Buttons bearbeiten';
+            this.title = BTN_EDIT_MODE ? 'Fertig' : 'Schaltflächen bearbeiten';
             if (LAST_MSG) renderButtons(LAST_MSG);
         };
         document.getElementById('btn-add').onclick = function () { bedOpen(-1, null); };
@@ -569,7 +569,7 @@
             });
             sel.value = BED.button.Ident;
             document.getElementById('bed-label').value = BED.button.Label || '';
-            document.getElementById('bed-title').textContent = (BED.i < 0) ? 'Neuer Button' : 'Button bearbeiten';
+            document.getElementById('bed-title').textContent = (BED.i < 0) ? 'Neue Schaltfläche' : 'Schaltfläche bearbeiten';
             document.getElementById('tsl-bed').classList.add('open');
         }
 

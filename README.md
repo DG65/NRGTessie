@@ -6,7 +6,7 @@ Anbindung von Tesla-Fahrzeugen an IP-Symcon über die [Tessie-API](https://devel
 
 ## Funktionen
 
-- **Fahrzeugsteuerung** über die Tessie-REST-API: Ver-/Entriegeln, Klima ein/aus, Solltemperaturen, Sitz-/Lenkradheizung, Laden starten/stoppen, Ladelimit, Ladestrom, Ladeport, Fenster lüften/schließen, Hupe, Lichthupe, Sentry-/Valet-Modus, vorderer Kofferraum/Heckklappe, HomeLink, Innenraum-Überhitzeschutz, Klimahaltung u. a.
+- **Fahrzeugsteuerung** über die Tessie-REST-API: Ver-/Entriegeln, Klima ein/aus, Solltemperaturen, Sitz-/Lenkradheizung, Laden starten/stoppen, Ladelimit, Ladestrom, Ladeport, Fenster lüften/schließen, Hupe, Lichthupe, Wächtermodus/Valet-Modus, vorderer Kofferraum/Heckklappe, HomeLink, Innenraum-Überhitzeschutz, Klimahaltung u. a.
 - **Live-Telemetrie** über den Tessie-WebSocket-Stream (Token kompatibel als `?access_token=…` in der URL).
 - **Automatische Telemetrie-Variablen**: neue Datenpunkte werden bei Bedarf angelegt; Werte werden **lesbar** aufbereitet
   - Enum-Zustände als Klartext (z. B. `DefrostModeStateOff` → „Entfroster: aus") über `locale.json`, mit generischem Fallback für unbekannte Codes,
@@ -14,7 +14,7 @@ Anbindung von Tesla-Fahrzeugen an IP-Symcon über die [Tessie-API](https://devel
   - Zeitstempel als Datum,
   - verschachtelte Status (z. B. Türen) als lesbare Liste.
 - **IP-Symcon-9.0-Presentations** für die Darstellung (Schalter/Slider/Auswahl/Wert) statt Variablenprofilen.
-- **Konfigurierbare Datenpunktliste**: ein-/ausblenden und per Drag & Drop sortieren; die Reihenfolge wirkt auf Variablen und Links. Abgewählte Datenpunkte werden **ausgeblendet statt gelöscht** – Objekt-ID und Archivdaten bleiben erhalten.
+- **Konfigurierbare Datenpunktliste**: ein-/ausblenden und per Ziehen und Ablegen sortieren; die Reihenfolge wirkt auf Variablen und Links. Abgewählte Datenpunkte werden **ausgeblendet statt gelöscht** – Objekt-ID und Archivdaten bleiben erhalten.
 - **Optionale Linkstruktur**: gruppierter Kategoriebaum (Laden / Klima / Sicherheit / Sonstiges) mit Verknüpfungen auf die aktiven Variablen.
 - **Standort-Erkennung (Geofence)**: optionale Status-Variablen aus GPS-Position und konfigurierbaren Standorten (Zuhause + beliebige weitere, je mit Name, Radius und optionalem Icon/Emoji für die Kachel-Anzeige). Je Standort eine Boolean-Variable plus eine Textvariable „Aktueller Standort" (Standortname bzw. „Unterwegs") – ideal als Auslöser für Automationen (z. B. Laden nur zu Hause).
 - **Automationen (Wenn → Dann)**: generische Regeln über beliebige Datenpunkte – „Wenn Ladestand ≥ 80 → Wallbox-Freigabe ausschalten", „Wenn Aktueller Standort = Zuhause → Garagentor einschalten". Bedingungen: wird EIN/AUS, =, ≠, >, ≥, <, ≤, ändert sich, Durchfahrt (Standort). Datenpunkte mit bekannten Werten (Sitzheizung, Klimahaltung, Überhitzeschutz-Limit) zeigen den Vergleichswert in der Kachel als Dropdown mit Klartext statt Freitext, die Bedingung springt dabei automatisch von 'wird EIN/AUS' auf '=' – auch **mehrere Bedingungen mit UND verknüpft** (z. B. „Wenn Zu Hause wird EIN UND Ladestand < 30 → Ladeport öffnen"), einstellbar über den Kachel-Editor. Standort-Ereignisse laufen ebenfalls hierüber: „wird EIN" auf einer Standort-Variable = Einfahrt, „wird AUS" = Ausfahrt, „Durchfahrt" = Ein- und Ausfahrt binnen 15 Minuten. Die Kachel zeigt den aktuellen Standort als 📍-Pill an. Flankengesteuert (feuert beim Eintreten der Bedingung, nicht bei jeder Meldung). Regeln **und Standorte** lassen sich **komplett in der Kachel verwalten**: anlegen, bearbeiten, löschen, aktivieren/deaktivieren – inkl. Suchfeld für die Zielvariable, Auswahlliste der Profil-/Darstellungswerte bei „Wert setzen" und Übernahme der aktuellen **Fahrzeugposition** als neuer Standort (hinfahren, speichern, fertig).
@@ -25,7 +25,7 @@ Anbindung von Tesla-Fahrzeugen an IP-Symcon über die [Tessie-API](https://devel
 |------|-----|--------------|
 | **TessieConfigurator** | 4 (Configurator) | Liest die Fahrzeuge zum Tessie-Token aus und legt je Fahrzeug eine TessieVehicle-Instanz samt WebSocket-Client an. |
 | **TessieVehicle** | 3 (Device) | Steuerung und Telemetrie eines Fahrzeugs. Hängt unter einem MQTT/WebSocket-Client. |
-| **TessieVehicleTile** | 3 (Visualisierung) | Eigenständige HTML-Kachel für die Kacheln-Visualisierung: zeigt Ladestand, Reichweite, Status, Lade-Details und Standort einer TessieVehicle-Instanz und bietet optional Bedien-Buttons. Bewusst von der Datenlogik getrennt. |
+| **TessieVehicleTile** | 3 (Visualisierung) | Eigenständige HTML-Kachel für die Kacheln-Visualisierung: zeigt Ladestand, Reichweite, Status, Lade-Details und Standort einer TessieVehicle-Instanz und bietet optional Bedien-Schaltflächen. Bewusst von der Datenlogik getrennt. |
 
 Präfix der öffentlichen Funktionen: `TESSIE`.
 
@@ -47,10 +47,10 @@ Präfix der öffentlichen Funktionen: `TESSIE`.
 ## Konfiguration (TessieVehicle)
 
 - **Update-Intervall** für REST-Statusabfragen (Sekunden; 0 = aus, Telemetrie läuft unabhängig weiter).
-- **Datenpunkte**: Liste zum Ein-/Ausblenden und Sortieren (Drag & Drop). Spalten: Aktiv, Name, Gruppe, Ident, Empfangen.
+- **Datenpunkte**: Liste zum Ein-/Ausblenden und Sortieren (Ziehen und Ablegen). Spalten: Aktiv, Name, Gruppe, Ident, Empfangen.
 - **Linkstruktur** (aufklappbar): Zielkategorie, Links erzeugen/automatisch bereinigen.
 - **Automationen (Wenn → Dann)** (aufklappbar): Regelliste plus Abschnitt **Standorte (Geofence)** – aktivieren, Standort Zuhause (Karte) und Radius wählen — bleibt „Standort Zuhause" leer, wird automatisch der **Systemstandort** aus der Kern-Instanz „Location" übernommen; darunter beliebige **weitere Standorte** (Name, Kartenposition, Radius) als Liste. Je Standort entsteht eine Boolean-Variable („Zu Hause" bzw. Standortname), dazu die Textvariable „Aktueller Standort". Bei überlappenden Zonen gewinnt der nächstgelegene Standort. Benötigt aktive GPS-Telemetrie (Datenpunkt „Fahrzeugposition"). Bei Deaktivierung/Entfernen bleiben die Variablen erhalten (nur ausgeblendet).
-- Buttons: Standardliste zurücksetzen, Telemetrie alle/​nur wichtige ein-/ausblenden, Telemetrie-Namen aktualisieren.
+- Schaltflächen: Standardliste zurücksetzen, Telemetrie alle/​nur wichtige ein-/ausblenden, Telemetrie-Namen aktualisieren.
 
 ## Hinweise
 
@@ -59,7 +59,7 @@ Präfix der öffentlichen Funktionen: `TESSIE`.
 
 ## Kachel (TessieVehicleTile)
 
-Für eine schöne Darstellung in der **Kacheln-Visualisierung** eine Instanz des Moduls **TessieVehicleTile** anlegen. Die Datenquelle wird automatisch erkannt, wenn es genau eine TessieVehicle-Instanz gibt – bei mehreren wählst du sie manuell aus. Die Kachel zeigt Akku-Ring/Ladestand, Reichweite, Temperaturen, Verriegelungs-/Klima-/Ladestatus, Lade-Details und Standort (mit Karten-Link) und bietet optional frei konfigurierbare Bedien-Buttons: Anzahl, Reihenfolge und Funktion wählst du aus einem Katalog von 19 Aktionen (Verriegeln, Klima, Laden, Sentry Mode, Valet-Modus, Kofferraum/Heckklappe, Hupe, Lichthupe, Ladeport, Fenster, Sitz-/Lenkradheizung, Überhitzeschutz, Bio Defense u. a.) – jeweils mit optionaler eigener Beschriftung. Ein Button erscheint nur, wenn der zugehörige Datenpunkt in der Quelle aktiviert ist. Über den Stift ✎ neben „Buttons" lässt sich dieselbe Konfiguration auch direkt in der Kachel verwalten: hinzufügen, Funktion/Beschriftung ändern, Reihenfolge per ▲▼, löschen. Farben und Schrift sind konfigurierbar; ohne feste Farbe übernimmt die Kachel das IP-Symcon-Theme (hell/dunkel).
+Für eine schöne Darstellung in der **Kacheln-Visualisierung** eine Instanz des Moduls **TessieVehicleTile** anlegen. Die Datenquelle wird automatisch erkannt, wenn es genau eine TessieVehicle-Instanz gibt – bei mehreren wählst du sie manuell aus. Die Kachel zeigt Akku-Ring/Ladestand, Reichweite, Temperaturen, Verriegelungs-/Klima-/Ladestatus, Lade-Details und Standort (mit Karten-Link) und bietet optional frei konfigurierbare Bedien-Schaltflächen: Anzahl, Reihenfolge und Funktion wählst du aus einem Katalog von 19 Aktionen (Verriegeln, Klima, Laden, Wächtermodus, Valet-Modus, Kofferraum/Heckklappe, Hupe, Lichthupe, Ladeport, Fenster, Sitz-/Lenkradheizung, Überhitzeschutz, Biowaffen-Schutzmodus u. a.) – jeweils mit optionaler eigener Beschriftung. Eine Schaltfläche erscheint nur, wenn der zugehörige Datenpunkt in der Quelle aktiviert ist. Über den Stift ✎ neben „Schaltflächen" lässt sich dieselbe Konfiguration auch direkt in der Kachel verwalten: hinzufügen, Funktion/Beschriftung ändern, Reihenfolge per ▲▼, löschen. Farben und Schrift sind konfigurierbar; ohne feste Farbe übernimmt die Kachel das IP-Symcon-Theme (hell/dunkel).
 
 Status-/Telemetriewerte (Ladestand, Reichweite, Temperaturen, Standort …) erscheinen nur, wenn die entsprechenden Datenpunkte in der TessieVehicle-Instanz aktiviert sind.
 

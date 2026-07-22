@@ -27,7 +27,7 @@
         },
         {
           "type": "Label",
-          "caption": "Mit 'Bedien-Buttons anzeigen' und der Liste 'Buttons' wählst du frei, welche und wie viele Aktionen die Kachel anbietet (z. B. nur Verriegeln, oder zusätzlich Sentry Mode, Hupe, Kofferraum, Fenster …) – inklusive Reihenfolge per Drag & Drop und optionaler eigener Beschriftung je Button. Die Buttons lösen die entsprechenden Aktionsvariablen der TessieVehicle-Quelle aus – Berechtigungen und Verhalten sind also identisch zur Bedienung im Objektbaum. Ein Button erscheint nur, wenn der zugehörige Datenpunkt dort aktiviert ist. Über den Stift ✎ oben rechts im Bedien-Bereich lässt sich dieselbe Liste auch direkt in der Kachel verwalten (hinzufügen, Funktion/Beschriftung ändern, Reihenfolge per ▲▼, löschen)."
+          "caption": "Mit 'Bedien-Schaltflächen anzeigen' und der Liste 'Schaltflächen' wählst du frei, welche und wie viele Aktionen die Kachel anbietet (z. B. nur Verriegeln, oder zusätzlich Wächtermodus, Hupe, Kofferraum, Fenster …) – inklusive Reihenfolge per Ziehen und Ablegen und optionaler eigener Beschriftung je Schaltfläche. Die Schaltflächen lösen die entsprechenden Aktionsvariablen der TessieVehicle-Quelle aus – Berechtigungen und Verhalten sind also identisch zur Bedienung im Objektbaum. Eine Schaltfläche erscheint nur, wenn der zugehörige Datenpunkt dort aktiviert ist. Über den Stift ✎ oben rechts im Bedienbereich lässt sich dieselbe Liste auch direkt in der Kachel verwalten (hinzufügen, Funktion/Beschriftung ändern, Reihenfolge per ▲▼, löschen)."
         },
         {
           "type": "Label",
@@ -39,7 +39,7 @@
         },
         {
           "type": "Label",
-          "caption": "Der Button 'Farben & Schrift auf Standard zurücksetzen' ändert nur das offene Formular – gespeichert wird erst mit 'Änderungen übernehmen'."
+          "caption": "Die Schaltfläche 'Farben & Schrift auf Standard zurücksetzen' ändert nur das offene Formular – gespeichert wird erst mit 'Änderungen übernehmen'."
         },
         {
           "type": "Label",
@@ -168,12 +168,12 @@
     {
       "type": "CheckBox",
       "name": "ShowControls",
-      "caption": "Bedien-Buttons anzeigen (siehe Liste 'Buttons' unten)"
+      "caption": "Bedien-Schaltflächen anzeigen (siehe Liste 'Schaltflächen' unten)"
     },
     {
       "type": "List",
       "name": "Buttons",
-      "caption": "Buttons",
+      "caption": "Schaltflächen",
       "rowCount": 6,
       "add": true,
       "delete": true,
@@ -200,7 +200,7 @@
                 "value": "act_charging"
               },
               {
-                "caption": "Sentry Mode",
+                "caption": "Wächtermodus",
                 "value": "act_sentry"
               },
               {
@@ -208,7 +208,7 @@
                 "value": "act_valet"
               },
               {
-                "caption": "Max Defrost",
+                "caption": "Max. Entfrosten",
                 "value": "act_defrost"
               },
               {
@@ -224,7 +224,7 @@
                 "value": "act_cop_fan_only"
               },
               {
-                "caption": "Bio Defense Mode",
+                "caption": "Biowaffen-Schutzmodus",
                 "value": "act_bio_defense"
               },
               {
@@ -280,7 +280,7 @@
     },
     {
       "type": "Label",
-      "caption": "Reihenfolge per Drag & Drop. Ein Button erscheint nur, wenn der zugehörige Datenpunkt in der TessieVehicle-Quelle aktiviert ist."
+      "caption": "Reihenfolge per Ziehen und Ablegen. Eine Schaltfläche erscheint nur, wenn der zugehörige Datenpunkt in der TessieVehicle-Quelle aktiviert ist."
     },
     {
       "type": "CheckBox",
