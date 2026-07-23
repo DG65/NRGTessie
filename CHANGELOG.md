@@ -2,6 +2,11 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.20.0] - 2026-07-23
+### Hinzugefuegt
+- TESSIE_GetVehicleState liefert additiv das Feld contractVersion (Major.Minor, aktuell "1.1") - Teil der DG65-Suite-Versionierungskonvention (SUITE.md im EMS-Repo). Konsumenten pruefen die Major-Version; additive Erweiterungen erhoehen die Minor, ein Bruch die Major. Fehlt das Feld, gilt "1.0".
+- README: Hinweis, dass das Modul Teil der DG65 Energie-Suite ist, mit Verweis auf das Suite-Manifest (zusammen getestete Modulstaende). Das Modul bleibt eigenstaendig voll nutzbar.
+
 ## [2.19.1] - 2026-07-23
 ### Behoben
 - Telemetrie-Werte, die selten geliefert werden (z. B. Ladekabeltyp, Schnelllader-Typ), verschwanden rund 15 Minuten nach dem Anstecken wieder. Ursache: Tesla sendet solche Felder turnusmaessig weiter und meldet "gerade kein Messwert" als {"invalid":true}; das Modul hat daraus einen leeren Wert gemacht und den zuletzt bekannten Wert ueberschrieben. Invalide Telemetrie wird jetzt uebersprungen - der letzte bekannte Wert bleibt erhalten, und es wird auch keine leere Variable mehr neu angelegt.

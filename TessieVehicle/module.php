@@ -2111,6 +2111,11 @@ class TessieVehicle extends IPSModule
         $depVid = @IPS_GetObjectIDByIdent('stat_tel_ScheduledDepartureTime', $this->InstanceID);
 
         return json_encode([
+            // Vertragsversion (Major.Minor) für Konsumenten im DG65-Suite-Verbund.
+            // Major nur bei brechender Änderung erhöhen; Kompatibilität nur innerhalb
+            // derselben Major. 1.0 = name/vin/socID/soc/connected; 1.1 = + charging/
+            // chargeLimit/chargeAmps*/atHome/scheduledChargingActive/scheduledDeparture.
+            'contractVersion'         => '1.1',
             'instanceID'              => $this->InstanceID,
             'name'                    => IPS_GetName($this->InstanceID),
             'vin'                     => trim((string)$this->ReadPropertyString('VIN')),

@@ -4,6 +4,8 @@ Anbindung von Tesla-Fahrzeugen an IP-Symcon über die [Tessie-API](https://devel
 
 > Inoffizielles Community-Modul. Nicht von Tesla, Inc. oder Tessie entwickelt, unterstützt oder freigegeben. Siehe [Markenhinweis](#markenhinweis) und [Haftungsausschluss](#haftungsausschluss).
 
+> Teil der **DG65 Energie-Suite** – welche Modulstände zusammen getestet sind, listet das Suite-Manifest: [SUITE.md](https://github.com/DG65/EMS/blob/main/SUITE.md). Das Modul ist auch eigenständig voll nutzbar.
+
 ## Funktionen
 
 - **Fahrzeugsteuerung** über die Tessie-REST-API: Ver-/Entriegeln, Klima ein/aus, Solltemperaturen, Sitz-/Lenkradheizung, Laden starten/stoppen, Ladelimit, Ladestrom, Ladeport, Fenster lüften/schließen, Hupe, Lichthupe, Wächtermodus/Valet-Modus, vorderer Kofferraum/Heckklappe, HomeLink, Innenraum-Überhitzeschutz, Klimahaltung u. a.
@@ -69,6 +71,7 @@ Status-/Telemetriewerte (Ladestand, Reichweite, Temperaturen, Standort …) ersc
 
 ```json
 {
+  "contractVersion": "1.1",
   "instanceID": 41537,
   "name": "Schneeflocke",
   "vin": "5YJ...",
@@ -85,6 +88,7 @@ Status-/Telemetriewerte (Ladestand, Reichweite, Temperaturen, Standort …) ersc
 }
 ```
 
+- `contractVersion`: Version dieses Datenvertrags als `Major.Minor` (aktuell `1.1`). Konsumenten prüfen die Major-Version auf Kompatibilität – innerhalb derselben Major werden nur additive Felder ergänzt, ein Bruch erhöht die Major. Fehlt das Feld, gilt `1.0`.
 - `socID`: Variablen-ID des Ladestands (0, falls der Datenpunkt nicht aktiviert ist)
 - `soc`: gemessener Ist-Ladestand in % (verlässlich; Ziel-SoC und Deadline hält das steuernde Modul selbst)
 - `connected`: ob ein Ladekabel gesteckt ist (nicht: ob gerade aktiv geladen wird) – ermittelt primär über den Datenpunkt „Ladestatus (Detail)", ersatzweise über den Ladestatus; `null`, falls keine der beiden Quellen verfügbar ist
