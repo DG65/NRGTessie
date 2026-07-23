@@ -1003,6 +1003,15 @@ class TessieVehicle extends IPSModule
                 continue;
             }
 
+            // Tesla meldet fehlende/aktuell nicht vorliegende Werte als {"invalid":true}.
+            // Das bedeutet "gerade kein Messwert", NICHT "Wert ist jetzt leer" – daher den
+            // zuletzt bekannten Wert behalten und auch keine leere Variable neu anlegen.
+            // (Sonst verschwinden z.B. Ladekabeltyp/Schnelllader-Typ ~15 min nach dem Anstecken,
+            // sobald Tesla das Feld turnusmäßig als invalid nachsendet.)
+            if (array_key_exists('invalid', $val)) {
+                continue;
+            }
+
             [$type, $value] = $this->telemetryInferTypeAndValue($key, $val);
 
             // Einheiten umrechnen (mi->km, mph->km/h)

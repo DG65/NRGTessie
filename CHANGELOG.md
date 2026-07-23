@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.19.1] - 2026-07-23
+### Behoben
+- Telemetrie-Werte, die selten geliefert werden (z. B. Ladekabeltyp, Schnelllader-Typ), verschwanden rund 15 Minuten nach dem Anstecken wieder. Ursache: Tesla sendet solche Felder turnusmaessig weiter und meldet "gerade kein Messwert" als {"invalid":true}; das Modul hat daraus einen leeren Wert gemacht und den zuletzt bekannten Wert ueberschrieben. Invalide Telemetrie wird jetzt uebersprungen - der letzte bekannte Wert bleibt erhalten, und es wird auch keine leere Variable mehr neu angelegt.
+
 ## [2.19.0] - 2026-07-23
 ### Hinzugefuegt
 - TESSIE_GetVehicleState() additiv erweitert (Verbund-Vertrag mit dem EMS): neue Felder charging, chargeLimit, chargeAmpsRequest, chargeAmpsMax, atHome (nur bei aktiver Standort-Erkennung), scheduledChargingActive und scheduledDeparture. scheduledChargingActive zeigt an, ob das Fahrzeug SELBST ein geplantes Laden/eine geplante Abfahrt aktiv hat (zweiter Regler neben einer EMS-Wallboxsteuerung) - abgeleitet aus dem Telemetrie-Datenpunkt "Geplantes Laden: Modus" (Tesla Off/StartAt/DepartBy; am Live-Fahrzeug als vorhanden verifiziert). Ziel-SoC und Abfahrtszeit bleiben bewusst Nutzereingabe im steuernden Modul - Tessie liefert nur den verlaesslichen Ist-Zustand. Alle Zusatzfelder sind null, wenn der Datenpunkt nicht aktiviert/empfangen ist. Rein lesend, keine Verhaltensaenderung.
