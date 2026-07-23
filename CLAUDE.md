@@ -59,6 +59,17 @@ Achtung `$this->Translate()`: übersetzt **von Englisch** in die Serversprache �
 
 Werden Anzeigenamen bestehender Variablen geändert, gehört ein Eintrag in die `$renames`-Tabelle in `ensureVariables()` dazu (benennt nur um, wenn der alte Default noch unverändert ist — vom Nutzer angepasste Namen bleiben erhalten).
 
+## Emojis (Verbund-Regel, Dietmar 23.07.2026)
+
+Ersetzt jede frühere „keine Emojis"-Regel. Emojis sind erwünscht, wo sie Nutzen stiften:
+
+1. **Panel-Icon** — ein Zeichen am Anfang einer ExpansionPanel-Überschrift (📖 🔌 📊), als Ersatz für das fehlende `icon`-Feld.
+2. **Status-/Aufmerksamkeitssymbol** (✅ ❌ ⚠️ 💡 ℹ️) dort, wo etwas beim Lesen Aufmerksamkeit erfordert oder herausgestellt werden soll (Status, Warnungen, wichtige Hinweise) — für Fokus und Auflockerung.
+
+Faktenlage: Kein Symcon-Store-Review hat Emojis je beanstandet; die frühere „keine Emojis"-Regel war präventiv und ist aufgehoben. **Beobachtungsklausel:** Sollte je ein Stable-Review Emojis bemängeln, entscheidet der Verbund neu (Rückfall: gemeinsam emoji-frei).
+
+Bestand hier (ausdrücklich erwünscht, nicht ausbauen): 📖 Dokumentation-Panels in allen drei Modulen, Standort-Icons (🏠 Zuhause, 📍/🏢 weitere Standorte) in der Kachel.
+
 ## Weitere Hinweise
 
 Siehe `README.md` für Nutzerdokumentation, `CHANGELOG.md` für die Versionshistorie. Enum-/Profilwerte, die von Tesla stammen (z. B. Klimahaltung, Ladestatus), vor Änderungen möglichst gegen die offizielle [Tesla Fleet Telemetry Proto-Definition](https://github.com/teslamotors/fleet-telemetry/blob/main/protos/vehicle_data.proto) verifizieren statt zu raten — hat sich beim Klimahaltung-„Camping"/„Party"-Fall bewährt (siehe CHANGELOG 2.16.1).
