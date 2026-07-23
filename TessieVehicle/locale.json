@@ -122,6 +122,8 @@
       "SentryModeStateOff": "Wächtermodus: aus",
       "SentryModeStateIdle": "Wächtermodus: bereit",
       "ScheduledChargingModeOff": "Geplantes Laden: aus",
+      "ScheduledChargingModeStartAt": "Geplantes Laden: Startzeit",
+      "ScheduledChargingModeDepartBy": "Geplantes Laden: nach Abfahrtszeit",
       "ClimateKeeperModeStateOff": "Klimahaltung: aus",
       "ClimateKeeperModeStateDog": "Klimahaltung: Hund",
       "ClimateKeeperModeStateParty": "Klimahaltung: Party",

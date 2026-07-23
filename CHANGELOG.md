@@ -2,6 +2,11 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.19.0] - 2026-07-23
+### Hinzugefuegt
+- TESSIE_GetVehicleState() additiv erweitert (Verbund-Vertrag mit dem EMS): neue Felder charging, chargeLimit, chargeAmpsRequest, chargeAmpsMax, atHome (nur bei aktiver Standort-Erkennung), scheduledChargingActive und scheduledDeparture. scheduledChargingActive zeigt an, ob das Fahrzeug SELBST ein geplantes Laden/eine geplante Abfahrt aktiv hat (zweiter Regler neben einer EMS-Wallboxsteuerung) - abgeleitet aus dem Telemetrie-Datenpunkt "Geplantes Laden: Modus" (Tesla Off/StartAt/DepartBy; am Live-Fahrzeug als vorhanden verifiziert). Ziel-SoC und Abfahrtszeit bleiben bewusst Nutzereingabe im steuernden Modul - Tessie liefert nur den verlaesslichen Ist-Zustand. Alle Zusatzfelder sind null, wenn der Datenpunkt nicht aktiviert/empfangen ist. Rein lesend, keine Verhaltensaenderung.
+- locale.json: Uebersetzungen fuer die aktiven Modi "Geplantes Laden: Startzeit" (StartAt) und "Geplantes Laden: nach Abfahrtszeit" (DepartBy).
+
 ## [2.18.1] - 2026-07-22
 ### Geaendert (Nachtrag zur Sprachregel)
 - "Token" heisst in der Oberflaeche jetzt "Zugangsschluessel"; wo Tessie den englischen Begriff selbst verwendet, steht er als Suchhilfe in Klammern dahinter ("bei Tessie 'Access Token'"). Der Eigenschaftsname Token bleibt unveraendert - bestehende Konfigurationen behalten ihren eingetragenen Schluessel.

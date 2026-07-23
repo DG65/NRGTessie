@@ -2053,21 +2053,72 @@ class TessieVehicle extends IPSModule
         return null;
     }
 
+    /** Zahlenwert einer Variable per Ident, oder null falls nicht vorhanden. */
+    private function stateNumberOrNull(string $ident): ?float
+    {
+        $vid = @IPS_GetObjectIDByIdent($ident, $this->InstanceID);
+        return ($vid > 0) ? (float)@GetValue($vid) : null;
+    }
+
+    /** Bool-Wert einer Variable per Ident, oder null falls nicht vorhanden. */
+    private function stateBoolOrNull(string $ident): ?bool
+    {
+        $vid = @IPS_GetObjectIDByIdent($ident, $this->InstanceID);
+        return ($vid > 0) ? (bool)@GetValue($vid) : null;
+    }
+
     /**
-     * Öffentliche Zustandsabfrage für andere Module (z. B. eine Wallbox-/Stromfluss-Kachel):
-     * liefert Name, VIN, Ladestand-Variable und "angesteckt"-Zustand als JSON. Rein additiv/
-     * lesend – ändert nichts am Modulverhalten, unabhängig davon, ob es genutzt wird.
+     * Ob das Fahrzeug SELBST ein geplantes Laden/eine geplante Abfahrt aktiv hat (zweiter Regler
+     * auf derselben Batterie neben einer EMS-Wallboxsteuerung). Basiert auf dem Telemetrie-
+     * Datenpunkt "Geplantes Laden: Modus" (Tesla: Off/StartAt/DepartBy). Der Wert wird lesbar
+     * als String gespeichert – robuste Auswertung: gesetzt und nicht "aus/off" = aktiv,
+     * "unbekannt/unknown" oder fehlend = null.
+     */
+    private function isScheduledChargingActive(): ?bool
+    {
+        $vid = @IPS_GetObjectIDByIdent('stat_tel_ScheduledChargingMode', $this->InstanceID);
+        if ($vid <= 0) {
+            return null;
+        }
+        $s = strtolower(trim((string)@GetValueString($vid)));
+        if ($s === '' || strpos($s, 'unbekannt') !== false || strpos($s, 'unknown') !== false) {
+            return null;
+        }
+        // "Geplantes Laden: aus" bzw. "Scheduled Charging Mode Off" = nicht aktiv
+        return (strpos($s, 'aus') === false && strpos($s, 'off') === false);
+    }
+
+    /**
+     * Öffentliche Zustandsabfrage für andere Module (z. B. das EMS oder eine Wallbox-/
+     * Stromfluss-Kachel): liefert Fahrzeugname, VIN, Ladestand, Ladeparameter, Standort und
+     * einen "geplantes Laden aktiv"-Hinweis als JSON. Rein additiv/lesend – ändert nichts am
+     * Modulverhalten. Felder sind null, wenn der zugehörige Datenpunkt nicht aktiviert/empfangen
+     * ist. Werte-IDs (…ID) sind 0, falls der Datenpunkt fehlt.
      */
     public function GetVehicleState(): string
     {
         $socVid = @IPS_GetObjectIDByIdent('stat_tel_Soc', $this->InstanceID);
+        $atHomeVid = @IPS_GetObjectIDByIdent(self::STAT_AT_HOME, $this->InstanceID);
+        $depVid = @IPS_GetObjectIDByIdent('stat_tel_ScheduledDepartureTime', $this->InstanceID);
+
         return json_encode([
-            'instanceID' => $this->InstanceID,
-            'name'       => IPS_GetName($this->InstanceID),
-            'vin'        => trim((string)$this->ReadPropertyString('VIN')),
-            'socID'      => ($socVid > 0) ? $socVid : 0,
-            'soc'        => ($socVid > 0) ? @GetValueFloat($socVid) : null,
-            'connected'  => $this->isVehicleConnected()
+            'instanceID'              => $this->InstanceID,
+            'name'                    => IPS_GetName($this->InstanceID),
+            'vin'                     => trim((string)$this->ReadPropertyString('VIN')),
+            'socID'                   => ($socVid > 0) ? $socVid : 0,
+            'soc'                     => ($socVid > 0) ? @GetValueFloat($socVid) : null,
+            'connected'               => $this->isVehicleConnected(),
+            // Zusatzfelder fürs EMS (alle additiv, null falls Datenpunkt nicht vorhanden)
+            'charging'                => $this->stateBoolOrNull(self::ACT_START_CHARGING),
+            'chargeLimit'             => $this->stateNumberOrNull(self::ACT_CHARGE_LIMIT),
+            'chargeAmpsRequest'       => $this->stateNumberOrNull(self::ACT_CHARGING_AMPS_REQUEST),
+            'chargeAmpsMax'           => $this->stateNumberOrNull(self::STAT_CHARGING_AMPS_MAX),
+            // atHome nur, wenn die Standort-Erkennung aktiv ist (sonst keine verlässliche Aussage)
+            'atHome'                  => ($this->ReadPropertyBoolean('HomeDetection') && $atHomeVid > 0) ? (bool)@GetValueBoolean($atHomeVid) : null,
+            // Zweiter Regler: fahrzeugeigenes geplantes Laden/Abfahrt aktiv?
+            'scheduledChargingActive' => $this->isScheduledChargingActive(),
+            // geplante Abfahrtszeit als reine Information (formatierter String, "" falls nicht gesetzt)
+            'scheduledDeparture'      => ($depVid > 0) ? (string)@GetValueString($depVid) : null
         ]);
     }
 

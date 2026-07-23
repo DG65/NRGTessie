@@ -74,14 +74,30 @@ Status-/Telemetriewerte (Ladestand, Reichweite, Temperaturen, Standort …) ersc
   "vin": "5YJ...",
   "socID": 16201,
   "soc": 92.0,
-  "connected": true
+  "connected": true,
+  "charging": false,
+  "chargeLimit": 80,
+  "chargeAmpsRequest": 16,
+  "chargeAmpsMax": 16,
+  "atHome": true,
+  "scheduledChargingActive": false,
+  "scheduledDeparture": ""
 }
 ```
 
 - `socID`: Variablen-ID des Ladestands (0, falls der Datenpunkt nicht aktiviert ist)
+- `soc`: gemessener Ist-Ladestand in % (verlässlich; Ziel-SoC und Deadline hält das steuernde Modul selbst)
 - `connected`: ob ein Ladekabel gesteckt ist (nicht: ob gerade aktiv geladen wird) – ermittelt primär über den Datenpunkt „Ladestatus (Detail)", ersatzweise über den Ladestatus; `null`, falls keine der beiden Quellen verfügbar ist
+- `charging`: ob gerade aktiv geladen wird
+- `chargeLimit`: eingestelltes Ladelimit in %
+- `chargeAmpsRequest` / `chargeAmpsMax`: angeforderter bzw. maximaler Ladestrom in A
+- `atHome`: ob das Fahrzeug am Standort „Zuhause" ist – nur belegt, wenn die Standort-Erkennung aktiv ist, sonst `null` (die Planungsvoraussetzung ist typischerweise „angesteckt **und** zuhause")
+- `scheduledChargingActive`: ob das Fahrzeug **selbst** ein geplantes Laden/eine geplante Abfahrt aktiv hat – wichtig als Zwei-Regler-Hinweis: ist dies `true`, steuert das Auto seine Ladung parallel, ein externer Regler (EMS/Wallbox) sollte sich zurückziehen oder den Nutzer bitten, die fahrzeuginterne Planung abzuschalten. `null`, falls der Datenpunkt nicht verfügbar ist
+- `scheduledDeparture`: fahrzeuggeplante Abfahrtszeit als reine Information (formatierter Text, leer wenn nicht gesetzt)
 
-Rein additive, lesende Funktion – ändert nichts am Modulverhalten. Fremde Module sollten den Aufruf hinter `function_exists('TESSIE_GetVehicleState')` absichern.
+Alle Zusatzfelder sind `null`, wenn der zugehörige Datenpunkt in der Instanz nicht aktiviert bzw. noch nicht empfangen wurde. Rein additive, lesende Funktion – ändert nichts am Modulverhalten. Fremde Module sollten den Aufruf hinter `function_exists('TESSIE_GetVehicleState')` absichern.
+
+> Hinweis: Eine Tesla-API kennt kein Feld dafür, **wer** einen Ladebefehl ausgelöst hat. Ob eine Fremdsteuerung (z. B. Tibber) aktiv eingreift, ist darüber nicht zuverlässig erkennbar – dafür ist eine bewusste Kennzeichnung im steuernden Modul vorgesehen. `scheduledChargingActive` deckt nur die fahrzeugeigene Planung ab.
 
 ## Changelog
 
