@@ -4,7 +4,7 @@ Anbindung von Tesla-Fahrzeugen an IP-Symcon über die [Tessie-API](https://devel
 
 > Inoffizielles Community-Modul. Nicht von Tesla, Inc. oder Tessie entwickelt, unterstützt oder freigegeben. Siehe [Markenhinweis](#markenhinweis) und [Haftungsausschluss](#haftungsausschluss).
 
-> Teil der **DG65 Energie-Suite** – welche Modulstände zusammen getestet sind, listet das Suite-Manifest: [SUITE.md](https://github.com/DG65/EMS/blob/main/SUITE.md). Das Modul ist auch eigenständig voll nutzbar.
+> Teil des **NRG-Stack** – welche Modulstände zusammen getestet sind, listet das Suite-Manifest: [SUITE.md](https://github.com/DG65/EMS/blob/main/SUITE.md). Das Modul ist auch eigenständig voll nutzbar.
 
 ## Funktionen
 

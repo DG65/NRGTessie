@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.20.1] - 2026-07-23
+### Geaendert
+- Dachmarke des Modul-Verbunds heisst jetzt "NRG-Stack" (zuvor "DG65 Energie-Suite"); README- und CLAUDE.md-Formulierung angepasst. Reine Anzeige-/Doku-Aenderung - Idents, Vertraege und Klassennamen bleiben unveraendert.
+
 ## [2.20.0] - 2026-07-23
 ### Hinzugefuegt
 - TESSIE_GetVehicleState liefert additiv das Feld contractVersion (Major.Minor, aktuell "1.1") - Teil der DG65-Suite-Versionierungskonvention (SUITE.md im EMS-Repo). Konsumenten pruefen die Major-Version; additive Erweiterungen erhoehen die Minor, ein Bruch die Major. Fehlt das Feld, gilt "1.0".
