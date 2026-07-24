@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.21.0] - 2026-07-23
+### Geaendert (Lizenzwechsel)
+- Lizenz von MIT auf **PolyForm Noncommercial License 1.0.0** umgestellt (verbundweite Festlegung im NRG-Stack). Private und nicht-kommerzielle Nutzung bleibt frei; gewerbliche Nutzung erfordert eine gesonderte Lizenz (Kontakt DG65); Spenden sind willkommen. LICENSE enthaelt den wortgetreuen Originaltext. Aeltere, unter MIT veroeffentlichte Versionen bleiben fuer den jeweiligen Stand MIT-lizenziert; die neue Lizenz gilt ab dieser Fassung nach vorn. Betrifft alle drei Module (TessieVehicle, TessieVehicleTile, TessieConfigurator). Code, Idents und Vertraege unveraendert.
+
 ## [2.20.1] - 2026-07-23
 ### Geaendert
 - Dachmarke des Modul-Verbunds heisst jetzt "NRG-Stack" (zuvor "DG65 Energie-Suite"); README- und CLAUDE.md-Formulierung angepasst. Reine Anzeige-/Doku-Aenderung - Idents, Vertraege und Klassennamen bleiben unveraendert.

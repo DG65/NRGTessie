@@ -122,4 +122,6 @@ Dieses Modul steuert ein reales Fahrzeug (u. a. Ver-/Entriegeln, Fenster, Koffer
 
 ## Lizenz
 
-Veröffentlicht unter der **MIT-Lizenz** – © 2026 DG65. Vollständiger Text in [LICENSE](LICENSE).
+Veröffentlicht unter der **PolyForm Noncommercial License 1.0.0** – © 2026 Dietmar Gureth (DG65). Private und nicht-kommerzielle Nutzung ist frei; **gewerbliche Nutzung erfordert eine gesonderte Lizenz** (Kontakt: DG65). Spenden sind willkommen und rein freiwillig. Vollständiger Text in [LICENSE](LICENSE).
+
+Ältere Versionen, die unter der MIT-Lizenz veröffentlicht wurden, bleiben für den jeweiligen Stand MIT-lizenziert; die neue Lizenz gilt ab dieser Fassung nach vorn.
