@@ -5,6 +5,10 @@ class TessieConfigurator extends IPSModule
     private const WS_CLIENT_MODULE_ID = '{D68FD31F-0E90-7019-F16C-1949BD3079EF}';
     private const VEHICLE_MODULE_ID = '{3F1F7E31-8BA0-4B8F-9B62-47DAD7A0B6C9}';
     private const API_BASE = 'https://api.tessie.com';
+    // Zugangsschlüssel liegt in einem Attribut (Modul-Hoheit), nicht als Property. Die
+    // Properties bleiben nur als Formular-Schreibkanal bzw. Altbestand bestehen und werden
+    // in ApplyChanges sofort ins Attribut übernommen und geleert.
+    private const ATTR_TOKEN = 'TokenSecret';
 
     public function Create()
     {
@@ -12,12 +16,42 @@ class TessieConfigurator extends IPSModule
         $this->RegisterPropertyString('Token', '');
         $this->RegisterPropertyString('ApiToken', '');
         $this->RegisterPropertyString('TelemetryToken', '');
+        $this->RegisterAttributeString(self::ATTR_TOKEN, '');
+    }
+
+    /**
+     * Übernimmt einen per Formular eingegebenen bzw. aus altem Bestand vorhandenen
+     * Zugangsschlüssel ins Attribut und leert die Properties. Eine nicht-leere Property
+     * gewinnt IMMER gegen einen bereits gespeicherten Attribut-Wert (Nutzer hat etwas
+     * eingetragen = will ihn ersetzen); sind alle Properties leer, bleibt ein vorhandener
+     * Attribut-Wert unangetastet (Formular erneut übernehmen, ohne etwas einzutragen,
+     * darf den gespeicherten Schlüssel nicht löschen).
+     */
+    private function migrateTokenToAttribute(): void
+    {
+        $incoming = '';
+        foreach (['Token', 'ApiToken', 'TelemetryToken'] as $propName) {
+            $p = trim($this->ReadPropertyString($propName));
+            if ($p === '') {
+                continue;
+            }
+            if ($incoming === '') {
+                $incoming = $p;
+            }
+            IPS_SetProperty($this->InstanceID, $propName, '');
+        }
+        if ($incoming !== '') {
+            $this->WriteAttributeString(self::ATTR_TOKEN, $incoming);
+        }
     }
 
     public function ApplyChanges()
     {
         parent::ApplyChanges();
         $this->SetStatus(102);
+
+        // Zugangsschlüssel sofort ins Attribut übernehmen (siehe Konstante ATTR_TOKEN oben).
+        $this->migrateTokenToAttribute();
 
         $token = $this->getToken();
         if ($token === '') {
@@ -51,14 +85,14 @@ class TessieConfigurator extends IPSModule
                     ['type' => 'Label', 'caption' => '── Funktionsweise ──'],
                     ['type' => 'Label', 'caption' => 'Der Konfigurator listet alle Fahrzeuge deines Tessie-Kontos auf und legt per Klick auf \'Erstellen\' die passende TessieVehicle-Instanz samt Telemetrie-Verbindung (WebSocket) an. Ein einziger Zugangsschlüssel genügt sowohl für die Abfragen als auch für die Telemetrie.'],
                     ['type' => 'Label', 'caption' => '── Zugangsschlüssel erstellen ──'],
-                    ['type' => 'Label', 'caption' => 'Auf my.tessie.com anmelden, dort unter Einstellungen → API einen Zugangsschlüssel erzeugen (in der Tessie-Oberfläche heißt er \'Access Token\') und hier eintragen. Gespeichert wird er ausschließlich lokal in deiner IP-Symcon-Installation. Nach \'Änderungen übernehmen\' erscheinen die Fahrzeuge in der Liste.'],
+                    ['type' => 'Label', 'caption' => 'Auf my.tessie.com anmelden, dort unter Einstellungen → API einen Zugangsschlüssel erzeugen (in der Tessie-Oberfläche heißt er \'Access Token\') und hier eintragen. Gespeichert wird er ausschließlich lokal in deiner IP-Symcon-Installation. Nach \'Änderungen übernehmen\' erscheinen die Fahrzeuge in der Liste. Das Feld zeigt aus Sicherheitsgründen nie den gespeicherten Wert an und bleibt beim erneuten Öffnen leer – ein bestehender Schlüssel bleibt dabei erhalten, solange nichts eingetragen wird; zum Ändern einfach den neuen Schlüssel eintragen.'],
                     ['type' => 'Label', 'caption' => '── Weitere Hilfe ──'],
                     ['type' => 'Label', 'caption' => 'Ausführliche Dokumentation: github.com/DG65/Tessie. Das Modul ist ein privates Community-Projekt und steht in keiner Verbindung zu Tesla, Inc. oder Tessie.']
                 ]
             ],
             ['type' => 'Label', 'label' => 'Tessie Konfigurator – Fahrzeuge'],
             // Eigenschaftsname 'Token' bleibt unverändert (Code-Bezeichner), nur die Beschriftung ist deutsch
-            ['type' => 'ValidationTextBox', 'name' => 'Token', 'caption' => 'Tessie-Zugangsschlüssel (bei Tessie \'Access Token\'; gilt für Abfragen und Telemetrie)']
+            ['type' => 'PasswordTextBox', 'name' => 'Token', 'caption' => 'Tessie-Zugangsschlüssel (bei Tessie \'Access Token\'; gilt für Abfragen und Telemetrie) – leer lassen, um den bestehenden Schlüssel zu behalten']
         ];
 
         $values = [];
@@ -230,18 +264,10 @@ class TessieConfigurator extends IPSModule
         ];
     }
 
+    /** Liest den Zugangsschlüssel aus dem Attribut (siehe migrateTokenToAttribute). */
     private function getToken(): string
     {
-        $t = trim($this->ReadPropertyString('Token'));
-        if ($t !== '') return $t;
-
-        $old = trim($this->ReadPropertyString('ApiToken'));
-        if ($old !== '') return $old;
-
-        $oldTel = trim($this->ReadPropertyString('TelemetryToken'));
-        if ($oldTel !== '') return $oldTel;
-
-        return '';
+        return trim($this->ReadAttributeString(self::ATTR_TOKEN));
     }
 
     private function fetchVehicles(string $token): array

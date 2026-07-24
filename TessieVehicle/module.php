@@ -63,6 +63,10 @@ class TessieVehicle extends IPSModule
     private const ATTR_GEO_STATE           = 'GeoState';
     private const ATTR_RULE_STATE          = 'RuleState';
     private const ATTR_REVIEW_HINT_GONE    = 'ReviewHintDismissed';
+    // Zugangsschlüssel: liegt in einem Attribut (Modul-Hoheit), nicht als Property (Nutzer-
+    // Hoheit/Formular). Die Property 'ApiToken' bleibt nur als Schreib-Kanal des Konfigurators
+    // bestehen und wird in ApplyChanges sofort ins Attribut übernommen und geleert.
+    private const ATTR_API_TOKEN           = 'ApiTokenSecret';
 
     // Durchfahrt = Einfahrt mit anschließender Ausfahrt binnen dieser Zeit
     private const GEO_PASS_MAX_SECONDS = 900;
@@ -144,12 +148,19 @@ class TessieVehicle extends IPSModule
         $this->RegisterAttributeString(self::ATTR_GEO_STATE, '{}');
         $this->RegisterAttributeString(self::ATTR_RULE_STATE, '{}');
         $this->RegisterAttributeBoolean(self::ATTR_REVIEW_HINT_GONE, false);
+        $this->RegisterAttributeString(self::ATTR_API_TOKEN, '');
     }
 
 
     public function ApplyChanges()
     {
         parent::ApplyChanges();
+
+        // Zugangsschlüssel: Der Konfigurator schreibt ihn per IPS_SetProperty in die
+        // Property 'ApiToken' (Schreib-Kanal, kein eigenes Formularfeld hier). Sofort
+        // ins Attribut übernehmen und die Property wieder leeren, damit der Klartext
+        // nicht dauerhaft in der Property-Konfiguration liegt (NRG-Stack-Konvention).
+        $this->migrateApiTokenToAttribute();
 
         $interval = (int)$this->ReadPropertyInteger('UpdateInterval');
         if ($interval < 0) {
@@ -539,10 +550,27 @@ class TessieVehicle extends IPSModule
         ];
     }
 
+    /** Übernimmt einen von außen (Konfigurator) gesetzten Zugangsschlüssel ins Attribut und leert die Property. */
+    private function migrateApiTokenToAttribute(): void
+    {
+        $prop = trim($this->ReadPropertyString('ApiToken'));
+        if ($prop === '') {
+            return;
+        }
+        $this->WriteAttributeString(self::ATTR_API_TOKEN, $prop);
+        IPS_SetProperty($this->InstanceID, 'ApiToken', '');
+    }
+
+    /** Liest den Zugangsschlüssel aus dem Attribut (siehe migrateApiTokenToAttribute). */
+    private function getApiToken(): string
+    {
+        return trim($this->ReadAttributeString(self::ATTR_API_TOKEN));
+    }
+
     // Timer
     public function Update()
     {
-        $token = trim($this->ReadPropertyString('ApiToken'));
+        $token = $this->getApiToken();
         $vin = trim($this->ReadPropertyString('VIN'));
         if ($token === '' || $vin === '') {
             return;
@@ -591,7 +619,7 @@ class TessieVehicle extends IPSModule
     // RequestAction
     public function RequestAction($Ident, $Value)
     {
-        $token = trim($this->ReadPropertyString('ApiToken'));
+        $token = $this->getApiToken();
         $vin = trim($this->ReadPropertyString('VIN'));
         if ($token === '' || $vin === '') {
             throw new Exception('ApiToken oder VIN fehlt.');

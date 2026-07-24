@@ -6,6 +6,13 @@ Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Chan
 ### Geaendert (Lizenzwechsel)
 - Lizenz von MIT auf **PolyForm Noncommercial License 1.0.0** umgestellt (verbundweite Festlegung im NRG-Stack). Private und nicht-kommerzielle Nutzung bleibt frei; gewerbliche Nutzung erfordert eine gesonderte Lizenz (Kontakt DG65); Spenden sind willkommen. LICENSE enthaelt den wortgetreuen Originaltext. Aeltere, unter MIT veroeffentlichte Versionen bleiben fuer den jeweiligen Stand MIT-lizenziert; die neue Lizenz gilt ab dieser Fassung nach vorn. Betrifft alle drei Module (TessieVehicle, TessieVehicleTile, TessieConfigurator). Code, Idents und Vertraege unveraendert.
 
+## [2.21.0] - 2026-07-23
+### Geaendert (Sicherheit, NRG-Stack-Konvention Zugangsdaten)
+- Der Tessie-Zugangsschluessel liegt jetzt in einem Attribut (Modul-Hoheit) statt einer Property (Nutzer-/Formular-Hoheit, landet u. a. in Konfigurations-Exports/Backups im Klartext). Betroffen: TessieConfigurator (Formularfeld 'Token') und jede TessieVehicle-Instanz (Property 'ApiToken', vom Konfigurator programmatisch gesetzt). Bestehende Installationen werden beim naechsten Uebernehmen automatisch migriert (Property wird gelesen, ins Attribut uebernommen, Property geleert) - kein manueller Schritt noetig, kein Verlust des gespeicherten Schluessels.
+- Formularfeld 'Token' im Konfigurator ist jetzt ein PasswordTextBox (maskierte Eingabe) statt Freitextfeld und zeigt den gespeicherten Wert aus Sicherheitsgruenden nie an; leer lassen behaelt den bestehenden Schluessel, eine neue Eingabe ersetzt ihn.
+### Behoben
+- Bei der Migration wurde zunaechst ein Fehler eingebaut und im Testharnisch gefunden, bevor er auslieferte: ein bereits gespeicherter Schluessel im Attribut haette eine neue Eingabe im Formular verdeckt (Token-Wechsel waere stillschweigend fehlgeschlagen). Korrigiert - eine nicht-leere Formulareingabe hat jetzt immer Vorrang vor einem Bestandswert.
+
 ## [2.20.1] - 2026-07-23
 ### Geaendert
 - Dachmarke des Modul-Verbunds heisst jetzt "NRG-Stack" (zuvor "DG65 Energie-Suite"); README- und CLAUDE.md-Formulierung angepasst. Reine Anzeige-/Doku-Aenderung - Idents, Vertraege und Klassennamen bleiben unveraendert.
