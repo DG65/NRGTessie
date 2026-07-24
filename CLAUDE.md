@@ -83,6 +83,10 @@ Reihenfolge von oben, für alle drei Module (`TessieVehicle`, `TessieVehicleTile
 
 **Beim nächsten kuratierten Update:** `NEWS_VERSION` und `NEWS_ITEMS` in `TessieVehicle/module.php` und `TessieVehicleTile/module.php` aktualisieren (kurze, nutzerrelevante Highlights seit dem letzten Banner-Stand, keine vollständige Changelog-Kopie).
 
+**Pflege ist Pflicht bei JEDEM Fix/Update, nicht nur bei großen Releases (Dietmar, 24.07.2026):** Bei jeder Änderung an einem der drei Module prüfen: „Gehört das ins Neu-Banner?" — das Ergebnis darf „nein" sein (nicht jeder Bugfix ist banner-würdig), aber die Prüfung selbst muss jedes Mal stattfinden, nicht nur bei größeren Versionssprüngen. Bei „ja": `NEWS_ITEMS` ergänzen und `NEWS_VERSION` auf die neue Modulversion anheben (sonst zeigt das Banner eine veraltete Versionsnummer im Titel, obwohl der Punkt schon drinsteht).
+
+**Layout-Qualität generell (Dietmar, 24.07.2026):** logische Gruppierung zusammengehöriger Felder, Bedienung Schritt für Schritt ohne Scroll-Zickzack (kein Hin- und Herspringen zwischen weit auseinanderliegenden, inhaltlich zusammengehörigen Elementen), Feldkanten auf einer Linie statt kreuz und quer (einheitliche Spaltenbreiten/Einrückung innerhalb eines Panels). Bei jeder Formular-Änderung mitdenken, nicht nur beim Neuaufbau.
+
 ## Weitere Hinweise
 
 Siehe `README.md` für Nutzerdokumentation, `CHANGELOG.md` für die Versionshistorie. Enum-/Profilwerte, die von Tesla stammen (z. B. Klimahaltung, Ladestatus), vor Änderungen möglichst gegen die offizielle [Tesla Fleet Telemetry Proto-Definition](https://github.com/teslamotors/fleet-telemetry/blob/main/protos/vehicle_data.proto) verifizieren statt zu raten — hat sich beim Klimahaltung-„Camping"/„Party"-Fall bewährt (siehe CHANGELOG 2.16.1).
