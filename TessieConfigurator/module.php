@@ -72,14 +72,24 @@ class TessieConfigurator extends IPSModule
         $this->syncExistingVehicleInstancesOnApply($token, $vins);
     }
 
+    /** Modulversion aus library.json (Repo-Wurzel), leer wenn nicht lesbar. */
+    private function moduleVersion(): string
+    {
+        $raw = @file_get_contents(__DIR__ . '/../library.json');
+        $d = is_string($raw) ? json_decode($raw, true) : null;
+        return is_array($d) ? (string)($d['version'] ?? '') : '';
+    }
+
     public function GetConfigurationForm()
     {
         $token = $this->getToken();
+        $v = $this->moduleVersion();
+        $dokuCaption = '📖 Dokumentation & Hilfe' . ($v !== '' ? ' (Modulversion ' . $v . ')' : '');
 
         $elements = [
             [
                 'type' => 'ExpansionPanel',
-                'caption' => '📖 Dokumentation & Hilfe',
+                'caption' => $dokuCaption,
                 'expanded' => false,
                 'items' => [
                     ['type' => 'Label', 'caption' => '── Funktionsweise ──'],

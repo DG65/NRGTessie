@@ -2,6 +2,11 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.22.0] - 2026-07-24
+### Hinzugefuegt
+- Einheitliche Formular-Optik nach Verbund-Konvention (Referenz InverterHub) in allen drei Modulen: dismissibles "Neu in Version X.Y.Z"-Panel (pro Version, Attribut SeenNews) ganz oben, Modulversion im Titel des Dokumentation-&-Hilfe-Panels (aus library.json gelesen, nie von Hand zu pflegen), Forum-/Feedback-Hinweis nach den Haupteinstellungen (weiterhin nur in TessieVehicle, um doppelte Nachfragen zu vermeiden).
+- Kuratierte "Neu in Version 2.22.0"-Liste in TessieVehicle und TessieVehicleTile: Kachel-Verwaltung von Automationen/Standorten/Buttons, UND-Bedingungen, Standort-Icons, Profilwerte-Dropdown, Telemetrie-Fixes (Ladekabeltyp etc.), Camp-Modus-Bezeichnung, deutsche Oberflaeche.
+
 ## [2.21.0] - 2026-07-23
 ### Geaendert (Lizenzwechsel)
 - Lizenz von MIT auf **PolyForm Noncommercial License 1.0.0** umgestellt (verbundweite Festlegung im NRG-Stack). Private und nicht-kommerzielle Nutzung bleibt frei; gewerbliche Nutzung erfordert eine gesonderte Lizenz (Kontakt DG65); Spenden sind willkommen. LICENSE enthaelt den wortgetreuen Originaltext. Aeltere, unter MIT veroeffentlichte Versionen bleiben fuer den jeweiligen Stand MIT-lizenziert; die neue Lizenz gilt ab dieser Fassung nach vorn. Betrifft alle drei Module (TessieVehicle, TessieVehicleTile, TessieConfigurator). Code, Idents und Vertraege unveraendert.

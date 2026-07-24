@@ -69,6 +69,19 @@ class TessieVehicleTile extends IPSModule
     private const DEF_FONT       = 'system';
     private const DEF_SCALE      = 1.0;
 
+    private const ATTR_SEEN_NEWS = 'SeenNews';
+
+    // „Was ist neu"-Banner: Versionsnummer, bis zu der die Neuigkeiten hier zusammengefasst sind.
+    // Beim nächsten kuratierten Update hochzählen und NEWS_ITEMS ersetzen.
+    private const NEWS_VERSION = '2.22.0';
+    private const NEWS_ITEMS = [
+        'Wenn→Dann-Regeln der Quelle direkt hier anlegen, bearbeiten und löschen – inklusive mehrerer UND-Bedingungen.',
+        'Standorte (Geofence) der Quelle direkt hier verwalten, mit eigenem Icon je Standort.',
+        'Bedien-Schaltflächen: Anzahl, Reihenfolge und Beschriftung selbst wählen (Stift-Symbol neben „Schaltflächen").',
+        'Vergleichswert einer Regel erscheint als Auswahlliste mit Klartext, wenn der Datenpunkt feste Werte hat.',
+        'Oberfläche durchgängig auf Deutsch.'
+    ];
+
     public function Create()
     {
         //Never delete this line!
@@ -88,6 +101,7 @@ class TessieVehicleTile extends IPSModule
         $this->RegisterPropertyString('Buttons', self::DEFAULT_BUTTONS);
         $this->RegisterPropertyBoolean('ShowAutomations', true);
         $this->RegisterPropertyBoolean('AdoptVehicleName', true);
+        $this->RegisterAttributeString(self::ATTR_SEEN_NEWS, '');
 
         $this->SetVisualizationType(1);
     }
@@ -149,7 +163,61 @@ class TessieVehicleTile extends IPSModule
 
     public function GetConfigurationForm()
     {
-        return file_get_contents(__DIR__ . '/form.json');
+        $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
+        if (!is_array($form)) {
+            $form = ['elements' => [], 'actions' => [], 'status' => []];
+        }
+
+        // Versionsnummer gehört ins Doku-Panel (nicht ins Neu-Banner).
+        foreach ($form['elements'] as &$element) {
+            if (is_array($element) && ($element['type'] ?? '') === 'ExpansionPanel' && strpos((string)($element['caption'] ?? ''), '📖') === 0) {
+                $v = $this->moduleVersion();
+                if ($v !== '') {
+                    $element['caption'] = '📖 Dokumentation & Hilfe (Modulversion ' . $v . ')';
+                }
+                break;
+            }
+        }
+        unset($element);
+
+        // „Was ist neu"-Banner nach einem Update ganz oben.
+        $banner = $this->newsBanner();
+        if ($banner !== null) {
+            array_unshift($form['elements'], $banner);
+        }
+
+        return json_encode($form);
+    }
+
+    /** Modulversion aus library.json (Repo-Wurzel), leer wenn nicht lesbar. */
+    private function moduleVersion(): string
+    {
+        $raw = @file_get_contents(__DIR__ . '/../library.json');
+        $d = is_string($raw) ? json_decode($raw, true) : null;
+        return is_array($d) ? (string)($d['version'] ?? '') : '';
+    }
+
+    /**
+     * „Was ist neu"-Banner: erscheint nach einem Update (Attribut startet leer),
+     * bis der Nutzer „Verstanden" klickt. Eine Neuinstallation sieht es einmalig.
+     */
+    private function newsBanner(): ?array
+    {
+        if ($this->ReadAttributeString(self::ATTR_SEEN_NEWS) === self::NEWS_VERSION) {
+            return null;
+        }
+        $items = [['type' => 'Label', 'caption' => 'Neu seit dem letzten Store-Stand – bitte kurz ansehen:']];
+        foreach (self::NEWS_ITEMS as $line) {
+            $items[] = ['type' => 'Label', 'caption' => '• ' . $line];
+        }
+        $items[] = ['type' => 'Button', 'caption' => 'Verstanden – nicht mehr anzeigen', 'onClick' => 'TESSIETILE_AckNews($id);'];
+        return ['type' => 'ExpansionPanel', 'name' => 'NewsPanel', 'caption' => '🆕 Neu in Version ' . self::NEWS_VERSION, 'expanded' => true, 'items' => $items];
+    }
+
+    public function AckNews(): void
+    {
+        $this->WriteAttributeString(self::ATTR_SEEN_NEWS, self::NEWS_VERSION);
+        $this->UpdateFormField('NewsPanel', 'visible', false);
     }
 
     /**

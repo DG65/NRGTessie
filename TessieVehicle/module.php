@@ -63,6 +63,20 @@ class TessieVehicle extends IPSModule
     private const ATTR_GEO_STATE           = 'GeoState';
     private const ATTR_RULE_STATE          = 'RuleState';
     private const ATTR_REVIEW_HINT_GONE    = 'ReviewHintDismissed';
+    private const ATTR_SEEN_NEWS           = 'SeenNews';
+
+    // „Was ist neu"-Banner: Versionsnummer, bis zu der die Neuigkeiten hier zusammengefasst sind.
+    // Beim nächsten kuratierten Update hochzählen und NEWS_ITEMS ersetzen.
+    private const NEWS_VERSION = '2.22.0';
+    private const NEWS_ITEMS = [
+        'Automationen (Wenn → Dann) inkl. mehrerer UND-Bedingungen – jetzt komplett in der Kachel anlegbar, bearbeitbar und löschbar.',
+        'Standort-Erkennung (Geofence) mit beliebig vielen Orten, eigenem Icon je Standort und direkter Verwaltung aus der Kachel.',
+        'Bedien-Schaltflächen der Kachel frei wählbar: Anzahl, Reihenfolge und Beschriftung selbst bestimmen.',
+        'Vergleichswert einer Automation erscheint als Auswahlliste mit Klartext, wenn der Datenpunkt feste Werte hat (z. B. Sitzheizung, Klimahaltung).',
+        'Seltene Telemetrie-Werte (z. B. Ladekabeltyp) verschwinden nicht mehr von selbst nach rund 15 Minuten.',
+        '„Klimahaltung"-Wert 3 heißt jetzt korrekt „Camp-Modus" (vorher irreführend „Camping").',
+        'Oberfläche durchgängig auf Deutsch.'
+    ];
     // Zugangsschlüssel: liegt in einem Attribut (Modul-Hoheit), nicht als Property (Nutzer-
     // Hoheit/Formular). Die Property 'ApiToken' bleibt nur als Schreib-Kanal des Konfigurators
     // bestehen und wird in ApplyChanges sofort ins Attribut übernommen und geleert.
@@ -148,6 +162,7 @@ class TessieVehicle extends IPSModule
         $this->RegisterAttributeString(self::ATTR_GEO_STATE, '{}');
         $this->RegisterAttributeString(self::ATTR_RULE_STATE, '{}');
         $this->RegisterAttributeBoolean(self::ATTR_REVIEW_HINT_GONE, false);
+        $this->RegisterAttributeString(self::ATTR_SEEN_NEWS, '');
         $this->RegisterAttributeString(self::ATTR_API_TOKEN, '');
     }
 
@@ -297,6 +312,13 @@ class TessieVehicle extends IPSModule
                 $elName = $element['name'] ?? '';
                 if ($elName === 'VisibleVars') {
                     $element['values'] = $fullList;
+                } elseif (($element['type'] ?? '') === 'ExpansionPanel' && strpos((string)($element['caption'] ?? ''), '📖') === 0) {
+                    // Versionsnummer gehört ins Doku-Panel (nicht ins Neu-Banner, das trägt nur die
+                    // Version, bis zu der die Neuigkeiten zusammengefasst sind).
+                    $v = $this->moduleVersion();
+                    if ($v !== '') {
+                        $element['caption'] = '📖 Dokumentation & Hilfe (Modulversion ' . $v . ')';
+                    }
                 } elseif ($elName === 'InstanceLocation') {
                     // Aktuellen Parent anzeigen; verschoben wird nur per onChange (siehe SetInstanceLocation)
                     $element['value'] = IPS_GetParent($this->InstanceID);
@@ -354,6 +376,12 @@ class TessieVehicle extends IPSModule
         }
         unset($action);
 
+        // „Was ist neu"-Banner nach einem Update ganz oben.
+        $banner = $this->newsBanner();
+        if ($banner !== null) {
+            array_unshift($form['elements'], $banner);
+        }
+
         return json_encode($form);
     }
 
@@ -375,6 +403,37 @@ class TessieVehicle extends IPSModule
     {
         $this->WriteAttributeBoolean(self::ATTR_REVIEW_HINT_GONE, true);
         $this->UpdateFormField('ReviewHint', 'visible', false);
+    }
+
+    /** Modulversion aus library.json (Repo-Wurzel), leer wenn nicht lesbar. */
+    private function moduleVersion(): string
+    {
+        $raw = @file_get_contents(__DIR__ . '/../library.json');
+        $d = is_string($raw) ? json_decode($raw, true) : null;
+        return is_array($d) ? (string)($d['version'] ?? '') : '';
+    }
+
+    /**
+     * „Was ist neu"-Banner: erscheint nach einem Update (Attribut startet leer),
+     * bis der Nutzer „Verstanden" klickt. Eine Neuinstallation sieht es einmalig.
+     */
+    private function newsBanner(): ?array
+    {
+        if ($this->ReadAttributeString(self::ATTR_SEEN_NEWS) === self::NEWS_VERSION) {
+            return null;
+        }
+        $items = [['type' => 'Label', 'caption' => 'Neu seit dem letzten Store-Stand – bitte kurz ansehen und ggf. die Einstellungen prüfen:']];
+        foreach (self::NEWS_ITEMS as $line) {
+            $items[] = ['type' => 'Label', 'caption' => '• ' . $line];
+        }
+        $items[] = ['type' => 'Button', 'caption' => 'Verstanden – nicht mehr anzeigen', 'onClick' => 'TESSIE_AckNews($id);'];
+        return ['type' => 'ExpansionPanel', 'name' => 'NewsPanel', 'caption' => '🆕 Neu in Version ' . self::NEWS_VERSION, 'expanded' => true, 'items' => $items];
+    }
+
+    public function AckNews(): void
+    {
+        $this->WriteAttributeString(self::ATTR_SEEN_NEWS, self::NEWS_VERSION);
+        $this->UpdateFormField('NewsPanel', 'visible', false);
     }
 
     public function ResetVisibleVars()

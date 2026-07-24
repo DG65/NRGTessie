@@ -72,6 +72,17 @@ Faktenlage: Kein Symcon-Store-Review hat Emojis je beanstandet; die frühere „
 
 Bestand hier (ausdrücklich erwünscht, nicht ausbauen): 📖 Dokumentation-Panels in allen drei Modulen, Standort-Icons (🏠 Zuhause, 📍/🏢 weitere Standorte) in der Kachel.
 
+## Einheitliche Formular-Optik (Verbund-Regel, Dietmar 24.07.2026, Referenz InverterHub)
+
+Reihenfolge von oben, für alle drei Module (`TessieVehicle`, `TessieVehicleTile`, `TessieConfigurator`):
+
+1. **„🆕 Neu in Version X.Y.Z"** — aufgeklappt, pro Version dismissible. Attribut `SeenNews` speichert die zuletzt bestätigte Version; erscheint erneut, sobald `NEWS_VERSION` (Klassenkonstante) hochgezählt wird. Keine Versionsnummer im Banner-Fließtext, nur im Panel-Titel. Aufbau/Muster: `newsBanner()` + `AckNews()` in jedem der drei Module (TessieConfigurator hat aktuell keins, weil seit dem letzten Store-Stand nichts Nennenswertes hinzukam — bei Bedarf nachziehen).
+2. **„📖 Dokumentation & Hilfe"** — eingeklappt. **Hier** steht die Modulversion im Titel (`moduleVersion()` liest sie zur Laufzeit aus `library.json`, damit sie nie von Hand nachgepflegt werden muss), NICHT im Neu-Banner.
+3. Fachpanels (Automationen, Standorte, Statusfarben, …). Neue/wichtige Felder bekommen bei Bedarf ein `🆕`-Präfix im Label.
+4. Symcon-Forum-/Feedback-Hinweis **nach den Haupteinstellungen** (= ans Ende von `$form['elements']` angehängt, vor dem `array_unshift` des Neu-Banners), einmalig dismissible über Attribut `ReviewHintDismissed`. Bewusst nur in `TessieVehicle` (die am häufigsten geöffnete Instanz) — nicht in allen drei Modulen dupliziert, sonst sieht ein Nutzer mit mehreren Instanztypen dieselbe Bitte mehrfach.
+
+**Beim nächsten kuratierten Update:** `NEWS_VERSION` und `NEWS_ITEMS` in `TessieVehicle/module.php` und `TessieVehicleTile/module.php` aktualisieren (kurze, nutzerrelevante Highlights seit dem letzten Banner-Stand, keine vollständige Changelog-Kopie).
+
 ## Weitere Hinweise
 
 Siehe `README.md` für Nutzerdokumentation, `CHANGELOG.md` für die Versionshistorie. Enum-/Profilwerte, die von Tesla stammen (z. B. Klimahaltung, Ladestatus), vor Änderungen möglichst gegen die offizielle [Tesla Fleet Telemetry Proto-Definition](https://github.com/teslamotors/fleet-telemetry/blob/main/protos/vehicle_data.proto) verifizieren statt zu raten — hat sich beim Klimahaltung-„Camping"/„Party"-Fall bewährt (siehe CHANGELOG 2.16.1).
