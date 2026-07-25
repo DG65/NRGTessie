@@ -41,7 +41,7 @@ Präfix der öffentlichen Funktionen: `TESSIE`.
 ## Installation
 
 1. Im IP-Symcon **Module Store** nach **„Tessie"** suchen und installieren.
-   _Alternativ_ unter **Kern-Instanzen → Modules** das Repository manuell hinzufügen: `https://github.com/DG65/Tessie`
+   _Alternativ_ unter **Kern-Instanzen → Modules** das Repository manuell hinzufügen: `https://github.com/DG65/NRGTessie`
 2. Eine Instanz des **Tessie Configurator** anlegen und den Tessie-Zugangsschlüssel eintragen.
 3. Im Configurator die gefundenen Fahrzeuge anlegen – TessieVehicle und WebSocket-Client werden automatisch erzeugt.
 4. Optional eine Instanz **TessieVehicleTile** für die Kachel-Visualisierung anlegen (siehe unten).

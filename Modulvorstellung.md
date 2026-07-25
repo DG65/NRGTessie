@@ -63,7 +63,7 @@ Mitgeliefert wird ein eigenes Modul **TessieVehicleTile** – eine eigenständig
 
 ## Open Source, Marken & Haftung
 
-Der Code steht unter der **MIT-Lizenz** und liegt offen auf GitHub: https://github.com/DG65/Tessie
+Der Code steht unter der **MIT-Lizenz** und liegt offen auf GitHub: https://github.com/DG65/NRGTessie
 
 Inoffizielles Community-Modul – keine Verbindung zu Tesla, Inc. oder Tessie. Wichtig: Die Nutzung erfolgt **auf eigenes Risiko**. Das Modul schickt echte Befehle an das Fahrzeug (Verriegeln, Fenster, Kofferraum, Laden, Klima). Ich übernehme keine Haftung für Schäden oder Folgeschäden – sicherheitsrelevante Aktionen bitte nicht ungeprüft automatisieren.
 

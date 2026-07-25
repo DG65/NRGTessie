@@ -97,7 +97,7 @@ class TessieConfigurator extends IPSModule
                     ['type' => 'Label', 'caption' => '── Zugangsschlüssel erstellen ──'],
                     ['type' => 'Label', 'caption' => 'Auf my.tessie.com anmelden, dort unter Einstellungen → API einen Zugangsschlüssel erzeugen (in der Tessie-Oberfläche heißt er \'Access Token\') und hier eintragen. Gespeichert wird er ausschließlich lokal in deiner IP-Symcon-Installation. Nach \'Änderungen übernehmen\' erscheinen die Fahrzeuge in der Liste. Das Feld zeigt aus Sicherheitsgründen nie den gespeicherten Wert an und bleibt beim erneuten Öffnen leer – ein bestehender Schlüssel bleibt dabei erhalten, solange nichts eingetragen wird; zum Ändern einfach den neuen Schlüssel eintragen.'],
                     ['type' => 'Label', 'caption' => '── Weitere Hilfe ──'],
-                    ['type' => 'Label', 'caption' => 'Ausführliche Dokumentation: github.com/DG65/Tessie. Das Modul ist ein privates Community-Projekt und steht in keiner Verbindung zu Tesla, Inc. oder Tessie.']
+                    ['type' => 'Label', 'caption' => 'Ausführliche Dokumentation: github.com/DG65/NRGTessie. Das Modul ist ein privates Community-Projekt und steht in keiner Verbindung zu Tesla, Inc. oder Tessie.']
                 ]
             ],
             ['type' => 'Label', 'label' => 'Tessie Konfigurator – Fahrzeuge'],
