@@ -1,12 +1,12 @@
 {
   "id": "{A9E66B36-2E8F-4F52-9E4D-1A1D2F0E6F40}",
   "author": "DG65",
-  "name": "Tessie for IP-Symcon",
+  "name": "NRGTessie for IP-Symcon",
   "url": "https://github.com/DG65/NRGTessie",
   "compatibility": {
     "version": "9.0"
   },
   "version": "2.22.0",
-  "build": 20260724,
-  "date": 1784921022
+  "build": 20260725,
+  "date": 1784974460
 }
