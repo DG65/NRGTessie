@@ -4,6 +4,7 @@
 
 - **`beta`**: laufende Entwicklung und schnelle Auslieferung per direkter GitHub-URL-Installation (Dietmar + Testerkreis, kein Review nötig). **Hier committen und pushen, solange nicht ausdrücklich anders vereinbart.**
 - **`main`**: Store-geprüfter Stand. Wird über den IP-Symcon Module Store bezogen (fremde Nutzer). Nur bei einer bewussten neuen Store-Einreichung nach expliziter Bestätigung durch Dietmar aktualisieren (Merge/Fast-Forward main←beta).
+- **`ems-integration`**: Verbund-weiter Branch (identischer Name in allen Modul-Repos, Dietmar 25.07.2026) für riskante Fixes/Experimente aus der laufenden EMS-Anbindung. Landet zuerst hier, erst nach Bewährung Merge nach `beta` — damit während der EMS-Integrationsphase nichts Ungeprüftes bei echten Beta-Testern ankommt. Von `beta` abgezweigt (identischer Commit zum Zeitpunkt der Abzweigung). **Nur für EMS-Integrationsarbeit nutzen** — normale Tessie-Änderungen weiterhin auf `beta`.
 
 `beta` wurde am 21.07.2026 additiv von `main` abgezweigt (identischer Commit zum Zeitpunkt der Abzweigung) — kein Verlust, keine Divergenz zu dem Zeitpunkt.
 
