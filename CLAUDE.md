@@ -18,7 +18,7 @@ An mehreren DG65-Modulrepos wird teilweise **gleichzeitig in getrennten Sitzunge
 2. **Öffentliche Funktionen sind der Vertrag.** Ändert sich eine Signatur, wird das angekündigt.
 3. **Commit-Hygiene:** kein `git add -A` (nur eigene Dateien stagen), vor dem Commit `git pull --rebase`.
 
-**Kopplung zu InverterHub (Wechselrichter/Wallbox, github.com/DG65/InverterHub):** rein konfigurativ, keine Code-Abhängigkeit. Deren Stromfluss-Kachel hat eine herstellerneutrale Fahrzeugtabelle (Bezeichnung, Verbunden-Bedingung, SOC-Variable) — Nutzer tragen dort Tessie-Variablen-IDs manuell ein, oder nutzen den Getter unten.
+**Kopplung zu InverterHub (Wechselrichter/Wallbox, github.com/DG65/NRGInverterHub):** rein konfigurativ, keine Code-Abhängigkeit. Deren Stromfluss-Kachel hat eine herstellerneutrale Fahrzeugtabelle (Bezeichnung, Verbunden-Bedingung, SOC-Variable) — Nutzer tragen dort Tessie-Variablen-IDs manuell ein, oder nutzen den Getter unten.
 
 ### Öffentliche Schnittstelle für Fremdmodule
 
@@ -30,7 +30,7 @@ An mehreren DG65-Modulrepos wird teilweise **gleichzeitig in getrennten Sitzunge
 
 Rein additiv/lesend. Aufrufer sollten `function_exists('TESSIE_GetVehicleState')` prüfen.
 
-**Vertragsversionierung (NRG-Stack-Konvention, [SUITE.md](https://github.com/DG65/EMS/blob/main/SUITE.md)):** `contractVersion` = `Major.Minor` (String). **Additive** Felder erhöhen die Minor; eine **brechende** Änderung (Feld umbenennen/entfernen, Bedeutung/Einheit ändern) erhöht die Major — und nur dann. Kompatibilität gilt ausschließlich innerhalb derselben Major (blue'Log-Prinzip). Aktuell **1.1** (1.0 = name/vin/socID/soc/connected; 1.1 = + charging/chargeLimit/chargeAmps*/atHome/scheduledChargingActive/scheduledDeparture). Fehlt das Feld beim Konsumenten-Abgleich, gilt `1.0`. **Vor jeder Vertragsänderung:** Minor hochzählen (additiv) bzw. bei Bruch Major + Ankündigung an den Verbund (EMS/InverterHub).
+**Vertragsversionierung (NRG-Stack-Konvention, [SUITE.md](https://github.com/DG65/NRGEMS/blob/main/SUITE.md)):** `contractVersion` = `Major.Minor` (String). **Additive** Felder erhöhen die Minor; eine **brechende** Änderung (Feld umbenennen/entfernen, Bedeutung/Einheit ändern) erhöht die Major — und nur dann. Kompatibilität gilt ausschließlich innerhalb derselben Major (blue'Log-Prinzip). Aktuell **1.1** (1.0 = name/vin/socID/soc/connected; 1.1 = + charging/chargeLimit/chargeAmps*/atHome/scheduledChargingActive/scheduledDeparture). Fehlt das Feld beim Konsumenten-Abgleich, gilt `1.0`. **Vor jeder Vertragsänderung:** Minor hochzählen (additiv) bzw. bei Bruch Major + Ankündigung an den Verbund (EMS/InverterHub).
 
 **Wichtig:** Da InverterHub Variablen-**IDs** speichert, übersteht eine Umbenennung von Telemetrie-Variablen das problemlos — ein **Neuanlegen** (neue Objekt-ID, z. B. weil ein Datenpunkt gelöscht und neu erzeugt wird) aber nicht. Falls das ansteht: InverterHub-Seite vorher informieren, damit sie es im Changelog erwähnen können.
 
