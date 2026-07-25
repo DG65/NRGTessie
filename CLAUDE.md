@@ -2,9 +2,11 @@
 
 ## Branch-Workflow
 
-- **`beta`**: laufende Entwicklung und schnelle Auslieferung per direkter GitHub-URL-Installation (Dietmar + Testerkreis, kein Review nötig). **Hier committen und pushen, solange nicht ausdrücklich anders vereinbart.**
+> **⚠️ Verschärfung während der laufenden EMS-Integrationsphase (Dietmar, 25.07.2026): AUSNAHMSLOS alles auf `ems-integration` pushen — keine Ausnahme mehr für "sichere" Fixes auf `beta`.** Gilt, bis Dietmar/EMS das Ende der Phase ansagen; dann diesen Hinweis entfernen und zur Regel unten zurückkehren.
+
+- **`beta`**: laufende Entwicklung und schnelle Auslieferung per direkter GitHub-URL-Installation (Dietmar + Testerkreis, kein Review nötig). Normalerweise hier committen und pushen — **außer während der EMS-Integrationsphase, siehe Warnhinweis oben.**
 - **`main`**: Store-geprüfter Stand. Wird über den IP-Symcon Module Store bezogen (fremde Nutzer). Nur bei einer bewussten neuen Store-Einreichung nach expliziter Bestätigung durch Dietmar aktualisieren (Merge/Fast-Forward main←beta).
-- **`ems-integration`**: Verbund-weiter Branch (identischer Name in allen Modul-Repos, Dietmar 25.07.2026) für riskante Fixes/Experimente aus der laufenden EMS-Anbindung. Landet zuerst hier, erst nach Bewährung Merge nach `beta` — damit während der EMS-Integrationsphase nichts Ungeprüftes bei echten Beta-Testern ankommt. Von `beta` abgezweigt (identischer Commit zum Zeitpunkt der Abzweigung). **Nur für EMS-Integrationsarbeit nutzen** — normale Tessie-Änderungen weiterhin auf `beta`.
+- **`ems-integration`**: Verbund-weiter Branch (identischer Name in allen Modul-Repos, Dietmar 25.07.2026), ursprünglich nur für riskante Fixes aus der EMS-Anbindung gedacht, seit der Verschärfung oben **der einzige Push-Ziel-Branch während der laufenden Integrationsphase**. Von `beta` abgezweigt (Fast-Forward auf `beta`-Stand gehalten, zuletzt 25.07.2026). Nach Ende der Phase: Merge zurück nach `beta`.
 
 `beta` wurde am 21.07.2026 additiv von `main` abgezweigt (identischer Commit zum Zeitpunkt der Abzweigung) — kein Verlust, keine Divergenz zu dem Zeitpunkt.
 
