@@ -4,7 +4,8 @@
   "type": 4,
   "vendor": "Tessie Technology LLC",
   "aliases": [
-    "Tessie Configurator"
+    "Tessie Configurator",
+    "NRGTessieConfigurator"
   ],
   "url": "https://github.com/DG65/NRGTessie",
   "parentRequirements": [],

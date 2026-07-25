@@ -4,7 +4,8 @@
   "type": 3,
   "vendor": "Tessie Technology LLC",
   "aliases": [
-    "Tessie Vehicle (REST + Telemetry)"
+    "Tessie Vehicle (REST + Telemetry)",
+    "NRGTessieVehicle"
   ],
   "url": "https://github.com/DG65/NRGTessie",
   "parentRequirements": [

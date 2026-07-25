@@ -4,7 +4,8 @@
   "type": 3,
   "vendor": "Tessie Technology LLC",
   "aliases": [
-    "Tessie Fahrzeug-Kachel"
+    "Tessie Fahrzeug-Kachel",
+    "NRGTessieVehicleTile"
   ],
   "url": "https://github.com/DG65/NRGTessie",
   "parentRequirements": [],
