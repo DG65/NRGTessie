@@ -64,11 +64,23 @@ class TessieVehicle extends IPSModule
     private const ATTR_RULE_STATE          = 'RuleState';
     private const ATTR_REVIEW_HINT_GONE    = 'ReviewHintDismissed';
     private const ATTR_SEEN_NEWS           = 'SeenNews';
+    private const ATTR_LAST_TELEMETRY_AT   = 'LastTelemetryAt';
+    private const ATTR_API_ERROR_STREAK    = 'ApiErrorStreak';
+
+    // -------------------- Status-Codes (sichtbar ohne Log-Zugriff) --------------------
+    // 102 = Aktiv (IP-Symcon-Standard). Eigene Codes bewusst oberhalb 200 (Konvention:
+    // 1xx = Systemzustände, 2xx = modulspezifische Fehler-/Warnzustände).
+    private const STATUS_API_ERROR       = 201; // Zugangsschlüssel ungültig / API wiederholt nicht erreichbar
+    private const STATUS_TELEMETRY_STALE = 203; // Telemetrie seit TELEMETRY_STALE_AFTER Sekunden nicht aktualisiert (Warnung, kein harter Fehler)
+    // Schwelle orientiert an der bekannten ~15-Minuten-Sendehäufigkeit seltener Telemetriewerte.
+    private const TELEMETRY_STALE_AFTER  = 900;
 
     // „Was ist neu"-Banner: Versionsnummer, bis zu der die Neuigkeiten hier zusammengefasst sind.
     // Beim nächsten kuratierten Update hochzählen und NEWS_ITEMS ersetzen.
-    private const NEWS_VERSION = '2.22.0';
+    private const NEWS_VERSION = '2.23.0';
     private const NEWS_ITEMS = [
+        'Sichtbare Statusmeldung, wenn der Zugangsschlüssel ungültig wird/die API nicht erreichbar ist, oder wenn seit über 15 Minuten keine Telemetrie mehr ankam – vorher nur in Log/Debug-Konsole sichtbar.',
+        'GetVehicleState() liefert jetzt zusätzlich Restenergie und hochgerechnete Batteriekapazität (kWh) für EMS-Ladeplanung nach tatsächlichem Bedarf statt festem SoC%.',
         'Automationen (Wenn → Dann) inkl. mehrerer UND-Bedingungen – jetzt komplett in der Kachel anlegbar, bearbeitbar und löschbar.',
         'Standort-Erkennung (Geofence) mit beliebig vielen Orten, eigenem Icon je Standort und direkter Verwaltung aus der Kachel.',
         'Bedien-Schaltflächen der Kachel frei wählbar: Anzahl, Reihenfolge und Beschriftung selbst bestimmen.',
@@ -164,6 +176,8 @@ class TessieVehicle extends IPSModule
         $this->RegisterAttributeBoolean(self::ATTR_REVIEW_HINT_GONE, false);
         $this->RegisterAttributeString(self::ATTR_SEEN_NEWS, '');
         $this->RegisterAttributeString(self::ATTR_API_TOKEN, '');
+        $this->RegisterAttributeInteger(self::ATTR_LAST_TELEMETRY_AT, 0);
+        $this->RegisterAttributeInteger(self::ATTR_API_ERROR_STREAK, 0);
     }
 
 
@@ -636,8 +650,52 @@ class TessieVehicle extends IPSModule
         }
 
         $status = $this->getVehicleStatus($vin, $token);
+        $inst = IPS_GetInstance($this->InstanceID);
+        $current = (int)($inst['InstanceStatus'] ?? 0);
         if ($status !== '') {
             $this->SendDebug('Fahrzeugstatus', $status, 0);
+            $this->WriteAttributeInteger(self::ATTR_API_ERROR_STREAK, 0);
+            if ($current === self::STATUS_API_ERROR) {
+                $this->SetStatus(102);
+            }
+        } else {
+            // Erst nach zwei aufeinanderfolgenden Fehlschlägen sichtbar melden (vermeidet
+            // Fehlalarm bei einem einzelnen vorübergehenden Netz-/API-Aussetzer).
+            $streak = (int)$this->ReadAttributeInteger(self::ATTR_API_ERROR_STREAK) + 1;
+            $this->WriteAttributeInteger(self::ATTR_API_ERROR_STREAK, $streak);
+            if ($streak >= 2) {
+                $this->LogMessage('Tessie API: wiederholt keine gültige Antwort bei der Statusabfrage (Zugangsschlüssel ungültig oder API nicht erreichbar).', KL_WARNING);
+                $this->SetStatus(self::STATUS_API_ERROR);
+            }
+        }
+
+        $this->checkTelemetryStale();
+    }
+
+    /**
+     * Prüft, ob seit TELEMETRY_STALE_AFTER Sekunden kein Telemetrie-Paket mehr empfangen
+     * wurde, und setzt/entfernt den sichtbaren Warnstatus entsprechend. Ein API-Fehler
+     * (schwerwiegender) wird dabei nicht überschrieben.
+     */
+    private function checkTelemetryStale(): void
+    {
+        $inst = IPS_GetInstance($this->InstanceID);
+        $current = (int)($inst['InstanceStatus'] ?? 0);
+        if ($current === self::STATUS_API_ERROR) {
+            return;
+        }
+
+        $last = (int)$this->ReadAttributeInteger(self::ATTR_LAST_TELEMETRY_AT);
+        if ($last <= 0) {
+            return;
+        }
+        $stale = (time() - $last) > self::TELEMETRY_STALE_AFTER;
+
+        if ($stale && $current === 102) {
+            $this->LogMessage('Tessie: seit über ' . (int)(self::TELEMETRY_STALE_AFTER / 60) . ' Minuten keine Telemetrie empfangen.', KL_WARNING);
+            $this->SetStatus(self::STATUS_TELEMETRY_STALE);
+        } elseif (!$stale && $current === self::STATUS_TELEMETRY_STALE) {
+            $this->SetStatus(102);
         }
     }
 
@@ -670,6 +728,12 @@ class TessieVehicle extends IPSModule
 
         if (!isset($payload['data']) || !is_array($payload['data'])) {
             return;
+        }
+
+        $this->WriteAttributeInteger(self::ATTR_LAST_TELEMETRY_AT, time());
+        $inst = IPS_GetInstance($this->InstanceID);
+        if ((int)($inst['InstanceStatus'] ?? 0) === self::STATUS_TELEMETRY_STALE) {
+            $this->SetStatus(102);
         }
 
         $this->syncFromTelemetry($payload['data']);
@@ -2164,6 +2228,22 @@ class TessieVehicle extends IPSModule
     }
 
     /**
+     * Näherungsweise Batteriekapazität in kWh, hochgerechnet aus Restenergie (Telemetrie
+     * "EnergyRemaining") und SoC – Tesla liefert die tatsächliche Kapazität über keine der
+     * verfügbaren APIs direkt. Null, wenn eine der beiden Größen fehlt oder der SoC zu klein
+     * für eine belastbare Hochrechnung ist (Rundungsfehler nehmen nahe 0% stark zu).
+     */
+    private function batteryCapacityKwhOrNull(): ?float
+    {
+        $energy = $this->stateNumberOrNull('stat_tel_EnergyRemaining');
+        $soc = $this->stateNumberOrNull('stat_tel_Soc');
+        if ($energy === null || $soc === null || $soc < 5.0) {
+            return null;
+        }
+        return round($energy / ($soc / 100.0), 1);
+    }
+
+    /**
      * Ob das Fahrzeug SELBST ein geplantes Laden/eine geplante Abfahrt aktiv hat (zweiter Regler
      * auf derselben Batterie neben einer EMS-Wallboxsteuerung). Basiert auf dem Telemetrie-
      * Datenpunkt "Geplantes Laden: Modus" (Tesla: Off/StartAt/DepartBy). Der Wert wird lesbar
@@ -2201,8 +2281,9 @@ class TessieVehicle extends IPSModule
             // Vertragsversion (Major.Minor) für Konsumenten im DG65-Suite-Verbund.
             // Major nur bei brechender Änderung erhöhen; Kompatibilität nur innerhalb
             // derselben Major. 1.0 = name/vin/socID/soc/connected; 1.1 = + charging/
-            // chargeLimit/chargeAmps*/atHome/scheduledChargingActive/scheduledDeparture.
-            'contractVersion'         => '1.1',
+            // chargeLimit/chargeAmps*/atHome/scheduledChargingActive/scheduledDeparture;
+            // 1.2 = + energyRemainingKwh/batteryCapacityKwh.
+            'contractVersion'         => '1.2',
             'instanceID'              => $this->InstanceID,
             'name'                    => IPS_GetName($this->InstanceID),
             'vin'                     => trim((string)$this->ReadPropertyString('VIN')),
@@ -2219,7 +2300,11 @@ class TessieVehicle extends IPSModule
             // Zweiter Regler: fahrzeugeigenes geplantes Laden/Abfahrt aktiv?
             'scheduledChargingActive' => $this->isScheduledChargingActive(),
             // geplante Abfahrtszeit als reine Information (formatierter String, "" falls nicht gesetzt)
-            'scheduledDeparture'      => ($depVid > 0) ? (string)@GetValueString($depVid) : null
+            'scheduledDeparture'      => ($depVid > 0) ? (string)@GetValueString($depVid) : null,
+            // Restenergie direkt aus der Telemetrie sowie daraus hochgerechnete Kapazität
+            // (für Ladeplanung nach tatsächlichem Energiebedarf statt festem SoC%)
+            'energyRemainingKwh'      => $this->stateNumberOrNull('stat_tel_EnergyRemaining'),
+            'batteryCapacityKwh'      => $this->batteryCapacityKwhOrNull()
         ]);
     }
 

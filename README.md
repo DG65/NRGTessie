@@ -58,6 +58,7 @@ Präfix der öffentlichen Funktionen: `TESSIE`.
 
 - Telemetrie-Werte werden **beim Empfang** aufbereitet; selten gesendete/stale Werte werden zusätzlich beim **Übernehmen** der Instanz nachträglich lesbar gemacht.
 - Fehlt für einen Enum-Code die Übersetzung, greift ein generischer Fallback (CamelCase → Wörter). Gezielte Übersetzungen lassen sich in `TessieVehicle/locale.json` ergänzen.
+- Der Instanzstatus (Symbol im Objektbaum) zeigt Betriebsprobleme an, ohne dass Log-/Debug-Zugriff nötig ist: **API-Fehler** (Zugangsschlüssel ungültig oder Tessie-API wiederholt nicht erreichbar) und **Telemetrie seit über 15 Minuten nicht aktualisiert** (Warnung, kein harter Fehler – z. B. wenn Teslas Push-Übertragung im Hintergrund abbricht).
 
 ## Kachel (TessieVehicleTile)
 
@@ -71,7 +72,7 @@ Status-/Telemetriewerte (Ladestand, Reichweite, Temperaturen, Standort …) ersc
 
 ```json
 {
-  "contractVersion": "1.1",
+  "contractVersion": "1.2",
   "instanceID": 41537,
   "name": "Schneeflocke",
   "vin": "5YJ...",
@@ -84,11 +85,13 @@ Status-/Telemetriewerte (Ladestand, Reichweite, Temperaturen, Standort …) ersc
   "chargeAmpsMax": 16,
   "atHome": true,
   "scheduledChargingActive": false,
-  "scheduledDeparture": ""
+  "scheduledDeparture": "",
+  "energyRemainingKwh": 68.4,
+  "batteryCapacityKwh": 74.3
 }
 ```
 
-- `contractVersion`: Version dieses Datenvertrags als `Major.Minor` (aktuell `1.1`). Konsumenten prüfen die Major-Version auf Kompatibilität – innerhalb derselben Major werden nur additive Felder ergänzt, ein Bruch erhöht die Major. Fehlt das Feld, gilt `1.0`.
+- `contractVersion`: Version dieses Datenvertrags als `Major.Minor` (aktuell `1.2`). Konsumenten prüfen die Major-Version auf Kompatibilität – innerhalb derselben Major werden nur additive Felder ergänzt, ein Bruch erhöht die Major. Fehlt ein Feld, gilt die jeweils niedrigere Version.
 - `socID`: Variablen-ID des Ladestands (0, falls der Datenpunkt nicht aktiviert ist)
 - `soc`: gemessener Ist-Ladestand in % (verlässlich; Ziel-SoC und Deadline hält das steuernde Modul selbst)
 - `connected`: ob ein Ladekabel gesteckt ist (nicht: ob gerade aktiv geladen wird) – ermittelt primär über den Datenpunkt „Ladestatus (Detail)", ersatzweise über den Ladestatus; `null`, falls keine der beiden Quellen verfügbar ist
@@ -98,6 +101,8 @@ Status-/Telemetriewerte (Ladestand, Reichweite, Temperaturen, Standort …) ersc
 - `atHome`: ob das Fahrzeug am Standort „Zuhause" ist – nur belegt, wenn die Standort-Erkennung aktiv ist, sonst `null` (die Planungsvoraussetzung ist typischerweise „angesteckt **und** zuhause")
 - `scheduledChargingActive`: ob das Fahrzeug **selbst** ein geplantes Laden/eine geplante Abfahrt aktiv hat – wichtig als Zwei-Regler-Hinweis: ist dies `true`, steuert das Auto seine Ladung parallel, ein externer Regler (EMS/Wallbox) sollte sich zurückziehen oder den Nutzer bitten, die fahrzeuginterne Planung abzuschalten. `null`, falls der Datenpunkt nicht verfügbar ist
 - `scheduledDeparture`: fahrzeuggeplante Abfahrtszeit als reine Information (formatierter Text, leer wenn nicht gesetzt)
+- `energyRemainingKwh`: Restenergie in kWh, direkt aus der Telemetrie
+- `batteryCapacityKwh`: Batteriekapazität in kWh, hochgerechnet aus Restenergie und SoC – Tesla liefert die tatsächliche Kapazität über keine verfügbare API direkt, daher eine Näherung. `null` bei sehr niedrigem SoC (Rundungsfehler nehmen dort stark zu)
 
 Alle Zusatzfelder sind `null`, wenn der zugehörige Datenpunkt in der Instanz nicht aktiviert bzw. noch nicht empfangen wurde. Rein additive, lesende Funktion – ändert nichts am Modulverhalten. Fremde Module sollten den Aufruf hinter `function_exists('TESSIE_GetVehicleState')` absichern.
 

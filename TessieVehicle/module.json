@@ -15,5 +15,22 @@
   "implemented": [
     "{018EF6B5-AB94-40C6-AA53-46943E824ACF}"
   ],
-  "prefix": "TESSIE"
+  "prefix": "TESSIE",
+  "status": [
+    {
+      "code": 102,
+      "icon": "active",
+      "caption": "Aktiv"
+    },
+    {
+      "code": 201,
+      "icon": "error",
+      "caption": "API-Fehler (Zugangsschlüssel ungültig oder Tessie-API nicht erreichbar)"
+    },
+    {
+      "code": 203,
+      "icon": "inactive",
+      "caption": "Telemetrie seit über 15 Minuten nicht aktualisiert"
+    }
+  ]
 }

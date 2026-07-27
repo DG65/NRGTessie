@@ -2,6 +2,11 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.23.0] - 2026-07-27
+### Hinzugefuegt
+- Sichtbarer Instanzstatus fuer Betriebsprobleme ohne Log-/Debug-Zugriff: Status 201 "API-Fehler" (Zugangsschluessel ungueltig oder Tessie-API wiederholt nicht erreichbar, erst nach zwei aufeinanderfolgenden Fehlschlaegen gesetzt, um einzelne Aussetzer nicht faelschlich zu melden) und Status 203 "Telemetrie seit ueber 15 Minuten nicht aktualisiert" (Warnung, kein harter Fehler). Beide werden automatisch wieder auf 102 (Aktiv) zurueckgesetzt, sobald sich die Lage normalisiert.
+- GetVehicleState()-Vertrag auf 1.2 erweitert: `energyRemainingKwh` (direkt aus Telemetrie) und `batteryCapacityKwh` (aus Restenergie/SoC hochgerechnet, da Tesla die Kapazitaet ueber keine verfuegbare API direkt liefert) - Grundlage fuer eine EMS-Ladeplanung nach tatsaechlichem Energiebedarf statt festem SoC%.
+
 ## [2.22.0] - 2026-07-24
 ### Hinzugefuegt
 - Einheitliche Formular-Optik nach Verbund-Konvention (Referenz InverterHub) in allen drei Modulen: dismissibles "Neu in Version X.Y.Z"-Panel (pro Version, Attribut SeenNews) ganz oben, Modulversion im Titel des Dokumentation-&-Hilfe-Panels (aus library.json gelesen, nie von Hand zu pflegen), Forum-/Feedback-Hinweis nach den Haupteinstellungen (weiterhin nur in TessieVehicle, um doppelte Nachfragen zu vermeiden).
