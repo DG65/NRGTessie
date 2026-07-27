@@ -80,12 +80,30 @@
             ]
         },
         {
-            "type": "NumberSpinner",
-            "name": "UpdateInterval",
-            "caption": "Update Intervall (Sekunden)",
-            "suffix": " s",
-            "minimum": 0,
-            "maximum": 3600
+            "type": "RowLayout",
+            "items": [
+                {
+                    "type": "NumberSpinner",
+                    "name": "UpdateInterval",
+                    "caption": "Update Intervall (Sekunden)",
+                    "suffix": " s",
+                    "minimum": 0,
+                    "maximum": 3600
+                },
+                {
+                    "type": "PopupButton",
+                    "caption": "ℹ️",
+                    "popup": {
+                        "caption": "Was macht dieses Intervall?",
+                        "items": [
+                            {
+                                "type": "Label",
+                                "caption": "Steuert nur die regelmäßige Statusabfrage (schlaf-sicher – weckt das Fahrzeug nie von selbst). Die eigentlichen Telemetriewerte (Ladestand, Standort, Temperaturen …) kommen unabhängig davon per Push in Echtzeit an, sobald Tesla sie sendet – ein kleinerer Wert hier beschleunigt sie nicht. 0 = Abfrage deaktiviert."
+                            }
+                        ]
+                    }
+                }
+            ]
         },
         {
             "type": "SelectCategory",
