@@ -73,10 +73,10 @@ Status-/Telemetriewerte (Ladestand, Reichweite, Temperaturen, Standort …) ersc
 ```json
 {
   "contractVersion": "1.2",
-  "instanceID": 41537,
-  "name": "Schneeflocke",
+  "instanceID": 12345,
+  "name": "Mein Auto",
   "vin": "5YJ...",
-  "socID": 16201,
+  "socID": 67890,
   "soc": 92.0,
   "connected": true,
   "charging": false,

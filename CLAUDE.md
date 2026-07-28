@@ -25,7 +25,7 @@ An mehreren DG65-Modulrepos wird teilweise **gleichzeitig in getrennten Sitzunge
 `TESSIE_GetVehicleState($id): string` (JSON) — siehe [README.md](README.md#integration-in-andere-module) für den vollständigen Vertrag:
 
 ```json
-{ "contractVersion": "1.2", "instanceID": 41537, "name": "Schneeflocke", "vin": "5YJ...", "socID": 16201, "soc": 92.0, "connected": true, "charging": false, "chargeLimit": 80, "atHome": true, "scheduledChargingActive": false, "energyRemainingKwh": 68.4, "batteryCapacityKwh": 74.3 }
+{ "contractVersion": "1.2", "instanceID": 12345, "name": "Mein Auto", "vin": "5YJ...", "socID": 67890, "soc": 92.0, "connected": true, "charging": false, "chargeLimit": 80, "atHome": true, "scheduledChargingActive": false, "energyRemainingKwh": 68.4, "batteryCapacityKwh": 74.3 }
 ```
 
 Rein additiv/lesend. Aufrufer sollten `function_exists('TESSIE_GetVehicleState')` prüfen.
