@@ -412,11 +412,11 @@
         },
         {
             "type": "ExpansionPanel",
-            "caption": "Linkstruktur",
+            "caption": "Linkstruktur (optional)",
             "items": [
                 {
                     "type": "Label",
-                    "caption": "Erzeugt am gewählten Zielort einen gruppierten Kategoriebaum (Laden, Klima, Sicherheit, Sonstiges) mit Links auf alle aktiven Datenpunkte. Links deaktivierter Datenpunkte werden automatisch entfernt."
+                    "caption": "Rein optisch, für die Übersicht im Objektbaum – für die Funktion des Moduls nicht nötig. Erzeugt am gewählten Zielort einen gruppierten Kategoriebaum (Laden, Klima, Sicherheit, Sonstiges) mit Links auf alle aktiven Datenpunkte. Ohne Zielkategorie passiert nichts. Links deaktivierter Datenpunkte werden automatisch entfernt."
                 },
                 {
                     "type": "CheckBox",
