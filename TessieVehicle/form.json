@@ -92,7 +92,8 @@
                 },
                 {
                     "type": "PopupButton",
-                    "caption": "ℹ️",
+                    "caption": "i",
+                    "width": "70px",
                     "popup": {
                         "caption": "Was macht dieses Intervall?",
                         "items": [
