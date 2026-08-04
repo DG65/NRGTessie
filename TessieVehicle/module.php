@@ -2274,6 +2274,7 @@ class TessieVehicle extends IPSModule
     public function GetVehicleState(): string
     {
         $socVid = @IPS_GetObjectIDByIdent('stat_tel_Soc', $this->InstanceID);
+        $chargingVid = @IPS_GetObjectIDByIdent(self::ACT_START_CHARGING, $this->InstanceID);
         $atHomeVid = @IPS_GetObjectIDByIdent(self::STAT_AT_HOME, $this->InstanceID);
         $depVid = @IPS_GetObjectIDByIdent('stat_tel_ScheduledDepartureTime', $this->InstanceID);
 
@@ -2282,8 +2283,8 @@ class TessieVehicle extends IPSModule
             // Major nur bei brechender Änderung erhöhen; Kompatibilität nur innerhalb
             // derselben Major. 1.0 = name/vin/socID/soc/connected; 1.1 = + charging/
             // chargeLimit/chargeAmps*/atHome/scheduledChargingActive/scheduledDeparture;
-            // 1.2 = + energyRemainingKwh/batteryCapacityKwh.
-            'contractVersion'         => '1.2',
+            // 1.2 = + energyRemainingKwh/batteryCapacityKwh; 1.3 = + chargingID.
+            'contractVersion'         => '1.3',
             'instanceID'              => $this->InstanceID,
             'name'                    => IPS_GetName($this->InstanceID),
             'vin'                     => trim((string)$this->ReadPropertyString('VIN')),
@@ -2291,6 +2292,10 @@ class TessieVehicle extends IPSModule
             'soc'                     => ($socVid > 0) ? @GetValueFloat($socVid) : null,
             'connected'               => $this->isVehicleConnected(),
             // Zusatzfelder fürs EMS (alle additiv, null falls Datenpunkt nicht vorhanden)
+            // chargingID: Variablen-ID mit eigenem VariableChanged-Ereignis (z.B. fuer
+            // Dashboard-Korrelation Wallbox<->Fahrzeug ueber Aenderungs-Zeitstempel) -
+            // im Gegensatz zu "charging" kein Momentanwert, sondern eine feste Referenz.
+            'chargingID'              => ($chargingVid > 0) ? $chargingVid : 0,
             'charging'                => $this->stateBoolOrNull(self::ACT_START_CHARGING),
             'chargeLimit'             => $this->stateNumberOrNull(self::ACT_CHARGE_LIMIT),
             'chargeAmpsRequest'       => $this->stateNumberOrNull(self::ACT_CHARGING_AMPS_REQUEST),

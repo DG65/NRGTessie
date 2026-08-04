@@ -72,13 +72,14 @@ Status-/Telemetriewerte (Ladestand, Reichweite, Temperaturen, Standort …) ersc
 
 ```json
 {
-  "contractVersion": "1.2",
+  "contractVersion": "1.3",
   "instanceID": 12345,
   "name": "Mein Auto",
   "vin": "5YJ...",
   "socID": 67890,
   "soc": 92.0,
   "connected": true,
+  "chargingID": 67891,
   "charging": false,
   "chargeLimit": 80,
   "chargeAmpsRequest": 16,
@@ -91,11 +92,12 @@ Status-/Telemetriewerte (Ladestand, Reichweite, Temperaturen, Standort …) ersc
 }
 ```
 
-- `contractVersion`: Version dieses Datenvertrags als `Major.Minor` (aktuell `1.2`). Konsumenten prüfen die Major-Version auf Kompatibilität – innerhalb derselben Major werden nur additive Felder ergänzt, ein Bruch erhöht die Major. Fehlt ein Feld, gilt die jeweils niedrigere Version.
+- `contractVersion`: Version dieses Datenvertrags als `Major.Minor` (aktuell `1.3`). Konsumenten prüfen die Major-Version auf Kompatibilität – innerhalb derselben Major werden nur additive Felder ergänzt, ein Bruch erhöht die Major. Fehlt ein Feld, gilt die jeweils niedrigere Version.
 - `socID`: Variablen-ID des Ladestands (0, falls der Datenpunkt nicht aktiviert ist)
 - `soc`: gemessener Ist-Ladestand in % (verlässlich; Ziel-SoC und Deadline hält das steuernde Modul selbst)
 - `connected`: ob ein Ladekabel gesteckt ist (nicht: ob gerade aktiv geladen wird) – ermittelt primär über den Datenpunkt „Ladestatus (Detail)", ersatzweise über den Ladestatus; `null`, falls keine der beiden Quellen verfügbar ist
-- `charging`: ob gerade aktiv geladen wird
+- `chargingID`: Variablen-ID des Ladezustands (0, falls der Datenpunkt nicht vorhanden ist) – eine echte, dauerhaft geloggte IPS-Variable mit eigenem `VariableChanged`-Ereignis, gedacht für Konsumenten, die auf den Änderungs-Zeitstempel angewiesen sind (z. B. eine zeitbasierte Korrelation Wallbox↔Fahrzeug), nicht nur auf den Momentanwert
+- `charging`: ob gerade aktiv geladen wird (reiner Momentanwert aus diesem Aufruf – für Änderungserkennung `chargingID` verwenden)
 - `chargeLimit`: eingestelltes Ladelimit in %
 - `chargeAmpsRequest` / `chargeAmpsMax`: angeforderter bzw. maximaler Ladestrom in A
 - `atHome`: ob das Fahrzeug am Standort „Zuhause" ist – nur belegt, wenn die Standort-Erkennung aktiv ist, sonst `null` (die Planungsvoraussetzung ist typischerweise „angesteckt **und** zuhause")

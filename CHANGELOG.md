@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.24.0] - 2026-07-29
+### Hinzugefuegt
+- GetVehicleState()-Vertrag auf 1.3 erweitert: `chargingID` liefert die Variablen-ID des Ladezustands (echte, dauerhaft geloggte IPS-Variable mit eigenem VariableChanged-Ereignis) statt nur den Momentanwert `charging` - auf Anfrage von NRGDashboardTile::AssignVehicles(), das Wallbox und Fahrzeug ueber die Aenderungs-Zeitstempel zweier Variablen korreliert und dafuer eine echte Variable statt eines Ad-hoc-Getter-Rueckgabewerts braucht.
+
 ## [2.23.0] - 2026-07-27
 ### Hinzugefuegt
 - Sichtbarer Instanzstatus fuer Betriebsprobleme ohne Log-/Debug-Zugriff: Status 201 "API-Fehler" (Zugangsschluessel ungueltig oder Tessie-API wiederholt nicht erreichbar, erst nach zwei aufeinanderfolgenden Fehlschlaegen gesetzt, um einzelne Aussetzer nicht faelschlich zu melden) und Status 203 "Telemetrie seit ueber 15 Minuten nicht aktualisiert" (Warnung, kein harter Fehler). Beide werden automatisch wieder auf 102 (Aktiv) zurueckgesetzt, sobald sich die Lage normalisiert.
