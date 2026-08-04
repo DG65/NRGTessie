@@ -2213,6 +2213,26 @@ class TessieVehicle extends IPSModule
         return null;
     }
 
+    /**
+     * Ob gerade aktiv geladen wird, aus der Telemetrie abgeleitet (stat_tel_DetailedChargeState
+     * = "Charging"). Der Ident ACT_START_CHARGING ('act_charging') ist NUR ein Aktions-Kanal
+     * für vom Nutzer/einer Automation über IP-Symcon ausgelöste Lade-Befehle – er wird nie aus
+     * der Telemetrie aktualisiert und bleibt daher auf "aus", wenn der Ladevorgang anders
+     * gestartet wurde (Tesla-App, geplantes Laden, direkt am Fahrzeug). Fallback auf den
+     * Aktions-Kanal nur, wenn die Telemetrie (noch) keinen Wert geliefert hat.
+     */
+    private function isChargingActive(): ?bool
+    {
+        $vid = @IPS_GetObjectIDByIdent('stat_tel_DetailedChargeState', $this->InstanceID);
+        if ($vid > 0) {
+            $s = strtolower((string)@GetValueString($vid));
+            if ($s !== '') {
+                return strpos($s, 'charging') !== false || strpos($s, 'lädt') !== false;
+            }
+        }
+        return $this->stateBoolOrNull(self::ACT_START_CHARGING);
+    }
+
     /** Zahlenwert einer Variable per Ident, oder null falls nicht vorhanden. */
     private function stateNumberOrNull(string $ident): ?float
     {
@@ -2274,7 +2294,7 @@ class TessieVehicle extends IPSModule
     public function GetVehicleState(): string
     {
         $socVid = @IPS_GetObjectIDByIdent('stat_tel_Soc', $this->InstanceID);
-        $chargingVid = @IPS_GetObjectIDByIdent(self::ACT_START_CHARGING, $this->InstanceID);
+        $chargingVid = @IPS_GetObjectIDByIdent('stat_tel_DetailedChargeState', $this->InstanceID);
         $atHomeVid = @IPS_GetObjectIDByIdent(self::STAT_AT_HOME, $this->InstanceID);
         $depVid = @IPS_GetObjectIDByIdent('stat_tel_ScheduledDepartureTime', $this->InstanceID);
 
@@ -2292,11 +2312,13 @@ class TessieVehicle extends IPSModule
             'soc'                     => ($socVid > 0) ? @GetValueFloat($socVid) : null,
             'connected'               => $this->isVehicleConnected(),
             // Zusatzfelder fürs EMS (alle additiv, null falls Datenpunkt nicht vorhanden)
-            // chargingID: Variablen-ID mit eigenem VariableChanged-Ereignis (z.B. fuer
-            // Dashboard-Korrelation Wallbox<->Fahrzeug ueber Aenderungs-Zeitstempel) -
-            // im Gegensatz zu "charging" kein Momentanwert, sondern eine feste Referenz.
+            // chargingID: Variablen-ID von stat_tel_DetailedChargeState (Telemetrie-Rohwert,
+            // String) mit eigenem VariableChanged-Ereignis - bewusst NICHT die Ident des
+            // Aktions-Kanals ACT_START_CHARGING, dessen Zeitstempel nur bei über IP-Symcon
+            // ausgelösten Befehlen aktualisiert wird, nicht bei Ladevorgängen, die z.B. über
+            // die Tesla-App oder geplantes Laden gestartet wurden.
             'chargingID'              => ($chargingVid > 0) ? $chargingVid : 0,
-            'charging'                => $this->stateBoolOrNull(self::ACT_START_CHARGING),
+            'charging'                => $this->isChargingActive(),
             'chargeLimit'             => $this->stateNumberOrNull(self::ACT_CHARGE_LIMIT),
             'chargeAmpsRequest'       => $this->stateNumberOrNull(self::ACT_CHARGING_AMPS_REQUEST),
             'chargeAmpsMax'           => $this->stateNumberOrNull(self::STAT_CHARGING_AMPS_MAX),

@@ -96,8 +96,8 @@ Status-/Telemetriewerte (Ladestand, Reichweite, Temperaturen, Standort …) ersc
 - `socID`: Variablen-ID des Ladestands (0, falls der Datenpunkt nicht aktiviert ist)
 - `soc`: gemessener Ist-Ladestand in % (verlässlich; Ziel-SoC und Deadline hält das steuernde Modul selbst)
 - `connected`: ob ein Ladekabel gesteckt ist (nicht: ob gerade aktiv geladen wird) – ermittelt primär über den Datenpunkt „Ladestatus (Detail)", ersatzweise über den Ladestatus; `null`, falls keine der beiden Quellen verfügbar ist
-- `chargingID`: Variablen-ID des Ladezustands (0, falls der Datenpunkt nicht vorhanden ist) – eine echte, dauerhaft geloggte IPS-Variable mit eigenem `VariableChanged`-Ereignis, gedacht für Konsumenten, die auf den Änderungs-Zeitstempel angewiesen sind (z. B. eine zeitbasierte Korrelation Wallbox↔Fahrzeug), nicht nur auf den Momentanwert
-- `charging`: ob gerade aktiv geladen wird (reiner Momentanwert aus diesem Aufruf – für Änderungserkennung `chargingID` verwenden)
+- `chargingID`: Variablen-ID des rohen Telemetrie-Ladestatus (`stat_tel_DetailedChargeState`, String; 0 falls der Datenpunkt nicht vorhanden ist) – eine echte, dauerhaft geloggte IPS-Variable mit eigenem `VariableChanged`-Ereignis, gedacht für Konsumenten, die auf den Änderungs-Zeitstempel angewiesen sind (z. B. eine zeitbasierte Korrelation Wallbox↔Fahrzeug). Bewusst nicht die Aktionsvariable des Lade-Schalters: deren Zeitstempel ändert sich nur bei über IP-Symcon ausgelösten Befehlen, nicht bei Ladevorgängen, die z. B. über die Tesla-App oder geplantes Laden gestartet wurden
+- `charging`: ob gerade aktiv geladen wird, aus der Telemetrie abgeleitet (`stat_tel_DetailedChargeState` enthält „Charging") – reiner Momentanwert aus diesem Aufruf, für Änderungserkennung `chargingID` verwenden
 - `chargeLimit`: eingestelltes Ladelimit in %
 - `chargeAmpsRequest` / `chargeAmpsMax`: angeforderter bzw. maximaler Ladestrom in A
 - `atHome`: ob das Fahrzeug am Standort „Zuhause" ist – nur belegt, wenn die Standort-Erkennung aktiv ist, sonst `null` (die Planungsvoraussetzung ist typischerweise „angesteckt **und** zuhause")

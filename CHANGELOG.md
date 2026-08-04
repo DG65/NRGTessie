@@ -2,6 +2,12 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.25.0] - 2026-07-29
+### Behoben
+- `charging` in GetVehicleState() wurde aus der Aktionsvariable ACT_START_CHARGING ('act_charging') abgeleitet - die aber NUR bei einem über IP-Symcon ausgelösten Ladebefehl aktualisiert wird, nie aus der Telemetrie. Wurde ein Ladevorgang anders gestartet (Tesla-App, geplantes Laden, direkt am Fahrzeug), blieb `charging` faelschlich `false`, obwohl `connected` (aus Telemetrie) korrekt `true` zeigte. Von Dashboard live entdeckt: Wallbox-Fahrzeug-Zuordnung schlug fehl, obwohl das Fahrzeug nachweislich lud. Jetzt aus stat_tel_DetailedChargeState (Telemetrie) abgeleitet, wie schon `connected`.
+- `chargingID` (in 2.24.0 eingefuehrt) zeigte aus demselben Grund auf die falsche Variable (ACT_START_CHARGING statt stat_tel_DetailedChargeState) - deren VariableChanged-Zeitstempel haette bei extern gestarteten Ladevorgaengen ebenfalls nicht gefeuert und Dashboards Zeitkorrelation weiterhin gerissen. Korrigiert auf stat_tel_DetailedChargeState.
+- locale.json: fehlende Übersetzungen für DetailedChargeState nachgetragen (Unknown/NoPower/Starting/Charging/Complete/Stopped, gegen die offizielle Tesla-Fleet-Telemetry-Proto-Definition verifiziert) - vorher griff für "Charging" der generische CamelCase-Fallback ("Detailed Charge State Charging" statt "Ladestatus: lädt"). Der bisherige Eintrag "DetailedChargeStateConnected" existiert in der echten Tesla-Enum nicht (nie ein "Connected"-Wert, nur "Disconnected") und wurde entfernt.
+
 ## [2.24.0] - 2026-07-29
 ### Hinzugefuegt
 - GetVehicleState()-Vertrag auf 1.3 erweitert: `chargingID` liefert die Variablen-ID des Ladezustands (echte, dauerhaft geloggte IPS-Variable mit eigenem VariableChanged-Ereignis) statt nur den Momentanwert `charging` - auf Anfrage von NRGDashboardTile::AssignVehicles(), das Wallbox und Fahrzeug ueber die Aenderungs-Zeitstempel zweier Variablen korreliert und dafuer eine echte Variable statt eines Ad-hoc-Getter-Rueckgabewerts braucht.
