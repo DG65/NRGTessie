@@ -77,17 +77,12 @@ class TessieVehicle extends IPSModule
 
     // „Was ist neu"-Banner: Versionsnummer, bis zu der die Neuigkeiten hier zusammengefasst sind.
     // Beim nächsten kuratierten Update hochzählen und NEWS_ITEMS ersetzen.
-    private const NEWS_VERSION = '2.23.0';
+    private const NEWS_VERSION = '2.26.0';
     private const NEWS_ITEMS = [
+        'Absturz der Symcon-Mobile-App beim Öffnen von Klimahaltung, Sitzheizung oder Innenraum-Überhitzeschutz-Temperaturlimit behoben (falsche interne Darstellungs-Angabe – Web/Konsole waren nicht betroffen).',
+        'Ladezustand wird jetzt zuverlässig erkannt, auch wenn ein Ladevorgang nicht über IP-Symcon gestartet wurde (z. B. Tesla-App oder geplantes Laden) – wichtig für Module wie das Dashboard, die daraus die Fahrzeug-Wallbox-Zuordnung ableiten.',
         'Sichtbare Statusmeldung, wenn der Zugangsschlüssel ungültig wird/die API nicht erreichbar ist, oder wenn seit über 15 Minuten keine Telemetrie mehr ankam – vorher nur in Log/Debug-Konsole sichtbar.',
-        'GetVehicleState() liefert jetzt zusätzlich Restenergie und hochgerechnete Batteriekapazität (kWh) für EMS-Ladeplanung nach tatsächlichem Bedarf statt festem SoC%.',
-        'Automationen (Wenn → Dann) inkl. mehrerer UND-Bedingungen – jetzt komplett in der Kachel anlegbar, bearbeitbar und löschbar.',
-        'Standort-Erkennung (Geofence) mit beliebig vielen Orten, eigenem Icon je Standort und direkter Verwaltung aus der Kachel.',
-        'Bedien-Schaltflächen der Kachel frei wählbar: Anzahl, Reihenfolge und Beschriftung selbst bestimmen.',
-        'Vergleichswert einer Automation erscheint als Auswahlliste mit Klartext, wenn der Datenpunkt feste Werte hat (z. B. Sitzheizung, Klimahaltung).',
-        'Seltene Telemetrie-Werte (z. B. Ladekabeltyp) verschwinden nicht mehr von selbst nach rund 15 Minuten.',
-        '„Klimahaltung"-Wert 3 heißt jetzt korrekt „Camp-Modus" (vorher irreführend „Camping").',
-        'Oberfläche durchgängig auf Deutsch.'
+        'GetVehicleState() liefert jetzt zusätzlich Restenergie und hochgerechnete Batteriekapazität (kWh) für eine Ladeplanung nach tatsächlichem Bedarf statt festem SoC%.'
     ];
     // Zugangsschlüssel: liegt in einem Attribut (Modul-Hoheit), nicht als Property (Nutzer-
     // Hoheit/Formular). Die Property 'ApiToken' bleibt nur als Schreib-Kanal des Konfigurators
@@ -1521,7 +1516,7 @@ class TessieVehicle extends IPSModule
     {
         $options = [];
         foreach ($map as $v => $caption) {
-            $options[] = ['Value' => $v, 'Caption' => $caption, 'IconActive' => false, 'Icon' => '', 'ColorActive' => false, 'ColorValue' => -1];
+            $options[] = ['Value' => $v, 'Caption' => $caption, 'IconActive' => false, 'Icon' => '', 'Color' => -1];
         }
         return ['PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION, 'OPTIONS' => json_encode($options)];
     }

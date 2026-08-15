@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.26.0] - 2026-08-04
+### Behoben
+- Presentation-OPTIONS fuer alle Aufklapp-Datenpunkte (Klimahaltung, Sitzheizung Fahrer/Beifahrer, Innenraum-Ueberhitzeschutz-Temperaturlimit) nutzten die ungueltigen Farb-Schluessel "ColorActive"/"ColorValue" statt "Color". Web-Konsole toleriert das stillschweigend, die Mobile-App stuerzt beim Oeffnen der betroffenen Variable mit "Invalid Configuration" ab (verbundweiter Fund via HeishaMon/Forum-Rueckmeldung, SUITE.md-Stolperstein 9). Kein zusaetzlicher Migrationsschritt noetig: MaintainVariable() (bereits bei jedem Uebernehmen aktiv) schreibt die Presentation korrekt neu, empirisch am Live-System gegengeprueft.
+
 ## [2.25.0] - 2026-07-29
 ### Behoben
 - `charging` in GetVehicleState() wurde aus der Aktionsvariable ACT_START_CHARGING ('act_charging') abgeleitet - die aber NUR bei einem über IP-Symcon ausgelösten Ladebefehl aktualisiert wird, nie aus der Telemetrie. Wurde ein Ladevorgang anders gestartet (Tesla-App, geplantes Laden, direkt am Fahrzeug), blieb `charging` faelschlich `false`, obwohl `connected` (aus Telemetrie) korrekt `true` zeigte. Von Dashboard live entdeckt: Wallbox-Fahrzeug-Zuordnung schlug fehl, obwohl das Fahrzeug nachweislich lud. Jetzt aus stat_tel_DetailedChargeState (Telemetrie) abgeleitet, wie schon `connected`.
