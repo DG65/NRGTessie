@@ -462,6 +462,12 @@
             "onClick": "echo TESSIE_RenameTelemetryVariables($id);"
         },
         {
+            "type": "Button",
+            "caption": "🔄 Übernehmen erzwingen (ohne Formularänderung)",
+            "confirm": "Instanz jetzt neu anwenden (IPS_ApplyChanges), auch ohne Formularänderung? Praktisch nach einem Modul-Update.",
+            "onClick": "IPS_ApplyChanges($id); echo '✅ ApplyChanges() ausgeführt.';"
+        },
+        {
             "type": "Label",
             "caption": "Name/Ident sind schreibgeschützt - du änderst nur 'Aktiv'. Reihenfolge per Ziehen und Ablegen (danach Übernehmen)."
         }
