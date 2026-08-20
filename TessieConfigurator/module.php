@@ -21,11 +21,50 @@ class TessieConfigurator extends IPSModule
         $this->RegisterAttributeInteger(self::ATTR_LAST_DISCOVERY_TS, 0);
     }
 
-    /** Kein eigener Effekt - der Button-Klick allein löst bereits ein Neuladen des
-     *  Formulars aus, das fetchVehicles() (und damit die Zeitstempel-Aktualisierung
-     *  unten in GetConfigurationForm()) ohnehin frisch ausführt. */
+    /**
+     * Fragt das Tessie-Konto ab und liefert die 'values' fürs Fahrzeuge-Configurator-
+     * Element, stempelt LastDiscoveryTs. Gemeinsam von GetConfigurationForm() (initiale
+     * Anzeige) und RefreshVehicles() (Button-Klick im bereits offenen Formular) genutzt.
+     */
+    private function discoverVehicles(string $token): array
+    {
+        $values = [];
+        if ($token === '') {
+            return $values;
+        }
+        $vehicles = $this->fetchVehicles($token);
+        foreach ($vehicles as $v) {
+            $vin = (string)($v['vin'] ?? '');
+            if ($vin === '') {
+                continue;
+            }
+            $name = (string)($v['display_name'] ?? $v['name'] ?? $vin);
+
+            $instanceId = $this->findVehicleInstance($vin);
+            $create = $this->buildCreateChain($vin, $name, $token);
+
+            $values[] = [
+                'name' => $name,
+                'address' => $vin,
+                'instanceID' => $instanceId,
+                'create' => $create
+            ];
+        }
+        $this->WriteAttributeInteger(self::ATTR_LAST_DISCOVERY_TS, time());
+        return $values;
+    }
+
+    /**
+     * Sucht erneut und aktualisiert das BEREITS OFFENE Formular explizit per
+     * UpdateFormField() - GetConfigurationForm() läuft nach einem Button-Klick NICHT
+     * automatisch erneut (SUITE.md-Stolperfalle 12, live von Dietmar bei EMS gefunden).
+     */
     public function RefreshVehicles(): void
     {
+        $token = $this->getToken();
+        $values = $this->discoverVehicles($token);
+        $this->UpdateFormField('DiscoverySummary', 'caption', $this->getDiscoverySummaryLine(count($values)));
+        $this->UpdateFormField('Vehicles', 'values', $values);
     }
 
     /**
@@ -112,28 +151,7 @@ class TessieConfigurator extends IPSModule
         // Fahrzeuge zuerst abfragen (Konto-Discovery), damit die Kopfzeile darunter
         // die aktuelle Trefferzahl kennt - siehe Verbund-Konvention "Einheitliche
         // Verbund-Status-Kopfzeile" (SUITE.md, 20.08.2026).
-        $values = [];
-        if ($token !== '') {
-            $vehicles = $this->fetchVehicles($token);
-            foreach ($vehicles as $v2) {
-                $vin = (string)($v2['vin'] ?? '');
-                if ($vin === '') {
-                    continue;
-                }
-                $name = (string)($v2['display_name'] ?? $v2['name'] ?? $vin);
-
-                $instanceId = $this->findVehicleInstance($vin);
-                $create = $this->buildCreateChain($vin, $name, $token);
-
-                $values[] = [
-                    'name' => $name,
-                    'address' => $vin,
-                    'instanceID' => $instanceId,
-                    'create' => $create
-                ];
-            }
-            $this->WriteAttributeInteger(self::ATTR_LAST_DISCOVERY_TS, time());
-        }
+        $values = $this->discoverVehicles($token);
 
         $elements = [
             [
@@ -153,7 +171,7 @@ class TessieConfigurator extends IPSModule
             // Eigenschaftsname 'Token' bleibt unverändert (Code-Bezeichner), nur die Beschriftung ist deutsch
             ['type' => 'PasswordTextBox', 'name' => 'Token', 'caption' => 'Tessie-Zugangsschlüssel (bei Tessie \'Access Token\'; gilt für Abfragen und Telemetrie) – leer lassen, um den bestehenden Schlüssel zu behalten'],
             ['type' => 'Button', 'caption' => '🔎 Fahrzeuge jetzt suchen', 'onClick' => 'TESSIE_RefreshVehicles($id);'],
-            ['type' => 'Label', 'caption' => $this->getDiscoverySummaryLine(count($values))]
+            ['type' => 'Label', 'name' => 'DiscoverySummary', 'caption' => $this->getDiscoverySummaryLine(count($values))]
         ];
 
         $form = [
