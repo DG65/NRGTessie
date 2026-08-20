@@ -459,7 +459,7 @@
             "type": "Button",
             "caption": "Telemetrie: Namen aktualisieren",
             "confirm": "Telemetrie-Variablennamen im Objektbaum anhand locale.json aktualisieren?",
-            "onClick": "TESSIE_RenameTelemetryVariables($id);"
+            "onClick": "echo TESSIE_RenameTelemetryVariables($id);"
         },
         {
             "type": "Label",

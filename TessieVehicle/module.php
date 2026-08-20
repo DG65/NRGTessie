@@ -537,13 +537,19 @@ class TessieVehicle extends IPSModule
         $this->UpdateFormField('ToggleTelemetry', 'confirm', '');
     }
 
-    public function RenameTelemetryVariables(): void
+    /**
+     * Gibt einen Ergebnistext zurück (nicht void) - Verbund-Konvention "Sichtbare
+     * Rückmeldung bei jeder Aktion" (SUITE.md, 20.08.2026): onClick nutzt "echo", da eine
+     * einmalige Aktion ohne dauerhaften Status ist, für den sich UpdateFormField eignet.
+     */
+    public function RenameTelemetryVariables(): string
     {
         $registry = $this->getTelemetryRegistry();
         if (count($registry) === 0) {
-            return;
+            return 'Keine Telemetrie-Variablen vorhanden.';
         }
 
+        $renamed = 0;
         foreach ($registry as $ident => $meta) {
             if (!is_string($ident) || strpos($ident, 'stat_tel_') !== 0) {
                 continue;
@@ -567,6 +573,7 @@ class TessieVehicle extends IPSModule
             $varId = @IPS_GetObjectIDByIdent($ident, $this->InstanceID);
             if ($varId > 0 && IPS_GetName($varId) !== $name) {
                 IPS_SetName($varId, $name);
+                $renamed++;
             }
         }
 
@@ -575,6 +582,10 @@ class TessieVehicle extends IPSModule
         } catch (Throwable $e) {
             // ignorieren
         }
+
+        return $renamed > 0
+            ? sprintf('%d Variablenname(n) aktualisiert.', $renamed)
+            : 'Alle Variablennamen waren bereits aktuell.';
     }
 
     private function getDefaultVisibleVars(): array
