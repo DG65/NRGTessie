@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.27.0] - 2026-08-20
+### Geaendert
+- TessieConfigurator: Fahrzeuge-Panel auf die Verbund-Konvention "Einheitliche Verbund-Status-Kopfzeile" (SUITE.md, 20.08.2026) umgestellt - Button "Fahrzeuge jetzt suchen" plus EINE Kopfzeile `<Icon> N Fahrzeug(e) gefunden (zuletzt HH:MM:SS Uhr)` statt stillschweigender Auto-Aktualisierung ohne sichtbaren Zeitpunkt. Referenzimplementierung: EMS' getDiscoverySummaryLine().
+
 ## [2.26.0] - 2026-08-04
 ### Behoben
 - Presentation-OPTIONS fuer alle Aufklapp-Datenpunkte (Klimahaltung, Sitzheizung Fahrer/Beifahrer, Innenraum-Ueberhitzeschutz-Temperaturlimit) nutzten die ungueltigen Farb-Schluessel "ColorActive"/"ColorValue" statt "Color". Web-Konsole toleriert das stillschweigend, die Mobile-App stuerzt beim Oeffnen der betroffenen Variable mit "Invalid Configuration" ab (verbundweiter Fund via HeishaMon/Forum-Rueckmeldung, SUITE.md-Stolperstein 9). Kein zusaetzlicher Migrationsschritt noetig: MaintainVariable() (bereits bei jedem Uebernehmen aktiv) schreibt die Presentation korrekt neu, empirisch am Live-System gegengeprueft.

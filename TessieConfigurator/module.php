@@ -9,6 +9,7 @@ class TessieConfigurator extends IPSModule
     // Properties bleiben nur als Formular-Schreibkanal bzw. Altbestand bestehen und werden
     // in ApplyChanges sofort ins Attribut übernommen und geleert.
     private const ATTR_TOKEN = 'TokenSecret';
+    private const ATTR_LAST_DISCOVERY_TS = 'LastDiscoveryTs';
 
     public function Create()
     {
@@ -17,6 +18,28 @@ class TessieConfigurator extends IPSModule
         $this->RegisterPropertyString('ApiToken', '');
         $this->RegisterPropertyString('TelemetryToken', '');
         $this->RegisterAttributeString(self::ATTR_TOKEN, '');
+        $this->RegisterAttributeInteger(self::ATTR_LAST_DISCOVERY_TS, 0);
+    }
+
+    /** Kein eigener Effekt - der Button-Klick allein löst bereits ein Neuladen des
+     *  Formulars aus, das fetchVehicles() (und damit die Zeitstempel-Aktualisierung
+     *  unten in GetConfigurationForm()) ohnehin frisch ausführt. */
+    public function RefreshVehicles(): void
+    {
+    }
+
+    /**
+     * Kopfzeile fürs Fahrzeuge-Panel nach der Verbund-Konvention "Einheitliche
+     * Verbund-Status-Kopfzeile" (SUITE.md, 20.08.2026).
+     */
+    private function getDiscoverySummaryLine(int $count): string
+    {
+        $ts = $this->ReadAttributeInteger(self::ATTR_LAST_DISCOVERY_TS);
+        if ($ts === 0) {
+            return 'ℹ️ Noch nicht gesucht – Zugangsschlüssel eintragen und übernehmen.';
+        }
+        $icon = $count > 0 ? '✅' : '⚠️';
+        return sprintf('%s %d Fahrzeug(e) gefunden (zuletzt %s Uhr).', $icon, $count, date('H:i:s', $ts));
     }
 
     /**
@@ -86,6 +109,32 @@ class TessieConfigurator extends IPSModule
         $v = $this->moduleVersion();
         $dokuCaption = '📖 Dokumentation & Hilfe' . ($v !== '' ? ' (Modulversion ' . $v . ')' : '');
 
+        // Fahrzeuge zuerst abfragen (Konto-Discovery), damit die Kopfzeile darunter
+        // die aktuelle Trefferzahl kennt - siehe Verbund-Konvention "Einheitliche
+        // Verbund-Status-Kopfzeile" (SUITE.md, 20.08.2026).
+        $values = [];
+        if ($token !== '') {
+            $vehicles = $this->fetchVehicles($token);
+            foreach ($vehicles as $v2) {
+                $vin = (string)($v2['vin'] ?? '');
+                if ($vin === '') {
+                    continue;
+                }
+                $name = (string)($v2['display_name'] ?? $v2['name'] ?? $vin);
+
+                $instanceId = $this->findVehicleInstance($vin);
+                $create = $this->buildCreateChain($vin, $name, $token);
+
+                $values[] = [
+                    'name' => $name,
+                    'address' => $vin,
+                    'instanceID' => $instanceId,
+                    'create' => $create
+                ];
+            }
+            $this->WriteAttributeInteger(self::ATTR_LAST_DISCOVERY_TS, time());
+        }
+
         $elements = [
             [
                 'type' => 'ExpansionPanel',
@@ -102,30 +151,10 @@ class TessieConfigurator extends IPSModule
             ],
             ['type' => 'Label', 'label' => 'Tessie Konfigurator – Fahrzeuge'],
             // Eigenschaftsname 'Token' bleibt unverändert (Code-Bezeichner), nur die Beschriftung ist deutsch
-            ['type' => 'PasswordTextBox', 'name' => 'Token', 'caption' => 'Tessie-Zugangsschlüssel (bei Tessie \'Access Token\'; gilt für Abfragen und Telemetrie) – leer lassen, um den bestehenden Schlüssel zu behalten']
+            ['type' => 'PasswordTextBox', 'name' => 'Token', 'caption' => 'Tessie-Zugangsschlüssel (bei Tessie \'Access Token\'; gilt für Abfragen und Telemetrie) – leer lassen, um den bestehenden Schlüssel zu behalten'],
+            ['type' => 'Button', 'caption' => '🔎 Fahrzeuge jetzt suchen', 'onClick' => 'TESSIE_RefreshVehicles($id);'],
+            ['type' => 'Label', 'caption' => $this->getDiscoverySummaryLine(count($values))]
         ];
-
-        $values = [];
-        if ($token !== '') {
-            $vehicles = $this->fetchVehicles($token);
-            foreach ($vehicles as $v) {
-                $vin = (string)($v['vin'] ?? '');
-                if ($vin === '') {
-                    continue;
-                }
-                $name = (string)($v['display_name'] ?? $v['name'] ?? $vin);
-
-                $instanceId = $this->findVehicleInstance($vin);
-                $create = $this->buildCreateChain($vin, $name, $token);
-
-                $values[] = [
-                    'name' => $name,
-                    'address' => $vin,
-                    'instanceID' => $instanceId,
-                    'create' => $create
-                ];
-            }
-        }
 
         $form = [
             'elements' => $elements,
