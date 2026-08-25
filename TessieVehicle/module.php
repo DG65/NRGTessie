@@ -77,8 +77,10 @@ class TessieVehicle extends IPSModule
 
     // „Was ist neu"-Banner: Versionsnummer, bis zu der die Neuigkeiten hier zusammengefasst sind.
     // Beim nächsten kuratierten Update hochzählen und NEWS_ITEMS ersetzen.
-    private const NEWS_VERSION = '2.26.0';
+    private const NEWS_VERSION = '2.28.0';
     private const NEWS_ITEMS = [
+        'GetVehicleState() liefert jetzt Entfernung zum Zuhause, ob das aktuelle Navigationsziel tatsächlich Zuhause ist, und (nur dann) Teslas eigene Ankunfts-SoC-Prognose – Grundlage für eine EMS-Preis-Reserve bei erwarteter Heimkehr.',
+        'Neuer Button "Übernehmen erzwingen" – wendet die Instanz auch ohne Formularänderung neu an, praktisch zum Prüfen nach einem Modul-Update.',
         'Absturz der Symcon-Mobile-App beim Öffnen von Klimahaltung, Sitzheizung oder Innenraum-Überhitzeschutz-Temperaturlimit behoben (falsche interne Darstellungs-Angabe – Web/Konsole waren nicht betroffen).',
         'Ladezustand wird jetzt zuverlässig erkannt, auch wenn ein Ladevorgang nicht über IP-Symcon gestartet wurde (z. B. Tesla-App oder geplantes Laden) – wichtig für Module wie das Dashboard, die daraus die Fahrzeug-Wallbox-Zuordnung ableiten.',
         'Sichtbare Statusmeldung, wenn der Zugangsschlüssel ungültig wird/die API nicht erreichbar ist, oder wenn seit über 15 Minuten keine Telemetrie mehr ankam – vorher nur in Log/Debug-Konsole sichtbar.',
@@ -91,6 +93,9 @@ class TessieVehicle extends IPSModule
 
     // Durchfahrt = Einfahrt mit anschließender Ausfahrt binnen dieser Zeit
     private const GEO_PASS_MAX_SECONDS = 900;
+
+    // Toleranzradius, innerhalb dessen ein Navigationsziel als "Heimfahrt" gilt (GetVehicleState)
+    private const HEADING_HOME_TOLERANCE_M = 500;
 
     // Durchfahrts-Ereignisse der aktuellen Datenmeldung (Ident => true);
     // von updateHomeStatus gefüllt, von evaluateDataActions (Op 'pass') konsumiert
@@ -2270,6 +2275,73 @@ class TessieVehicle extends IPSModule
     }
 
     /**
+     * Heimkoordinaten (lat, lon), generisch für jeden Nutzer: eigene HomeLocation-Property,
+     * sonst Systemstandort-Fallback - dieselbe Quelle wie getGeofences() ("Zuhause"-Eintrag),
+     * hier nur direkt statt über die volle Standortliste abgefragt. Null ohne Heimkoordinaten.
+     */
+    private function resolveHomeCoords(): ?array
+    {
+        foreach ($this->getGeofences() as $f) {
+            if (($f['ident'] ?? '') === self::STAT_AT_HOME) {
+                return [$f['lat'], $f['lon']];
+            }
+        }
+        return null;
+    }
+
+    /** Entfernung aktuelle Fahrzeugposition -> Zuhause in km, oder null ohne Heimkoordinaten/Position. */
+    private function distanceToHomeKmOrNull(): ?float
+    {
+        $home = $this->resolveHomeCoords();
+        if ($home === null) {
+            return null;
+        }
+        $latVid = @IPS_GetObjectIDByIdent('stat_tel_Location_lat', $this->InstanceID);
+        $lonVid = @IPS_GetObjectIDByIdent('stat_tel_Location_lon', $this->InstanceID);
+        if ($latVid <= 0 || $lonVid <= 0) {
+            return null;
+        }
+        $lat = @GetValueFloat($latVid);
+        $lon = @GetValueFloat($lonVid);
+        if (!is_finite($lat) || !is_finite($lon) || ($lat == 0.0 && $lon == 0.0)) {
+            return null;
+        }
+        return round($this->haversineMeters($lat, $lon, $home[0], $home[1]) / 1000.0, 1);
+    }
+
+    /**
+     * Ob das aktuelle Navigationsziel den Heimkoordinaten entspricht (Toleranzradius
+     * HEADING_HOME_TOLERANCE_M) - bewusst NICHT "ist ein Ziel gesetzt", da ein beliebiges
+     * Fremdziel (z.B. Zwischenstopp auf einer Reise) sonst fälschlich als Heimfahrt zählen
+     * würde. Null ohne aktive Navigation oder ohne Heimkoordinaten.
+     */
+    private function isHeadingHome(): ?bool
+    {
+        $home = $this->resolveHomeCoords();
+        if ($home === null) {
+            return null;
+        }
+        $latVid = @IPS_GetObjectIDByIdent('stat_tel_DestinationLocation_lat', $this->InstanceID);
+        $lonVid = @IPS_GetObjectIDByIdent('stat_tel_DestinationLocation_lon', $this->InstanceID);
+        if ($latVid <= 0 || $lonVid <= 0) {
+            return null;
+        }
+        $lat = @GetValueFloat($latVid);
+        $lon = @GetValueFloat($lonVid);
+        if (!is_finite($lat) || !is_finite($lon) || ($lat == 0.0 && $lon == 0.0)) {
+            return null; // keine aktive Navigation
+        }
+        return $this->haversineMeters($lat, $lon, $home[0], $home[1]) <= self::HEADING_HOME_TOLERANCE_M;
+    }
+
+    /** Teslas eigene Ankunfts-SoC-Prognose (%) für das aktuelle Navigationsziel, gerundet. */
+    private function expectedArrivalSocOrNull(): ?int
+    {
+        $v = $this->stateNumberOrNull('stat_tel_ExpectedEnergyPercentAtTripArrival');
+        return $v !== null ? (int)round($v) : null;
+    }
+
+    /**
      * Ob das Fahrzeug SELBST ein geplantes Laden/eine geplante Abfahrt aktiv hat (zweiter Regler
      * auf derselben Batterie neben einer EMS-Wallboxsteuerung). Basiert auf dem Telemetrie-
      * Datenpunkt "Geplantes Laden: Modus" (Tesla: Off/StartAt/DepartBy). Der Wert wird lesbar
@@ -2303,14 +2375,16 @@ class TessieVehicle extends IPSModule
         $chargingVid = @IPS_GetObjectIDByIdent('stat_tel_DetailedChargeState', $this->InstanceID);
         $atHomeVid = @IPS_GetObjectIDByIdent(self::STAT_AT_HOME, $this->InstanceID);
         $depVid = @IPS_GetObjectIDByIdent('stat_tel_ScheduledDepartureTime', $this->InstanceID);
+        $headingHome = $this->isHeadingHome();
 
         return json_encode([
             // Vertragsversion (Major.Minor) für Konsumenten im DG65-Suite-Verbund.
             // Major nur bei brechender Änderung erhöhen; Kompatibilität nur innerhalb
             // derselben Major. 1.0 = name/vin/socID/soc/connected; 1.1 = + charging/
             // chargeLimit/chargeAmps*/atHome/scheduledChargingActive/scheduledDeparture;
-            // 1.2 = + energyRemainingKwh/batteryCapacityKwh; 1.3 = + chargingID.
-            'contractVersion'         => '1.3',
+            // 1.2 = + energyRemainingKwh/batteryCapacityKwh; 1.3 = + chargingID;
+            // 1.4 = + distanceToHomeKm/headingHome/expectedHomeArrivalSocPercent.
+            'contractVersion'         => '1.4',
             'instanceID'              => $this->InstanceID,
             'name'                    => IPS_GetName($this->InstanceID),
             'vin'                     => trim((string)$this->ReadPropertyString('VIN')),
@@ -2337,7 +2411,14 @@ class TessieVehicle extends IPSModule
             // Restenergie direkt aus der Telemetrie sowie daraus hochgerechnete Kapazität
             // (für Ladeplanung nach tatsächlichem Energiebedarf statt festem SoC%)
             'energyRemainingKwh'      => $this->stateNumberOrNull('stat_tel_EnergyRemaining'),
-            'batteryCapacityKwh'      => $this->batteryCapacityKwhOrNull()
+            'batteryCapacityKwh'      => $this->batteryCapacityKwhOrNull(),
+            // Für eine Preis-Reserve bei erwarteter Heimkehr (EMS-Tagesplanung):
+            // distanceToHomeKm/headingHome unabhängig vom Ziel ermittelt, die Tesla-eigene
+            // Ankunfts-SoC-Prognose aber NUR übernommen, wenn tatsächlich nach Hause navigiert
+            // wird - sonst wäre sie die Prognose fürs aktuelle (Fremd-)Ziel und irreführend.
+            'distanceToHomeKm'               => $this->distanceToHomeKmOrNull(),
+            'headingHome'                     => $headingHome,
+            'expectedHomeArrivalSocPercent'   => ($headingHome === true) ? $this->expectedArrivalSocOrNull() : null
         ]);
     }
 

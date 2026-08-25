@@ -2,6 +2,13 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.28.0] - 2026-08-20
+### Hinzugefuegt
+- GetVehicleState()-Vertrag auf 1.4 erweitert (EMS-Anfrage): `distanceToHomeKm` (Entfernung aktuelle Position -> Zuhause, generisch aus HomeLocation-Property/Systemstandort-Fallback), `headingHome` (ob das AKTUELLE Navigationsziel den Heimkoordinaten entspricht, 500m Toleranz - nicht ob ueberhaupt navigiert wird) und `expectedHomeArrivalSocPercent` (Teslas Ankunfts-SoC-Prognose, NUR uebernommen wenn headingHome=true). Anlass: EMS hatte faelschlich ein Fremdziel (Fahrt nach Philippsburg) als Heimfahrt interpretiert, weil die bisherige Datenlage das nicht unterscheiden konnte. Grundlage fuer eine EMS-Preis-Reserve bei erwarteter Heimkehr; die "ist eine Rueckfahrt noch plausibel"-Reichweitenschwelle bleibt bewusst EMS-seitige Geschaeftsregel, nicht Teil dieses Vertrags. Gegen die Live-Instanz #19532 waehrend der echten Philippsburg-Fahrt verifiziert (distanceToHomeKm 105.1, headingHome korrekt false).
+- Neuer Button "Übernehmen erzwingen (ohne Formularänderung)" in TessieVehicle (Anregung EMS) - ruft IPS_ApplyChanges() direkt auf, praktisch zum Pruefen nach einem manuellen Modul-Update.
+### Behoben
+- "Telemetrie: Namen aktualisieren"-Button gab im offenen Formular keine Rueckmeldung (Verbund-Konvention "Sichtbare Rueckmeldung bei jeder Aktion", SUITE.md 20.08.2026) - liefert jetzt einen Ergebnistext (Anzahl umbenannter Variablen).
+
 ## [2.27.0] - 2026-08-20
 ### Geaendert
 - TessieConfigurator: Fahrzeuge-Panel auf die Verbund-Konvention "Einheitliche Verbund-Status-Kopfzeile" (SUITE.md, 20.08.2026) umgestellt - Button "Fahrzeuge jetzt suchen" plus EINE Kopfzeile `<Icon> N Fahrzeug(e) gefunden (zuletzt HH:MM:SS Uhr)` statt stillschweigender Auto-Aktualisierung ohne sichtbaren Zeitpunkt. Referenzimplementierung: EMS' getDiscoverySummaryLine().
