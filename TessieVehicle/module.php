@@ -2383,8 +2383,13 @@ class TessieVehicle extends IPSModule
             // derselben Major. 1.0 = name/vin/socID/soc/connected; 1.1 = + charging/
             // chargeLimit/chargeAmps*/atHome/scheduledChargingActive/scheduledDeparture;
             // 1.2 = + energyRemainingKwh/batteryCapacityKwh; 1.3 = + chargingID;
-            // 1.4 = + distanceToHomeKm/headingHome/expectedHomeArrivalSocPercent.
-            'contractVersion'         => '1.4',
+            // 1.4 = + distanceToHomeKm/headingHome/expectedHomeArrivalSocPercent;
+            // 1.5 = + rangeKm (Teslas eigene Reichweitenprognose bei aktuellem SoC,
+            // aus stat_tel_RatedRange - bereits in km, siehe convertTelemetryToMetric()/miles->km).
+            // Kein Verbrauchsfeld (kWh/100km): die Telemetrie liefert keinen solchen
+            // Wert direkt, ein selbst berechneter Schätzwert wurde bewusst nicht
+            // hinzugefügt (keine Vertragsdaten erfinden).
+            'contractVersion'         => '1.5',
             'instanceID'              => $this->InstanceID,
             'name'                    => IPS_GetName($this->InstanceID),
             'vin'                     => trim((string)$this->ReadPropertyString('VIN')),
@@ -2418,7 +2423,12 @@ class TessieVehicle extends IPSModule
             // wird - sonst wäre sie die Prognose fürs aktuelle (Fremd-)Ziel und irreführend.
             'distanceToHomeKm'               => $this->distanceToHomeKmOrNull(),
             'headingHome'                     => $headingHome,
-            'expectedHomeArrivalSocPercent'   => ($headingHome === true) ? $this->expectedArrivalSocOrNull() : null
+            'expectedHomeArrivalSocPercent'   => ($headingHome === true) ? $this->expectedArrivalSocOrNull() : null,
+            // Teslas eigene Reichweitenprognose beim aktuellen SoC (nicht auf 100% SoC
+            // normiert), aus der Telemetrie (stat_tel_RatedRange) - wird beim Empfang
+            // bereits von Meilen nach km umgerechnet (siehe convertTelemetryToMetric()),
+            // hier also unverändert übernehmen.
+            'rangeKm'                 => $this->stateNumberOrNull('stat_tel_RatedRange')
         ]);
     }
 

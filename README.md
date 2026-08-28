@@ -79,7 +79,7 @@ Status-/Telemetriewerte (Ladestand, Reichweite, Temperaturen, Standort …) ersc
 
 ```json
 {
-  "contractVersion": "1.4",
+  "contractVersion": "1.5",
   "instanceID": 12345,
   "name": "Mein Auto",
   "vin": "5YJ...",
@@ -98,11 +98,12 @@ Status-/Telemetriewerte (Ladestand, Reichweite, Temperaturen, Standort …) ersc
   "batteryCapacityKwh": 74.3,
   "distanceToHomeKm": 105.1,
   "headingHome": false,
-  "expectedHomeArrivalSocPercent": null
+  "expectedHomeArrivalSocPercent": null,
+  "rangeKm": 312.4
 }
 ```
 
-- `contractVersion`: Version dieses Datenvertrags als `Major.Minor` (aktuell `1.4`). Konsumenten prüfen die Major-Version auf Kompatibilität – innerhalb derselben Major werden nur additive Felder ergänzt, ein Bruch erhöht die Major. Fehlt ein Feld, gilt die jeweils niedrigere Version.
+- `contractVersion`: Version dieses Datenvertrags als `Major.Minor` (aktuell `1.5`). Konsumenten prüfen die Major-Version auf Kompatibilität – innerhalb derselben Major werden nur additive Felder ergänzt, ein Bruch erhöht die Major. Fehlt ein Feld, gilt die jeweils niedrigere Version.
 - `socID`: Variablen-ID des Ladestands (0, falls der Datenpunkt nicht aktiviert ist)
 - `soc`: gemessener Ist-Ladestand in % (verlässlich; Ziel-SoC und Deadline hält das steuernde Modul selbst)
 - `connected`: ob ein Ladekabel gesteckt ist (nicht: ob gerade aktiv geladen wird) – ermittelt primär über den Datenpunkt „Ladestatus (Detail)", ersatzweise über den Ladestatus; `null`, falls keine der beiden Quellen verfügbar ist
@@ -118,6 +119,7 @@ Status-/Telemetriewerte (Ladestand, Reichweite, Temperaturen, Standort …) ersc
 - `distanceToHomeKm`: Entfernung aktuelle Fahrzeugposition → Zuhause in km (Heimkoordinaten generisch aus der HomeLocation-Property, sonst Systemstandort-Fallback – wie bei der Standort-Erkennung). `null` ohne konfigurierte Heimkoordinaten oder ohne aktuelle Positions-Telemetrie
 - `headingHome`: ob das **aktuelle Navigationsziel** den Heimkoordinaten entspricht (500 m Toleranz) – nicht, ob überhaupt navigiert wird. `null` ohne aktive Navigation oder ohne Heimkoordinaten
 - `expectedHomeArrivalSocPercent`: Teslas eigene Ankunfts-SoC-Prognose, aber **nur** übernommen, wenn `headingHome === true` – bei einem anderen Fahrtziel wäre die Prognose fürs Fremdziel und würde in eine Ladeplanung fürs Zuhause-Laden irreführen. `null` sonst
+- `rangeKm`: Teslas eigene Reichweitenprognose in km beim **aktuellen** SoC (nicht auf 100 % SoC normiert), direkt aus der Telemetrie (`stat_tel_RatedRange`, Umrechnung Meilen→km bereits beim Empfang erfolgt). Kein Verbrauchswert (kWh/100 km) verfügbar – die Telemetrie liefert dafür keinen Rohwert, ein selbst berechneter Schätzwert wurde bewusst nicht ergänzt. `null`, falls der Datenpunkt nicht aktiviert/empfangen ist
 
 Alle Zusatzfelder sind `null`, wenn der zugehörige Datenpunkt in der Instanz nicht aktiviert bzw. noch nicht empfangen wurde. Rein additive, lesende Funktion – ändert nichts am Modulverhalten. Fremde Module sollten den Aufruf hinter `function_exists('TESSIE_GetVehicleState')` absichern.
 
