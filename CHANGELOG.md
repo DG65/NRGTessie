@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.29.1] - 2026-08-31
+### Behoben
+- ensureLinkTree()/cleanupLinksUnder() riefen die nicht existierende Funktion IPS_GetIdent() auf (korrekt: IPS_GetObject($id)['ObjectIdent'], wie im Rest der Datei bereits verwendet) - dadurch schlug die Bereinigung veralteter Purpose-Kategorien und einzelner Links unter "Linkstruktur automatisch bereinigen" bei jedem Übernehmen fehl (per try/catch abgefangen, nur als Warnung geloggt, kein Absturz - aber die Bereinigung lief seit Einführung des Features nie erfolgreich durch). Live im Systemlog von OCPPHub entdeckt.
+
 ## [2.29.0] - 2026-08-31
 ### Hinzugefuegt
 - Neuer Button "Fahrzeug jetzt aufwecken" (WakeUp()) - ruft gezielt die Tessie-API "/wake" auf, denselben Endpunkt, den die interne ensureAwake() bereits vor echten Befehlen nutzt. Anlass: Live-Diagnose eines OCPP-Ladeproblems (OCPPHub) zeigte, dass die Telemetrie eines Fahrzeugs ueber 2 Stunden eingeschlafen war (WebSocket-Verbindung selbst gesund, aber keine neuen Daten) - Dietmar wollte das nicht jedes Mal manuell ueber die Tesla-App erledigen muessen. Liefert einen Ergebnistext (bereits wach / aufgeweckt / Zwischenstand), Verbund-Konvention "Sichtbare Rueckmeldung bei jeder Aktion".

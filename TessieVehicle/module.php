@@ -2915,7 +2915,7 @@ class TessieVehicle extends IPSModule
             foreach (IPS_GetChildrenIDs($rootId) as $cid) {
                 $obj = IPS_GetObject($cid);
                 if (($obj['ObjectType'] ?? 0) !== OBJECTTYPE_CATEGORY) continue;
-                $cident = IPS_GetIdent($cid);
+                $cident = (string)($obj['ObjectIdent'] ?? '');
                 if (strpos($cident, self::IDENT_PURP_PREFIX) !== 0) continue;
                 if (isset($validPurposeIdents[$cident])) continue;
                 foreach (IPS_GetChildrenIDs($cid) as $sub) {
@@ -3077,7 +3077,7 @@ class TessieVehicle extends IPSModule
         foreach (IPS_GetChildrenIDs($parentId) as $cid) {
             $obj = IPS_GetObject($cid);
             if (($obj['ObjectType'] ?? 0) !== OBJECTTYPE_LINK) continue;
-            $ident = IPS_GetIdent($cid);
+            $ident = (string)($obj['ObjectIdent'] ?? '');
             if (strpos($ident, self::IDENT_LINK_PREFIX) !== 0) continue;
             if (!isset($keep[$ident])) {
                 $this->deleteObjectSafe($cid);
