@@ -59,7 +59,7 @@ Präfix der öffentlichen Funktionen: `TESSIE`.
 - **Datenpunkte**: Liste zum Ein-/Ausblenden und Sortieren (Ziehen und Ablegen). Spalten: Aktiv, Name, Gruppe, Ident, Empfangen.
 - **Linkstruktur** (aufklappbar): Zielkategorie, Links erzeugen/automatisch bereinigen.
 - **Automationen (Wenn → Dann)** (aufklappbar): Regelliste plus Abschnitt **Standorte (Geofence)** – aktivieren, Standort Zuhause (Karte) und Radius wählen — bleibt „Standort Zuhause" leer, wird automatisch der **Systemstandort** aus der Kern-Instanz „Location" übernommen; darunter beliebige **weitere Standorte** (Name, Kartenposition, Radius) als Liste. Je Standort entsteht eine Boolean-Variable („Zu Hause" bzw. Standortname), dazu die Textvariable „Aktueller Standort". Bei überlappenden Zonen gewinnt der nächstgelegene Standort. Benötigt aktive GPS-Telemetrie (Datenpunkt „Fahrzeugposition"). Bei Deaktivierung/Entfernen bleiben die Variablen erhalten (nur ausgeblendet).
-- Schaltflächen: Standardliste zurücksetzen, Telemetrie alle/​nur wichtige ein-/ausblenden, Telemetrie-Namen aktualisieren.
+- Schaltflächen: Standardliste zurücksetzen, Telemetrie alle/​nur wichtige ein-/ausblenden, Telemetrie-Namen aktualisieren, Übernehmen erzwingen, **Fahrzeug jetzt aufwecken** (Tessie-API „/wake" – sinnvoll, wenn die Telemetrie länger eingeschlafen war, z. B. erkennbar am Instanzstatus „Telemetrie veraltet", und aktuelle Daten gebraucht werden).
 
 ## Hinweise
 

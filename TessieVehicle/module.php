@@ -77,8 +77,9 @@ class TessieVehicle extends IPSModule
 
     // „Was ist neu"-Banner: Versionsnummer, bis zu der die Neuigkeiten hier zusammengefasst sind.
     // Beim nächsten kuratierten Update hochzählen und NEWS_ITEMS ersetzen.
-    private const NEWS_VERSION = '2.28.0';
+    private const NEWS_VERSION = '2.29.0';
     private const NEWS_ITEMS = [
+        'Neuer Button "Fahrzeug jetzt aufwecken" – weckt das Fahrzeug gezielt auf, z. B. wenn die Telemetrie länger eingeschlafen war und aktuelle Daten gebraucht werden.',
         'GetVehicleState() liefert jetzt Entfernung zum Zuhause, ob das aktuelle Navigationsziel tatsächlich Zuhause ist, und (nur dann) Teslas eigene Ankunfts-SoC-Prognose – Grundlage für eine EMS-Preis-Reserve bei erwarteter Heimkehr.',
         'Neuer Button "Übernehmen erzwingen" – wendet die Instanz auch ohne Formularänderung neu an, praktisch zum Prüfen nach einem Modul-Update.',
         'Absturz der Symcon-Mobile-App beim Öffnen von Klimahaltung, Sitzheizung oder Innenraum-Überhitzeschutz-Temperaturlimit behoben (falsche interne Darstellungs-Angabe – Web/Konsole waren nicht betroffen).',
@@ -969,6 +970,37 @@ class TessieVehicle extends IPSModule
         $resp = $this->apiRequest($token, 'POST', $path, null);
         $ok = (bool)($resp['result'] ?? ($resp['response']['result'] ?? false));
         $this->SendDebug('Befehl', ($ok ? 'OK: ' : 'Fehlgeschlagen: ') . $command . ($ok ? '' : (' ' . json_encode($resp))), 0);
+    }
+
+    /**
+     * Weckt das Fahrzeug GEZIELT auf Nutzerwunsch auf (Tessie-API "/wake") - anders als
+     * die regelmäßige, schlaf-sichere Statusabfrage in Update() ist dies ein bewusster
+     * Weck-Befehl. Sinnvoll z. B. wenn die Telemetrie eine Weile eingeschlafen ist und
+     * aktuelle Daten gebraucht werden (siehe Status 203 "Telemetrie veraltet"). Liefert
+     * einen Ergebnistext statt void - Verbund-Konvention "Sichtbare Rückmeldung bei jeder
+     * Aktion" (SUITE.md, 20.08.2026), onClick nutzt "echo".
+     */
+    public function WakeUp(): string
+    {
+        $token = $this->getApiToken();
+        $vin = trim($this->ReadPropertyString('VIN'));
+        if ($token === '' || $vin === '') {
+            return 'Zugangsschlüssel oder VIN fehlt.';
+        }
+
+        if ($this->getVehicleStatus($vin, $token) === 'awake') {
+            return '✅ Fahrzeug ist bereits wach.';
+        }
+
+        $path = '/' . rawurlencode($vin) . '/wake';
+        $resp = $this->apiRequest($token, 'POST', $path, null);
+        $this->SendDebug('Aufwecken', 'Antwort=' . json_encode($resp), 0);
+
+        $after = $this->getVehicleStatus($vin, $token);
+        if ($after === 'awake') {
+            return '✅ Fahrzeug wurde aufgeweckt.';
+        }
+        return '⏳ Weckbefehl gesendet – Fahrzeug meldet aktuell "' . ($after !== '' ? $after : 'unbekannt') . '", kann bis zu einer Minute dauern.';
     }
 
     private function ensureAwake(string $vin, string $token): void

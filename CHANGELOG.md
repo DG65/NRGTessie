@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.29.0] - 2026-08-31
+### Hinzugefuegt
+- Neuer Button "Fahrzeug jetzt aufwecken" (WakeUp()) - ruft gezielt die Tessie-API "/wake" auf, denselben Endpunkt, den die interne ensureAwake() bereits vor echten Befehlen nutzt. Anlass: Live-Diagnose eines OCPP-Ladeproblems (OCPPHub) zeigte, dass die Telemetrie eines Fahrzeugs ueber 2 Stunden eingeschlafen war (WebSocket-Verbindung selbst gesund, aber keine neuen Daten) - Dietmar wollte das nicht jedes Mal manuell ueber die Tesla-App erledigen muessen. Liefert einen Ergebnistext (bereits wach / aufgeweckt / Zwischenstand), Verbund-Konvention "Sichtbare Rueckmeldung bei jeder Aktion".
+
 ## [2.28.0] - 2026-08-20
 ### Hinzugefuegt
 - GetVehicleState()-Vertrag auf 1.4 erweitert (EMS-Anfrage): `distanceToHomeKm` (Entfernung aktuelle Position -> Zuhause, generisch aus HomeLocation-Property/Systemstandort-Fallback), `headingHome` (ob das AKTUELLE Navigationsziel den Heimkoordinaten entspricht, 500m Toleranz - nicht ob ueberhaupt navigiert wird) und `expectedHomeArrivalSocPercent` (Teslas Ankunfts-SoC-Prognose, NUR uebernommen wenn headingHome=true). Anlass: EMS hatte faelschlich ein Fremdziel (Fahrt nach Philippsburg) als Heimfahrt interpretiert, weil die bisherige Datenlage das nicht unterscheiden konnte. Grundlage fuer eine EMS-Preis-Reserve bei erwarteter Heimkehr; die "ist eine Rueckfahrt noch plausibel"-Reichweitenschwelle bleibt bewusst EMS-seitige Geschaeftsregel, nicht Teil dieses Vertrags. Gegen die Live-Instanz #19532 waehrend der echten Philippsburg-Fahrt verifiziert (distanceToHomeKm 105.1, headingHome korrekt false).

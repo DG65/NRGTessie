@@ -468,6 +468,11 @@
             "onClick": "IPS_ApplyChanges($id); echo '✅ ApplyChanges() ausgeführt.';"
         },
         {
+            "type": "Button",
+            "caption": "🔔 Fahrzeug jetzt aufwecken",
+            "onClick": "echo TESSIE_WakeUp($id);"
+        },
+        {
             "type": "Label",
             "caption": "Name/Ident sind schreibgeschützt - du änderst nur 'Aktiv'. Reihenfolge per Ziehen und Ablegen (danach Übernehmen)."
         }
