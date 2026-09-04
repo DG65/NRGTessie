@@ -1282,7 +1282,12 @@ class TessieVehicle extends IPSModule
             if (!is_string($k) || substr($k, -5) !== 'Value') continue;
 
             // Verschachteltes Objekt, z.B. {"doorValue":{"DriverFront":false,...}}:
-            // boolesche Map -> lesbare Liste der aktiven/offenen Einträge (leer = nichts aktiv)
+            // boolesche Map -> lesbare Liste der aktiven/offenen Einträge (leer = nichts aktiv).
+            // Für "DoorState" (-> stat_tel_DoorState) live verifiziert (04.09.2026): die Liste
+            // spiegelt den AKTUELLEN Zustand wider (offene Klappe -> Eintrag da, geschlossen ->
+            // Eintrag verschwindet), keine Historie. Siehe README ("Hinweise") fuer die moeglichen
+            // Werte und die Sicherheitsimplikation fuer act_front_trunk/act_rear_trunk (reine
+            // Umschalt-Befehle ohne Richtung).
             if (is_array($inner)) {
                 $allBool = true;
                 $active = [];

@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.29.2] - 2026-09-04
+### Dokumentiert
+- Semantik von `stat_tel_DoorState` (Datenpunkt „Tür-/Klappenstatus") geklärt und dokumentiert: kommagetrennte Liste der **aktuell offenen** Türen/Klappen, leerer Wert = alles geschlossen. Bislang nirgends festgehalten, obwohl der Wert seit der generischen Telemetrie-Discovery existiert. Live gegen ein echtes Fahrzeug verifiziert (Frunk geöffnet/Heckklappe umgeschaltet/Heckklappe zurückgeschaltet, jeweils mit dem erwarteten An-/Verschwinden des Eintrags). Reine Dokumentations-Ergänzung (README, Code-Kommentar) - keine Funktionsänderung, insbesondere kein automatisches Schließen auf Basis dieses Werts.
+
 ## [2.29.1] - 2026-08-31
 ### Behoben
 - ensureLinkTree()/cleanupLinksUnder() riefen die nicht existierende Funktion IPS_GetIdent() auf (korrekt: IPS_GetObject($id)['ObjectIdent'], wie im Rest der Datei bereits verwendet) - dadurch schlug die Bereinigung veralteter Purpose-Kategorien und einzelner Links unter "Linkstruktur automatisch bereinigen" bei jedem Übernehmen fehl (per try/catch abgefangen, nur als Warnung geloggt, kein Absturz - aber die Bereinigung lief seit Einführung des Features nie erfolgreich durch). Live im Systemlog von OCPPHub entdeckt.
