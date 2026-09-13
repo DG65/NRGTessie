@@ -92,10 +92,10 @@
                 },
                 {
                     "type": "PopupButton",
-                    "caption": "?",
-                    "width": "70px",
+                    "caption": "Was macht das Update-Intervall?",
+                    "width": "470px",
                     "popup": {
-                        "caption": "Was macht dieses Intervall?",
+                        "caption": "Was macht das Update-Intervall?",
                         "items": [
                             {
                                 "type": "Label",
