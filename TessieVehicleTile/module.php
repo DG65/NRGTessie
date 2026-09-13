@@ -156,8 +156,20 @@ class TessieVehicleTile extends IPSModule
 
     public function MessageSink($TimeStamp, $SenderID, $Message, $Data)
     {
-        if ($Message === VM_UPDATE) {
+        if ($Message !== VM_UPDATE) {
+            return;
+        }
+        // Store-Review-Konvention 9c: waehrend eines Kernel-Reloads (z.B. laufendes
+        // Modul-Update) koennen ReadPropertyXXX()-Aufrufe kurzzeitig false statt des
+        // erwarteten Typs liefern - mit strict_types=1 wuerde das zu einem TypeError
+        // fuehren, der MessageSink() abreissen laesst.
+        if (IPS_GetKernelRunlevel() !== KR_READY || !IPS_InstanceExists($this->InstanceID)) {
+            return;
+        }
+        try {
             $this->UpdateVisualizationValue($this->GetFullUpdateMessage());
+        } catch (Throwable $e) {
+            // ignorieren - Instanz laedt gerade neu
         }
     }
 
@@ -372,19 +384,19 @@ class TessieVehicleTile extends IPSModule
     private function GetFullUpdateMessage(): string
     {
         $style = [
-            'bg'        => $this->ColorOrEmpty($this->ReadPropertyInteger('ColorBackground')),
-            'box'       => $this->ColorOrEmpty($this->ReadPropertyInteger('ColorBox')),
-            'text'      => $this->ColorOrEmpty($this->ReadPropertyInteger('ColorText')),
-            'textmuted' => $this->ColorOrEmpty($this->ReadPropertyInteger('ColorTextMuted')),
-            'font'      => $this->FontStack($this->ReadPropertyString('FontFamily')),
+            'bg'        => $this->ColorOrEmpty((int)$this->ReadPropertyInteger('ColorBackground')),
+            'box'       => $this->ColorOrEmpty((int)$this->ReadPropertyInteger('ColorBox')),
+            'text'      => $this->ColorOrEmpty((int)$this->ReadPropertyInteger('ColorText')),
+            'textmuted' => $this->ColorOrEmpty((int)$this->ReadPropertyInteger('ColorTextMuted')),
+            'font'      => $this->FontStack((string)$this->ReadPropertyString('FontFamily')),
             'scale'     => $this->FontScaleValue(),
             'controls'  => $this->ReadPropertyBoolean('ShowControls')
         ];
         $showButtons = $this->ReadPropertyBoolean('ShowControls');
 
-        $cCharging = $this->ColorHex($this->ReadPropertyInteger('ColorCharging'), '#27d07f');
-        $cReady    = $this->ColorHex($this->ReadPropertyInteger('ColorReady'), '#2bb3c0');
-        $cIdle     = $this->ColorHex($this->ReadPropertyInteger('ColorIdle'), '#7a8a99');
+        $cCharging = $this->ColorHex((int)$this->ReadPropertyInteger('ColorCharging'), '#27d07f');
+        $cReady    = $this->ColorHex((int)$this->ReadPropertyInteger('ColorReady'), '#2bb3c0');
+        $cIdle     = $this->ColorHex((int)$this->ReadPropertyInteger('ColorIdle'), '#7a8a99');
 
         $src = $this->ResolveSource();
         if ($src <= 0 || !IPS_InstanceExists($src)) {
@@ -429,7 +441,7 @@ class TessieVehicleTile extends IPSModule
 
     private function ResolveSource(): int
     {
-        $configured = $this->ReadPropertyInteger('SourceInstance');
+        $configured = (int)$this->ReadPropertyInteger('SourceInstance');
         if ($configured > 0 && IPS_InstanceExists($configured)) {
             return $configured;
         }
@@ -644,7 +656,7 @@ class TessieVehicleTile extends IPSModule
 
     private function FontScaleValue(): float
     {
-        $v = $this->ReadPropertyFloat('FontScale');
+        $v = (float)$this->ReadPropertyFloat('FontScale');
         if ($v < 0.5) {
             $v = 0.5;
         }

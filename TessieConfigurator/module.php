@@ -73,7 +73,7 @@ class TessieConfigurator extends IPSModule
      */
     private function getDiscoverySummaryLine(int $count): string
     {
-        $ts = $this->ReadAttributeInteger(self::ATTR_LAST_DISCOVERY_TS);
+        $ts = (int)$this->ReadAttributeInteger(self::ATTR_LAST_DISCOVERY_TS);
         if ($ts === 0) {
             return 'ℹ️ Noch nicht gesucht – Zugangsschlüssel eintragen und übernehmen.';
         }
@@ -93,7 +93,7 @@ class TessieConfigurator extends IPSModule
     {
         $incoming = '';
         foreach (['Token', 'ApiToken', 'TelemetryToken'] as $propName) {
-            $p = trim($this->ReadPropertyString($propName));
+            $p = trim((string)$this->ReadPropertyString($propName));
             if ($p === '') {
                 continue;
             }
@@ -324,7 +324,7 @@ class TessieConfigurator extends IPSModule
     /** Liest den Zugangsschlüssel aus dem Attribut (siehe migrateTokenToAttribute). */
     private function getToken(): string
     {
-        return trim($this->ReadAttributeString(self::ATTR_TOKEN));
+        return trim((string)$this->ReadAttributeString(self::ATTR_TOKEN));
     }
 
     private function fetchVehicles(string $token): array

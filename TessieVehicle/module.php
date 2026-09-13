@@ -638,7 +638,7 @@ class TessieVehicle extends IPSModule
     /** Übernimmt einen von außen (Konfigurator) gesetzten Zugangsschlüssel ins Attribut und leert die Property. */
     private function migrateApiTokenToAttribute(): void
     {
-        $prop = trim($this->ReadPropertyString('ApiToken'));
+        $prop = trim((string)$this->ReadPropertyString('ApiToken'));
         if ($prop === '') {
             return;
         }
@@ -649,14 +649,14 @@ class TessieVehicle extends IPSModule
     /** Liest den Zugangsschlüssel aus dem Attribut (siehe migrateApiTokenToAttribute). */
     private function getApiToken(): string
     {
-        return trim($this->ReadAttributeString(self::ATTR_API_TOKEN));
+        return trim((string)$this->ReadAttributeString(self::ATTR_API_TOKEN));
     }
 
     // Timer
     public function Update()
     {
         $token = $this->getApiToken();
-        $vin = trim($this->ReadPropertyString('VIN'));
+        $vin = trim((string)$this->ReadPropertyString('VIN'));
         if ($token === '' || $vin === '') {
             return;
         }
@@ -755,7 +755,7 @@ class TessieVehicle extends IPSModule
     public function RequestAction($Ident, $Value)
     {
         $token = $this->getApiToken();
-        $vin = trim($this->ReadPropertyString('VIN'));
+        $vin = trim((string)$this->ReadPropertyString('VIN'));
         if ($token === '' || $vin === '') {
             throw new Exception('ApiToken oder VIN fehlt.');
         }
@@ -983,7 +983,7 @@ class TessieVehicle extends IPSModule
     public function WakeUp(): string
     {
         $token = $this->getApiToken();
-        $vin = trim($this->ReadPropertyString('VIN'));
+        $vin = trim((string)$this->ReadPropertyString('VIN'));
         if ($token === '' || $vin === '') {
             return 'Zugangsschlüssel oder VIN fehlt.';
         }
@@ -1374,7 +1374,7 @@ class TessieVehicle extends IPSModule
 
     private function getTelemetryRegistry(): array
     {
-        $raw = $this->ReadAttributeString(self::ATTR_TELEMETRY_REGISTRY);
+        $raw = (string)$this->ReadAttributeString(self::ATTR_TELEMETRY_REGISTRY);
         $arr = json_decode($raw, true);
         return is_array($arr) ? $arr : [];
     }
@@ -1397,7 +1397,7 @@ class TessieVehicle extends IPSModule
 
     private function getVisibleList(): array
     {
-        $arr = json_decode($this->ReadPropertyString(self::PROP_VISIBLE_VARS), true);
+        $arr = json_decode((string)$this->ReadPropertyString(self::PROP_VISIBLE_VARS), true);
         return is_array($arr) ? $arr : [];
     }
 
@@ -1735,7 +1735,7 @@ class TessieVehicle extends IPSModule
         $bestDist = PHP_FLOAT_MAX;
 
         // Vorheriger Zonen-Zustand für die Übergangs-Erkennung (Einfahrt/Ausfahrt/Durchfahrt)
-        $state = json_decode($this->ReadAttributeString(self::ATTR_GEO_STATE), true);
+        $state = json_decode((string)$this->ReadAttributeString(self::ATTR_GEO_STATE), true);
         if (!is_array($state)) {
             $state = [];
         }
@@ -1896,7 +1896,7 @@ class TessieVehicle extends IPSModule
         if (!is_array($rules)) {
             $rules = [];
         }
-        $state = json_decode($this->ReadAttributeString(self::ATTR_RULE_STATE), true);
+        $state = json_decode((string)$this->ReadAttributeString(self::ATTR_RULE_STATE), true);
         if (!is_array($state)) {
             $state = [];
         }
@@ -2892,7 +2892,7 @@ class TessieVehicle extends IPSModule
         $enabled = $this->getEnabledMap();
         $posMap = $this->getOrderPosMap(10);
 
-        $vehicleName = trim($this->ReadAttributeString(self::ATTR_VEHICLE_NAME));
+        $vehicleName = trim((string)$this->ReadAttributeString(self::ATTR_VEHICLE_NAME));
         $rootName = $vehicleName !== '' ? $vehicleName : IPS_GetName($this->InstanceID);
 
         $rootIdent = self::IDENT_ROOT_PREFIX . $this->InstanceID;
@@ -3155,7 +3155,7 @@ class TessieVehicle extends IPSModule
 
     private function apiRequest(string $token, string $method, string $path, $body): array
     {
-        $base = rtrim(trim($this->ReadPropertyString('ApiBase')), '/');
+        $base = rtrim(trim((string)$this->ReadPropertyString('ApiBase')), '/');
         if ($path === '' || $path[0] !== '/') {
             $path = '/' . $path;
         }

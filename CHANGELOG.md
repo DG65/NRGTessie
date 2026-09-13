@@ -2,6 +2,12 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.30.0] - 2026-09-13
+### Behoben
+- Store-Review-Checkliste Punkt 9c: `ReadPropertyXXX()`/`ReadAttributeXXX()` wurden an rund 20 Stellen in allen drei Modulen ungecastet an typisierte Funktionen (`trim()`, `json_decode()`, `ColorHex()`, `FontStack()` u.a.) oder typisierte Rückgabewerte (`ResolveSource(): int`, `FontScaleValue(): float`) weitergereicht. Waehrend eines Kernel-Reloads (z.B. laufendes Modul-Update auf einer anderen Instanz) liefern diese SDK-Aufrufe `false` statt des erwarteten Typs - mit `declare(strict_types=1)` wuerde daraus ein TypeError, der die ganze Aufrufkette abreisst. Durchgaengig per `(string)`/`(int)`/`(float)`-Cast abgesichert. TessieVehicleTile::MessageSink() zusaetzlich mit `IPS_GetKernelRunlevel() === KR_READY`-Wächter und try/catch versehen.
+### Geprueft (Store-Review-Checkliste, keine Aenderung noetig)
+- Punkt 1 (keine Selbstpersistenz in Formular-Buttons), 2 (vendor "Tessie Technology LLC" gegen die offiziellen Tessie-AGB verifiziert), 3 (loadValuesFromConfiguration korrekt nur bei der einen Liste mit berechneten Spalten), 4 (InstanceLocation/SelectCategory-Muster bereits korrekt), 5 (keine Legacy-Variablenprofile), 6 (keine IPS/Symcon-Modulnamen), 8 (library.json nur erlaubte Felder), 9 (Translate()-Quellstrings durchgaengig englisch), 9b (deutsches Datumsformat/echte Umlaute bereits konform), 9d (keine geparkten Instanzen mit Fehlerstatus statt IS_INACTIVE), 10 (kein `$_IPS['TARGET']` in Formular-Buttons), 11a (ColorValue/ColorActive bereits gefixt), 12 (Neuinstallations-Simulation, keine eigenen IDs/Namen mehr auffindbar außer im historischen Changelog), 13 (sichtbare Rueckmeldung bei jeder Aktion bereits vollstaendig umgesetzt).
+
 ## [2.29.2] - 2026-09-04
 ### Dokumentiert
 - Semantik von `stat_tel_DoorState` (Datenpunkt „Tür-/Klappenstatus") geklärt und dokumentiert: kommagetrennte Liste der **aktuell offenen** Türen/Klappen, leerer Wert = alles geschlossen. Bislang nirgends festgehalten, obwohl der Wert seit der generischen Telemetrie-Discovery existiert. Live gegen ein echtes Fahrzeug verifiziert (Frunk geöffnet/Heckklappe umgeschaltet/Heckklappe zurückgeschaltet, jeweils mit dem erwarteten An-/Verschwinden des Eintrags). Reine Dokumentations-Ergänzung (README, Code-Kommentar) - keine Funktionsänderung, insbesondere kein automatisches Schließen auf Basis dieses Werts.
