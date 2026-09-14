@@ -2,6 +2,12 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.30.1] - 2026-09-14
+### Behoben
+- Store-Review Punkt 9 (Zweitpruefung, InverterHub-Anstoss zur Store-Offensive): `buildFormRows()` (Datenpunkt-Liste) wrappte bereits fertig lokalisierte Anzeigenamen (`getDefaultVisibleVars()`-Defaults, Registry-Namen aus `makeRegistryEntry()` - beide schon deutsch) nochmal in `Translate()`. Auf Dietmars deutschem Server ein folgenloser No-op (`Translate()` gibt unbekannte Strings unveraendert zurueck), auf einem nicht-deutschen Symcon-Server haette das bereits uebersetzte deutsche Woerter unuebersetzt angezeigt - genau das Gegenteil des Sinns von `Translate()`/`locale.json`. Der vorherige Store-Review-Durchgang (2.30.0) hatte Punkt 9 als "durchgaengig englisch" abgehakt, genau dieser Fall wurde uebersehen. `Translate()` gilt jetzt nur noch fuer den echten Fallback (roher Ident, wenn weder Default noch Registry noch Property einen Namen kennen).
+### Geprueft (Store-Review-Checkliste, keine Aenderung noetig)
+- 9f (kein Steuerhoheit-Konflikt zwischen Modulen - Tessie ist alleiniger Eigentuemer der Fahrzeugdaten), 9g (keine eigenen AC_GetLoggedValues/AC_GetAggregatedValues-Aufrufe).
+
 ## [2.30.0] - 2026-09-13
 ### Behoben
 - Store-Review-Checkliste Punkt 9c: `ReadPropertyXXX()`/`ReadAttributeXXX()` wurden an rund 20 Stellen in allen drei Modulen ungecastet an typisierte Funktionen (`trim()`, `json_decode()`, `ColorHex()`, `FontStack()` u.a.) oder typisierte Rückgabewerte (`ResolveSource(): int`, `FontScaleValue(): float`) weitergereicht. Waehrend eines Kernel-Reloads (z.B. laufendes Modul-Update auf einer anderen Instanz) liefern diese SDK-Aufrufe `false` statt des erwarteten Typs - mit `declare(strict_types=1)` wuerde daraus ein TypeError, der die ganze Aufrufkette abreisst. Durchgaengig per `(string)`/`(int)`/`(float)`-Cast abgesichert. TessieVehicleTile::MessageSink() zusaetzlich mit `IPS_GetKernelRunlevel() === KR_READY`-Wächter und try/catch versehen.

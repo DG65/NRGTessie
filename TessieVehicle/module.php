@@ -288,7 +288,12 @@ class TessieVehicle extends IPSModule
         foreach ($base as &$row) {
             if (!is_array($row)) continue;
             $ident = (string)($row['Ident'] ?? '');
-            $row['Name']   = $this->Translate($names[$ident] ?? (string)($row['Name'] ?? $ident));
+            // $names[$ident] (kuratierter Default/Registry-Eintrag) und $row['Name'] (Property,
+            // ggf. vom Nutzer umbenannt) sind bereits fertige, lokalisierte Anzeigenamen - nur
+            // der letzte Fallback (roher Ident) ist ein tatsaechlicher Translate()-Kandidat.
+            // Store-Review 9: sonst wuerde ein bereits deutscher String nochmal durch
+            // Translate() laufen, was auf einem nicht-deutschen Symcon-Server sichtbar falsch waere.
+            $row['Name']   = $names[$ident] ?? (string)($row['Name'] ?? $this->Translate($ident));
             $row['Gruppe'] = $this->purposeForIdent($ident, $registry);
             $vid = @IPS_GetObjectIDByIdent($ident, $this->InstanceID);
             $row['Empfangen'] = ($vid > 0 && (int)(@IPS_GetVariable($vid)['VariableUpdated'] ?? 0) > 0) ? 'Ja' : '';

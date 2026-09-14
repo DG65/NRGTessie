@@ -2,7 +2,9 @@
 
 Hallo zusammen,
 
-ich möchte euch mein Modul **Tessie for IP-Symcon** vorstellen, das ab sofort im **Module Store** verfügbar ist (einfach im Store nach *Tessie* suchen).
+ich möchte euch mein Modul **NRG-Stack Tessie** vorstellen, das ab sofort im **Module Store** verfügbar ist (einfach im Store nach *Tessie* suchen).
+
+*Teil des NRG-Stack – meines Energie-Modulverbunds für IP-Symcon. Tessie ist auch eigenständig voll nutzbar, spielt aber z. B. mit einem Energiemanagement-Modul zusammen (Fahrzeug-Ladezustand als Eingangsgröße für die Ladeplanung).*
 
 ## Worum geht es?
 
@@ -63,7 +65,7 @@ Mitgeliefert wird ein eigenes Modul **TessieVehicleTile** – eine eigenständig
 
 ## Open Source, Marken & Haftung
 
-Der Code steht unter der **MIT-Lizenz** und liegt offen auf GitHub: https://github.com/DG65/NRGTessie
+Der Code liegt offen auf GitHub: https://github.com/DG65/NRGTessie – veröffentlicht unter der **PolyForm Noncommercial License 1.0.0**: private und nicht-kommerzielle Nutzung frei, gewerbliche Nutzung braucht eine gesonderte Lizenz. Spenden sind willkommen und rein freiwillig.
 
 Inoffizielles Community-Modul – keine Verbindung zu Tesla, Inc. oder Tessie. Wichtig: Die Nutzung erfolgt **auf eigenes Risiko**. Das Modul schickt echte Befehle an das Fahrzeug (Verriegeln, Fenster, Kofferraum, Laden, Klima). Ich übernehme keine Haftung für Schäden oder Folgeschäden – sicherheitsrelevante Aktionen bitte nicht ungeprüft automatisieren.
 
