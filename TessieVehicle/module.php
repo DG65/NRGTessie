@@ -63,6 +63,7 @@ class TessieVehicle extends IPSModule
     private const ATTR_GEO_STATE           = 'GeoState';
     private const ATTR_RULE_STATE          = 'RuleState';
     private const ATTR_REVIEW_HINT_GONE    = 'ReviewHintDismissed';
+    private const ATTR_PURPOSE_INTRO_GONE  = 'PurposeIntroGone';
     private const ATTR_SEEN_NEWS           = 'SeenNews';
     private const ATTR_LAST_TELEMETRY_AT   = 'LastTelemetryAt';
     private const ATTR_API_ERROR_STREAK    = 'ApiErrorStreak';
@@ -77,15 +78,13 @@ class TessieVehicle extends IPSModule
 
     // „Was ist neu"-Banner: Versionsnummer, bis zu der die Neuigkeiten hier zusammengefasst sind.
     // Beim nächsten kuratierten Update hochzählen und NEWS_ITEMS ersetzen.
-    private const NEWS_VERSION = '2.29.0';
+    private const NEWS_VERSION = '2.30.1';
     private const NEWS_ITEMS = [
+        '👋 Neue Zweck-Einführung ganz oben im Formular: kurz erklärt, was Tessie tut und wozu es gut ist.',
+        'GetVehicleState() liefert jetzt zusätzlich die aktuelle Reichweite (km) direkt aus der Telemetrie.',
         'Neuer Button "Fahrzeug jetzt aufwecken" – weckt das Fahrzeug gezielt auf, z. B. wenn die Telemetrie länger eingeschlafen war und aktuelle Daten gebraucht werden.',
         'GetVehicleState() liefert jetzt Entfernung zum Zuhause, ob das aktuelle Navigationsziel tatsächlich Zuhause ist, und (nur dann) Teslas eigene Ankunfts-SoC-Prognose – Grundlage für eine EMS-Preis-Reserve bei erwarteter Heimkehr.',
-        'Neuer Button "Übernehmen erzwingen" – wendet die Instanz auch ohne Formularänderung neu an, praktisch zum Prüfen nach einem Modul-Update.',
-        'Absturz der Symcon-Mobile-App beim Öffnen von Klimahaltung, Sitzheizung oder Innenraum-Überhitzeschutz-Temperaturlimit behoben (falsche interne Darstellungs-Angabe – Web/Konsole waren nicht betroffen).',
-        'Ladezustand wird jetzt zuverlässig erkannt, auch wenn ein Ladevorgang nicht über IP-Symcon gestartet wurde (z. B. Tesla-App oder geplantes Laden) – wichtig für Module wie das Dashboard, die daraus die Fahrzeug-Wallbox-Zuordnung ableiten.',
-        'Sichtbare Statusmeldung, wenn der Zugangsschlüssel ungültig wird/die API nicht erreichbar ist, oder wenn seit über 15 Minuten keine Telemetrie mehr ankam – vorher nur in Log/Debug-Konsole sichtbar.',
-        'GetVehicleState() liefert jetzt zusätzlich Restenergie und hochgerechnete Batteriekapazität (kWh) für eine Ladeplanung nach tatsächlichem Bedarf statt festem SoC%.'
+        'Neuer Button "Übernehmen erzwingen" – wendet die Instanz auch ohne Formularänderung neu an, praktisch zum Prüfen nach einem Modul-Update.'
     ];
     // Zugangsschlüssel: liegt in einem Attribut (Modul-Hoheit), nicht als Property (Nutzer-
     // Hoheit/Formular). Die Property 'ApiToken' bleibt nur als Schreib-Kanal des Konfigurators
@@ -175,6 +174,7 @@ class TessieVehicle extends IPSModule
         $this->RegisterAttributeString(self::ATTR_GEO_STATE, '{}');
         $this->RegisterAttributeString(self::ATTR_RULE_STATE, '{}');
         $this->RegisterAttributeBoolean(self::ATTR_REVIEW_HINT_GONE, false);
+        $this->RegisterAttributeBoolean(self::ATTR_PURPOSE_INTRO_GONE, false);
         $this->RegisterAttributeString(self::ATTR_SEEN_NEWS, '');
         $this->RegisterAttributeString(self::ATTR_API_TOKEN, '');
         $this->RegisterAttributeInteger(self::ATTR_LAST_TELEMETRY_AT, 0);
@@ -402,6 +402,12 @@ class TessieVehicle extends IPSModule
             array_unshift($form['elements'], $banner);
         }
 
+        // „Wozu dieses Modul?" ganz vorn, noch vor dem News-Banner.
+        $purposeIntro = $this->purposeIntro();
+        if ($purposeIntro !== null) {
+            array_unshift($form['elements'], $purposeIntro);
+        }
+
         return json_encode($form);
     }
 
@@ -431,6 +437,34 @@ class TessieVehicle extends IPSModule
         $raw = @file_get_contents(__DIR__ . '/../library.json');
         $d = is_string($raw) ? json_decode($raw, true) : null;
         return is_array($d) ? (string)($d['version'] ?? '') : '';
+    }
+
+    /**
+     * "Wozu dieses Modul?" – ganz vorn, noch vor dem News-Banner (SUITE.md Formular-Konvention
+     * Punkt 0). Anders als das News-Panel einmalig dismissible (kein Versionsbezug): der Zweck
+     * eines Moduls ändert sich nicht mit jedem Release.
+     */
+    private function purposeIntro(): ?array
+    {
+        if ($this->ReadAttributeBoolean(self::ATTR_PURPOSE_INTRO_GONE)) {
+            return null;
+        }
+        return [
+            'type' => 'ExpansionPanel', 'name' => 'PurposeIntroPanel', 'expanded' => true,
+            'caption' => '👋  Wozu dieses Modul?',
+            'items' => [
+                ['type' => 'Label', 'caption' => 'Tessie bindet dein Tesla-Fahrzeug in IP-Symcon ein: Ladestand, Standort, Temperaturen und Fahrzeugstatus werden zu normalen Symcon-Variablen, dazu lässt sich das Fahrzeug fernsteuern (Ver-/Entriegeln, Klima, Laden, Fenster u. a.).'],
+                ['type' => 'Label', 'caption' => 'Der Nutzen: dein Auto wird Teil deiner Hausautomatisierung – z. B. das Laden ans eigene PV-/Batteriesystem oder an günstige Stromtarife koppeln, vor der Abfahrt vorklimatisieren, oder einfach den Ladestand im Dashboard sehen.'],
+                ['type' => 'Label', 'caption' => 'Für die Konfiguration/Fahrzeugsuche brauchst du die Instanz TessieConfigurator; für eine Kachel-Ansicht gibt es TessieVehicleTile.'],
+                ['type' => 'Button', 'caption' => 'Verstanden – nicht mehr anzeigen', 'onClick' => 'TESSIE_AckPurposeIntro($id);'],
+            ],
+        ];
+    }
+
+    public function AckPurposeIntro(): void
+    {
+        $this->WriteAttributeBoolean(self::ATTR_PURPOSE_INTRO_GONE, true);
+        $this->UpdateFormField('PurposeIntroPanel', 'visible', false);
     }
 
     /**

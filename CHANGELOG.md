@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.31.0] - 2026-09-14
+### Hinzugefuegt
+- "Wozu dieses Modul?"-Panel ganz oben im Formular (TessieVehicle + TessieVehicleTile), noch vor dem "Was ist neu"-Banner - Verbund-Konvention SUITE.md Formular-Punkt 0, Referenzimplementierung MeterHub. Standardmaessig aufgeklappt, einmalig dismissible (bool-Attribut PurposeIntroGone, kein Versionsbezug wie beim News-Banner). Erklaert in 2-3 Saetzen WOFUER/WARUM statt WIE, mit Verweis auf die jeweils anderen Tessie-Instanzen (TessieConfigurator/TessieVehicleTile bzw. TessieVehicle/TessieConfigurator).
+
 ## [2.30.1] - 2026-09-14
 ### Behoben
 - Store-Review Punkt 9 (Zweitpruefung, InverterHub-Anstoss zur Store-Offensive): `buildFormRows()` (Datenpunkt-Liste) wrappte bereits fertig lokalisierte Anzeigenamen (`getDefaultVisibleVars()`-Defaults, Registry-Namen aus `makeRegistryEntry()` - beide schon deutsch) nochmal in `Translate()`. Auf Dietmars deutschem Server ein folgenloser No-op (`Translate()` gibt unbekannte Strings unveraendert zurueck), auf einem nicht-deutschen Symcon-Server haette das bereits uebersetzte deutsche Woerter unuebersetzt angezeigt - genau das Gegenteil des Sinns von `Translate()`/`locale.json`. Der vorherige Store-Review-Durchgang (2.30.0) hatte Punkt 9 als "durchgaengig englisch" abgehakt, genau dieser Fall wurde uebersehen. `Translate()` gilt jetzt nur noch fuer den echten Fallback (roher Ident, wenn weder Default noch Registry noch Property einen Namen kennen).

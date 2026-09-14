@@ -70,16 +70,17 @@ class TessieVehicleTile extends IPSModule
     private const DEF_SCALE      = 1.0;
 
     private const ATTR_SEEN_NEWS = 'SeenNews';
+    private const ATTR_PURPOSE_INTRO_GONE = 'PurposeIntroGone';
 
     // „Was ist neu"-Banner: Versionsnummer, bis zu der die Neuigkeiten hier zusammengefasst sind.
     // Beim nächsten kuratierten Update hochzählen und NEWS_ITEMS ersetzen.
-    private const NEWS_VERSION = '2.22.0';
+    private const NEWS_VERSION = '2.30.1';
     private const NEWS_ITEMS = [
+        '👋 Neue Zweck-Einführung ganz oben im Formular: kurz erklärt, was diese Kachel zeigt und wozu sie gut ist.',
         'Wenn→Dann-Regeln der Quelle direkt hier anlegen, bearbeiten und löschen – inklusive mehrerer UND-Bedingungen.',
         'Standorte (Geofence) der Quelle direkt hier verwalten, mit eigenem Icon je Standort.',
         'Bedien-Schaltflächen: Anzahl, Reihenfolge und Beschriftung selbst wählen (Stift-Symbol neben „Schaltflächen").',
-        'Vergleichswert einer Regel erscheint als Auswahlliste mit Klartext, wenn der Datenpunkt feste Werte hat.',
-        'Oberfläche durchgängig auf Deutsch.'
+        'Vergleichswert einer Regel erscheint als Auswahlliste mit Klartext, wenn der Datenpunkt feste Werte hat.'
     ];
 
     public function Create()
@@ -102,6 +103,7 @@ class TessieVehicleTile extends IPSModule
         $this->RegisterPropertyBoolean('ShowAutomations', true);
         $this->RegisterPropertyBoolean('AdoptVehicleName', true);
         $this->RegisterAttributeString(self::ATTR_SEEN_NEWS, '');
+        $this->RegisterAttributeBoolean(self::ATTR_PURPOSE_INTRO_GONE, false);
 
         $this->SetVisualizationType(1);
     }
@@ -198,6 +200,12 @@ class TessieVehicleTile extends IPSModule
             array_unshift($form['elements'], $banner);
         }
 
+        // „Wozu dieses Modul?" ganz vorn, noch vor dem News-Banner.
+        $purposeIntro = $this->purposeIntro();
+        if ($purposeIntro !== null) {
+            array_unshift($form['elements'], $purposeIntro);
+        }
+
         return json_encode($form);
     }
 
@@ -207,6 +215,34 @@ class TessieVehicleTile extends IPSModule
         $raw = @file_get_contents(__DIR__ . '/../library.json');
         $d = is_string($raw) ? json_decode($raw, true) : null;
         return is_array($d) ? (string)($d['version'] ?? '') : '';
+    }
+
+    /**
+     * "Wozu dieses Modul?" – ganz vorn, noch vor dem News-Banner (SUITE.md Formular-Konvention
+     * Punkt 0). Anders als das News-Panel einmalig dismissible (kein Versionsbezug): der Zweck
+     * eines Moduls ändert sich nicht mit jedem Release.
+     */
+    private function purposeIntro(): ?array
+    {
+        if ($this->ReadAttributeBoolean(self::ATTR_PURPOSE_INTRO_GONE)) {
+            return null;
+        }
+        return [
+            'type' => 'ExpansionPanel', 'name' => 'PurposeIntroPanel', 'expanded' => true,
+            'caption' => '👋  Wozu dieses Modul?',
+            'items' => [
+                ['type' => 'Label', 'caption' => 'Diese Kachel zeigt Ladestand, Reichweite, Temperaturen und Fahrzeugstatus deines Tesla auf einen Blick – inklusive Bedien-Buttons für Verriegelung, Klima und mehr, direkt in der Kacheln-Visualisierung.'],
+                ['type' => 'Label', 'caption' => 'Der Nutzen: eine kompakte, optisch anpassbare Übersicht fürs WebFront, ohne selbst Variablen zusammenstellen zu müssen – die Datenquelle wird automatisch erkannt.'],
+                ['type' => 'Label', 'caption' => 'Die eigentliche Datenverbindung zum Fahrzeug liefert die Instanz TessieVehicle; die Konfiguration/Fahrzeugsuche läuft über TessieConfigurator.'],
+                ['type' => 'Button', 'caption' => 'Verstanden – nicht mehr anzeigen', 'onClick' => 'TESSIETILE_AckPurposeIntro($id);'],
+            ],
+        ];
+    }
+
+    public function AckPurposeIntro(): void
+    {
+        $this->WriteAttributeBoolean(self::ATTR_PURPOSE_INTRO_GONE, true);
+        $this->UpdateFormField('PurposeIntroPanel', 'visible', false);
     }
 
     /**
