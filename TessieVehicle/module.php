@@ -3,6 +3,10 @@ declare(strict_types=1);
 
 class TessieVehicle extends IPSModule
 {
+    // Eigene GUID (module.json "id") - für IPS_GetInstanceListByModuleID() bei der
+    // Geschwister-Instanz-Synchronisierung des Ausblenden-Zustands (siehe PropagateDismiss()).
+    private const SELF_MODULE_ID = '{3F1F7E31-8BA0-4B8F-9B62-47DAD7A0B6C9}';
+
     // -------------------- Variable Idents (Aktionen) --------------------
     private const ACT_LOCKED                = 'act_locked';
     private const ACT_CLIMATE               = 'act_climate';
@@ -78,8 +82,9 @@ class TessieVehicle extends IPSModule
 
     // „Was ist neu"-Banner: Versionsnummer, bis zu der die Neuigkeiten hier zusammengefasst sind.
     // Beim nächsten kuratierten Update hochzählen und NEWS_ITEMS ersetzen.
-    private const NEWS_VERSION = '2.30.1';
+    private const NEWS_VERSION = '2.32.0';
     private const NEWS_ITEMS = [
+        'Hast du mehrere Fahrzeuge: „Wozu dieses Modul?" und „Was ist neu?" musst du nur noch an einer Instanz wegklicken, nicht an jeder einzeln.',
         '👋 Neue Zweck-Einführung ganz oben im Formular: kurz erklärt, was Tessie tut und wozu es gut ist.',
         'GetVehicleState() liefert jetzt zusätzlich die aktuelle Reichweite (km) direkt aus der Telemetrie.',
         'Neuer Button "Fahrzeug jetzt aufwecken" – weckt das Fahrzeug gezielt auf, z. B. wenn die Telemetrie länger eingeschlafen war und aktuelle Daten gebraucht werden.',
@@ -191,6 +196,11 @@ class TessieVehicle extends IPSModule
         // ins Attribut übernehmen und die Property wieder leeren, damit der Klartext
         // nicht dauerhaft in der Property-Konfiguration liegt (NRG-Stack-Konvention).
         $this->migrateApiTokenToAttribute();
+
+        // Vor allem anderen: eine neu angelegte Instanz übernimmt den Ausblenden-Stand
+        // (Wozu/News/Forum-Hinweis) einer Geschwister-Instanz, statt bereits Bestätigtes
+        // erneut zu zeigen.
+        $this->AdoptDismissFromSibling();
 
         $interval = (int)$this->ReadPropertyInteger('UpdateInterval');
         if ($interval < 0) {
@@ -429,6 +439,7 @@ class TessieVehicle extends IPSModule
     {
         $this->WriteAttributeBoolean(self::ATTR_REVIEW_HINT_GONE, true);
         $this->UpdateFormField('ReviewHint', 'visible', false);
+        $this->PropagateDismiss('ForumHint');
     }
 
     /** Modulversion aus library.json (Repo-Wurzel), leer wenn nicht lesbar. */
@@ -465,6 +476,7 @@ class TessieVehicle extends IPSModule
     {
         $this->WriteAttributeBoolean(self::ATTR_PURPOSE_INTRO_GONE, true);
         $this->UpdateFormField('PurposeIntroPanel', 'visible', false);
+        $this->PropagateDismiss('PurposeIntro');
     }
 
     /**
@@ -488,6 +500,96 @@ class TessieVehicle extends IPSModule
     {
         $this->WriteAttributeString(self::ATTR_SEEN_NEWS, self::NEWS_VERSION);
         $this->UpdateFormField('NewsPanel', 'visible', false);
+        $this->PropagateDismiss('News', self::NEWS_VERSION);
+    }
+
+    /**
+     * Ausblenden von "Wozu dieses Modul?"/"Was ist Neu?"/Forum-Hinweis über alle Geschwister-
+     * Instanzen dieses Moduls teilen (SUITE.md "Ausblenden über mehrere Instanzen desselben
+     * Moduls teilen", 14.09.2026, Referenz MeterHub). Ruft bei jeder Geschwister-Instanz NUR
+     * den reinen Übernahme-Schritt auf (AdoptDismissState), nicht erneut die volle Ack-Methode
+     * - dadurch kein Ping-Pong möglich, ganz ohne Prozessmerker.
+     */
+    private function PropagateDismiss(string $what, string $value = ''): void
+    {
+        foreach (IPS_GetInstanceListByModuleID(self::SELF_MODULE_ID) as $sib) {
+            if ($sib === $this->InstanceID) {
+                continue;
+            }
+            try {
+                TESSIE_AdoptDismissState($sib, $what, $value);
+            } catch (\Throwable $e) {
+                // Eine Geschwister-Instanz mitten im Reload/Löschen darf das Ausblenden der
+                // aufrufenden Instanz nicht mitreißen - @ hält Fatals nicht auf.
+            }
+        }
+    }
+
+    /** Reiner Übernahme-Schritt für eine Geschwister-Instanz - siehe PropagateDismiss(). */
+    public function AdoptDismissState(string $what, string $value): void
+    {
+        switch ($what) {
+            case 'PurposeIntro':
+                $this->WriteAttributeBoolean(self::ATTR_PURPOSE_INTRO_GONE, true);
+                $this->UpdateFormField('PurposeIntroPanel', 'visible', false);
+                break;
+            case 'ForumHint':
+                $this->WriteAttributeBoolean(self::ATTR_REVIEW_HINT_GONE, true);
+                $this->UpdateFormField('ReviewHint', 'visible', false);
+                break;
+            case 'News':
+                $this->WriteAttributeString(self::ATTR_SEEN_NEWS, $value);
+                $this->UpdateFormField('NewsPanel', 'visible', false);
+                break;
+        }
+    }
+
+    /** Für Geschwister-Instanzen, die beim erstmaligen Kontakt den Ausblenden-Stand übernehmen wollen. */
+    public function GetDismissState(): array
+    {
+        return [
+            'purposeIntroGone' => $this->ReadAttributeBoolean(self::ATTR_PURPOSE_INTRO_GONE),
+            'forumHintGone'    => $this->ReadAttributeBoolean(self::ATTR_REVIEW_HINT_GONE),
+            'seenNews'         => $this->ReadAttributeString(self::ATTR_SEEN_NEWS),
+        ];
+    }
+
+    /**
+     * Gegenrichtung zu PropagateDismiss(): eine neu angelegte Instanz sieht beim ersten
+     * ApplyChanges() bei einer beliebigen Geschwister-Instanz nach und übernimmt deren Stand,
+     * statt die Hinweise erneut zu zeigen, obwohl der Nutzer sie an anderer Instanz schon
+     * bestätigt hat. Zieht nur vor (false→true, ältere→neuere News-Version), überschreibt nie
+     * einen schon weiter fortgeschrittenen eigenen Stand.
+     */
+    private function AdoptDismissFromSibling(): void
+    {
+        if ($this->ReadAttributeBoolean(self::ATTR_PURPOSE_INTRO_GONE) && $this->ReadAttributeBoolean(self::ATTR_REVIEW_HINT_GONE)
+            && $this->ReadAttributeString(self::ATTR_SEEN_NEWS) === self::NEWS_VERSION) {
+            return;
+        }
+        foreach (IPS_GetInstanceListByModuleID(self::SELF_MODULE_ID) as $sib) {
+            if ($sib === $this->InstanceID) {
+                continue;
+            }
+            try {
+                $state = TESSIE_GetDismissState($sib);
+            } catch (\Throwable $e) {
+                continue;
+            }
+            if (!is_array($state)) {
+                continue;
+            }
+            if (!$this->ReadAttributeBoolean(self::ATTR_PURPOSE_INTRO_GONE) && !empty($state['purposeIntroGone'])) {
+                $this->WriteAttributeBoolean(self::ATTR_PURPOSE_INTRO_GONE, true);
+            }
+            if (!$this->ReadAttributeBoolean(self::ATTR_REVIEW_HINT_GONE) && !empty($state['forumHintGone'])) {
+                $this->WriteAttributeBoolean(self::ATTR_REVIEW_HINT_GONE, true);
+            }
+            if ($this->ReadAttributeString(self::ATTR_SEEN_NEWS) !== self::NEWS_VERSION && ($state['seenNews'] ?? '') === self::NEWS_VERSION) {
+                $this->WriteAttributeString(self::ATTR_SEEN_NEWS, self::NEWS_VERSION);
+            }
+            break;
+        }
     }
 
     public function ResetVisibleVars()

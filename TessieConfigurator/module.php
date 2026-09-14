@@ -4,6 +4,9 @@ class TessieConfigurator extends IPSModule
 {
     private const WS_CLIENT_MODULE_ID = '{D68FD31F-0E90-7019-F16C-1949BD3079EF}';
     private const VEHICLE_MODULE_ID = '{3F1F7E31-8BA0-4B8F-9B62-47DAD7A0B6C9}';
+    // Eigene GUID (module.json "id") - für die Geschwister-Instanz-Synchronisierung des
+    // Ausblenden-Zustands (siehe PropagateDismiss()).
+    private const SELF_MODULE_ID = '{7F7B979E-0D9F-4E4A-9C0D-2A3B1B0A4D21}';
     private const API_BASE = 'https://api.tessie.com';
     // Zugangsschlüssel liegt in einem Attribut (Modul-Hoheit), nicht als Property. Die
     // Properties bleiben nur als Formular-Schreibkanal bzw. Altbestand bestehen und werden
@@ -117,6 +120,9 @@ class TessieConfigurator extends IPSModule
         // Zugangsschlüssel sofort ins Attribut übernehmen (siehe Konstante ATTR_TOKEN oben).
         $this->migrateTokenToAttribute();
 
+        // Eine neu angelegte Instanz übernimmt den Ausblenden-Stand einer Geschwister-Instanz.
+        $this->AdoptDismissFromSibling();
+
         $token = $this->getToken();
         if ($token === '') {
             return;
@@ -177,6 +183,73 @@ class TessieConfigurator extends IPSModule
     {
         $this->WriteAttributeBoolean(self::ATTR_PURPOSE_INTRO_GONE, true);
         $this->UpdateFormField('PurposeIntroPanel', 'visible', false);
+        $this->PropagateDismiss('PurposeIntro');
+    }
+
+    /**
+     * Ausblenden von "Wozu dieses Modul?" über alle Geschwister-Instanzen dieses Moduls
+     * teilen (SUITE.md "Ausblenden über mehrere Instanzen desselben Moduls teilen",
+     * 14.09.2026, Referenz MeterHub). Ruft bei jeder Geschwister-Instanz NUR den reinen
+     * Übernahme-Schritt auf, nicht erneut die volle Ack-Methode - kein Ping-Pong möglich,
+     * ganz ohne Prozessmerker.
+     */
+    private function PropagateDismiss(string $what, string $value = ''): void
+    {
+        foreach (IPS_GetInstanceListByModuleID(self::SELF_MODULE_ID) as $sib) {
+            if ($sib === $this->InstanceID) {
+                continue;
+            }
+            try {
+                TESSIE_AdoptConfiguratorDismissState($sib, $what, $value);
+            } catch (\Throwable $e) {
+                // Eine Geschwister-Instanz mitten im Reload/Löschen darf das Ausblenden der
+                // aufrufenden Instanz nicht mitreißen - @ hält Fatals nicht auf.
+            }
+        }
+    }
+
+    /**
+     * Reiner Übernahme-Schritt für eine Geschwister-Instanz - siehe PropagateDismiss().
+     * Eigener Methodenname statt AdoptDismissState() aus demselben Grund wie
+     * AckConfiguratorPurposeIntro(): geteilter Prefix "TESSIE" mit TessieVehicle.
+     */
+    public function AdoptConfiguratorDismissState(string $what, string $value): void
+    {
+        if ($what === 'PurposeIntro') {
+            $this->WriteAttributeBoolean(self::ATTR_PURPOSE_INTRO_GONE, true);
+            $this->UpdateFormField('PurposeIntroPanel', 'visible', false);
+        }
+    }
+
+    /** Für Geschwister-Instanzen, die beim erstmaligen Kontakt den Ausblenden-Stand übernehmen wollen. */
+    public function GetConfiguratorDismissState(): array
+    {
+        return ['purposeIntroGone' => $this->ReadAttributeBoolean(self::ATTR_PURPOSE_INTRO_GONE)];
+    }
+
+    /**
+     * Gegenrichtung zu PropagateDismiss(): eine neu angelegte Instanz sieht beim ersten
+     * ApplyChanges() bei einer beliebigen Geschwister-Instanz nach und übernimmt deren Stand.
+     */
+    private function AdoptDismissFromSibling(): void
+    {
+        if ($this->ReadAttributeBoolean(self::ATTR_PURPOSE_INTRO_GONE)) {
+            return;
+        }
+        foreach (IPS_GetInstanceListByModuleID(self::SELF_MODULE_ID) as $sib) {
+            if ($sib === $this->InstanceID) {
+                continue;
+            }
+            try {
+                $state = TESSIE_GetConfiguratorDismissState($sib);
+            } catch (\Throwable $e) {
+                continue;
+            }
+            if (is_array($state) && !empty($state['purposeIntroGone'])) {
+                $this->WriteAttributeBoolean(self::ATTR_PURPOSE_INTRO_GONE, true);
+            }
+            break;
+        }
     }
 
     public function GetConfigurationForm()

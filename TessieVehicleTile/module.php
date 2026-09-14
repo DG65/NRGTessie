@@ -16,6 +16,9 @@ class TessieVehicleTile extends IPSModule
 {
     // GUID des Datenmoduls TessieVehicle (für die Quellen-Auswahl)
     private const SOURCE_MODULE = '{3F1F7E31-8BA0-4B8F-9B62-47DAD7A0B6C9}';
+    // Eigene GUID (module.json "id") - für die Geschwister-Instanz-Synchronisierung des
+    // Ausblenden-Zustands (siehe PropagateDismiss()).
+    private const SELF_MODULE_ID = '{ACAFF26A-C6AB-4D45-B51B-3832BE5C2CFA}';
 
     // Immer beobachtete Quell-Variablen (Telemetrie/Status); die Aktions-Idents der
     // konfigurierten Buttons kommen in getWatchIdents() dynamisch dazu.
@@ -74,8 +77,9 @@ class TessieVehicleTile extends IPSModule
 
     // „Was ist neu"-Banner: Versionsnummer, bis zu der die Neuigkeiten hier zusammengefasst sind.
     // Beim nächsten kuratierten Update hochzählen und NEWS_ITEMS ersetzen.
-    private const NEWS_VERSION = '2.30.1';
+    private const NEWS_VERSION = '2.32.0';
     private const NEWS_ITEMS = [
+        'Hast du mehrere Fahrzeug-Kacheln: „Wozu dieses Modul?" und „Was ist neu?" musst du nur noch an einer Instanz wegklicken, nicht an jeder einzeln.',
         '👋 Neue Zweck-Einführung ganz oben im Formular: kurz erklärt, was diese Kachel zeigt und wozu sie gut ist.',
         'Wenn→Dann-Regeln der Quelle direkt hier anlegen, bearbeiten und löschen – inklusive mehrerer UND-Bedingungen.',
         'Standorte (Geofence) der Quelle direkt hier verwalten, mit eigenem Icon je Standort.',
@@ -118,6 +122,10 @@ class TessieVehicleTile extends IPSModule
     {
         //Never delete this line!
         parent::ApplyChanges();
+
+        // Vor allem anderen: eine neu angelegte Instanz übernimmt den Ausblenden-Stand
+        // (Wozu/News) einer Geschwister-Instanz, statt bereits Bestätigtes erneut zu zeigen.
+        $this->AdoptDismissFromSibling();
 
         $this->SetVisualizationType(1);
 
@@ -243,6 +251,7 @@ class TessieVehicleTile extends IPSModule
     {
         $this->WriteAttributeBoolean(self::ATTR_PURPOSE_INTRO_GONE, true);
         $this->UpdateFormField('PurposeIntroPanel', 'visible', false);
+        $this->PropagateDismiss('PurposeIntro');
     }
 
     /**
@@ -266,6 +275,87 @@ class TessieVehicleTile extends IPSModule
     {
         $this->WriteAttributeString(self::ATTR_SEEN_NEWS, self::NEWS_VERSION);
         $this->UpdateFormField('NewsPanel', 'visible', false);
+        $this->PropagateDismiss('News', self::NEWS_VERSION);
+    }
+
+    /**
+     * Ausblenden von "Wozu dieses Modul?"/"Was ist Neu?" über alle Geschwister-Instanzen
+     * dieses Moduls teilen (SUITE.md "Ausblenden über mehrere Instanzen desselben Moduls
+     * teilen", 14.09.2026, Referenz MeterHub). Ruft bei jeder Geschwister-Instanz NUR den
+     * reinen Übernahme-Schritt auf (AdoptDismissState), nicht erneut die volle Ack-Methode -
+     * dadurch kein Ping-Pong möglich, ganz ohne Prozessmerker.
+     */
+    private function PropagateDismiss(string $what, string $value = ''): void
+    {
+        foreach (IPS_GetInstanceListByModuleID(self::SELF_MODULE_ID) as $sib) {
+            if ($sib === $this->InstanceID) {
+                continue;
+            }
+            try {
+                TESSIETILE_AdoptDismissState($sib, $what, $value);
+            } catch (\Throwable $e) {
+                // Eine Geschwister-Instanz mitten im Reload/Löschen darf das Ausblenden der
+                // aufrufenden Instanz nicht mitreißen - @ hält Fatals nicht auf.
+            }
+        }
+    }
+
+    /** Reiner Übernahme-Schritt für eine Geschwister-Instanz - siehe PropagateDismiss(). */
+    public function AdoptDismissState(string $what, string $value): void
+    {
+        switch ($what) {
+            case 'PurposeIntro':
+                $this->WriteAttributeBoolean(self::ATTR_PURPOSE_INTRO_GONE, true);
+                $this->UpdateFormField('PurposeIntroPanel', 'visible', false);
+                break;
+            case 'News':
+                $this->WriteAttributeString(self::ATTR_SEEN_NEWS, $value);
+                $this->UpdateFormField('NewsPanel', 'visible', false);
+                break;
+        }
+    }
+
+    /** Für Geschwister-Instanzen, die beim erstmaligen Kontakt den Ausblenden-Stand übernehmen wollen. */
+    public function GetDismissState(): array
+    {
+        return [
+            'purposeIntroGone' => $this->ReadAttributeBoolean(self::ATTR_PURPOSE_INTRO_GONE),
+            'seenNews'         => $this->ReadAttributeString(self::ATTR_SEEN_NEWS),
+        ];
+    }
+
+    /**
+     * Gegenrichtung zu PropagateDismiss(): eine neu angelegte Instanz sieht beim ersten
+     * ApplyChanges() bei einer beliebigen Geschwister-Instanz nach und übernimmt deren Stand.
+     * Zieht nur vor (false→true, ältere→neuere News-Version), überschreibt nie einen schon
+     * weiter fortgeschrittenen eigenen Stand.
+     */
+    private function AdoptDismissFromSibling(): void
+    {
+        if ($this->ReadAttributeBoolean(self::ATTR_PURPOSE_INTRO_GONE)
+            && $this->ReadAttributeString(self::ATTR_SEEN_NEWS) === self::NEWS_VERSION) {
+            return;
+        }
+        foreach (IPS_GetInstanceListByModuleID(self::SELF_MODULE_ID) as $sib) {
+            if ($sib === $this->InstanceID) {
+                continue;
+            }
+            try {
+                $state = TESSIETILE_GetDismissState($sib);
+            } catch (\Throwable $e) {
+                continue;
+            }
+            if (!is_array($state)) {
+                continue;
+            }
+            if (!$this->ReadAttributeBoolean(self::ATTR_PURPOSE_INTRO_GONE) && !empty($state['purposeIntroGone'])) {
+                $this->WriteAttributeBoolean(self::ATTR_PURPOSE_INTRO_GONE, true);
+            }
+            if ($this->ReadAttributeString(self::ATTR_SEEN_NEWS) !== self::NEWS_VERSION && ($state['seenNews'] ?? '') === self::NEWS_VERSION) {
+                $this->WriteAttributeString(self::ATTR_SEEN_NEWS, self::NEWS_VERSION);
+            }
+            break;
+        }
     }
 
     /**

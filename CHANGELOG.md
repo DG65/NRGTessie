@@ -2,6 +2,11 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.32.0] - 2026-09-14
+### Hinzugefuegt
+- "Ausblenden über mehrere Instanzen desselben Moduls teilen" (SUITE.md, 14.09.2026, Referenz MeterHub 0.29.1-beta.1): Wer mehrere Fahrzeuge hat (mehrere TessieVehicle-/TessieVehicleTile-Instanzen), muss "Wozu dieses Modul?"/"Was ist neu?"/den Forum-Hinweis nur noch an einer Instanz bestaetigen - alle Geschwister-Instanzen desselben Modultyps uebernehmen den Stand automatisch (PropagateDismiss()/AdoptDismissState()), auch spaeter neu angelegte (AdoptDismissFromSibling() beim ersten Uebernehmen). Ping-Pong strukturell ausgeschlossen (Uebernahme- und Propagier-Schritt sind getrennte Funktionen, kein Prozessmerker noetig), Cross-Instanz-Aufrufe in try/catch statt @-Unterdrueckung, damit eine defekte Geschwister-Instanz die Bestaetigung der aufrufenden Instanz nicht mitreisst.
+- Betrifft alle drei Module; bei TessieVehicle/TessieConfigurator (geteilter Prefix "TESSIE") mussten die neuen oeffentlichen Methoden bei TessieConfigurator umbenannt werden (AdoptConfiguratorDismissState()/GetConfiguratorDismissState() statt AdoptDismissState()/GetDismissState()) - selbes Namensraum-Risiko wie bei AckPurposeIntro() vorhin, diesmal von vornherein vermieden.
+
 ## [2.31.1] - 2026-09-14
 ### Hinzugefuegt
 - "Wozu dieses Modul?"-Panel jetzt auch in TessieConfigurator (auf Rueckfrage bei EMS: Configurator ist fuer neue Nutzer der allererste Bildschirm ueberhaupt, ein bewusster Ausschluss war es nicht).
