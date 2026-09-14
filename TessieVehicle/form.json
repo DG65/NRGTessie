@@ -71,6 +71,18 @@
                 },
                 {
                     "type": "Label",
+                    "caption": "── Status & Fehlerdiagnose ──"
+                },
+                {
+                    "type": "Label",
+                    "caption": "Das Statussymbol im Objektbaum zeigt Betriebsprobleme, ohne dass du ins Protokoll schauen musst: 'API-Fehler' bedeutet, dass der Zugangsschlüssel ungültig geworden ist oder die Tessie-API wiederholt nicht erreichbar war (erst nach zwei Fehlschlägen in Folge, damit ein einzelner Aussetzer nicht gleich alarmiert). 'Telemetrie veraltet' bedeutet, dass seit über 15 Minuten keine neuen Daten mehr vom Fahrzeug ankamen – meist, weil es länger geschlafen hat. Beide Zustände verschwinden automatisch, sobald sich die Lage normalisiert."
+                },
+                {
+                    "type": "Label",
+                    "caption": "Die Schaltfläche 'Fahrzeug jetzt aufwecken' hilft genau in diesem Fall: sie weckt das Fahrzeug gezielt, statt auf die nächste automatische Statusabfrage zu warten. 'Übernehmen erzwingen' wendet die Instanz auch ohne Formularänderung neu an – praktisch, um nach einem Modul-Update zu prüfen, ob alles angekommen ist."
+                },
+                {
+                    "type": "Label",
                     "caption": "── Weitere Hilfe ──"
                 },
                 {
