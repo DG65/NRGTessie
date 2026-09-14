@@ -74,11 +74,16 @@ class TessieVehicleTile extends IPSModule
 
     private const ATTR_SEEN_NEWS = 'SeenNews';
     private const ATTR_PURPOSE_INTRO_GONE = 'PurposeIntroGone';
+    private const ATTR_FORUM_HINT_GONE = 'ForumHintGone';
+    private const FORUM_THREAD_URL = 'https://community.symcon.de/t/modul-tessie-tesla-fahrzeuge-in-ip-symcon-steuerung-telemetrie-kachel/143995';
+    private const LICENSE_URL = 'https://github.com/DG65/NRGTessie/blob/ems-integration/LICENSE';
+    private const PAYPAL_URL = 'https://paypal.me/DietmarGureth';
 
     // „Was ist neu"-Banner: Versionsnummer, bis zu der die Neuigkeiten hier zusammengefasst sind.
     // Beim nächsten kuratierten Update hochzählen und NEWS_ITEMS ersetzen.
-    private const NEWS_VERSION = '2.32.0';
+    private const NEWS_VERSION = '2.33.0';
     private const NEWS_ITEMS = [
+        'Neu ganz unten im Formular: ein eigenes Feedback-Panel für den Forum-Thread, und "Über dieses Modul" mit Lizenzinfo und Spenden-Link.',
         'Hast du mehrere Fahrzeug-Kacheln: „Wozu dieses Modul?" und „Was ist neu?" musst du nur noch an einer Instanz wegklicken, nicht an jeder einzeln.',
         '👋 Neue Zweck-Einführung ganz oben im Formular: kurz erklärt, was diese Kachel zeigt und wozu sie gut ist.',
         'Wenn→Dann-Regeln der Quelle direkt hier anlegen, bearbeiten und löschen – inklusive mehrerer UND-Bedingungen.',
@@ -108,6 +113,7 @@ class TessieVehicleTile extends IPSModule
         $this->RegisterPropertyBoolean('AdoptVehicleName', true);
         $this->RegisterAttributeString(self::ATTR_SEEN_NEWS, '');
         $this->RegisterAttributeBoolean(self::ATTR_PURPOSE_INTRO_GONE, false);
+        $this->RegisterAttributeBoolean(self::ATTR_FORUM_HINT_GONE, false);
 
         $this->SetVisualizationType(1);
     }
@@ -214,7 +220,62 @@ class TessieVehicleTile extends IPSModule
             array_unshift($form['elements'], $purposeIntro);
         }
 
+        // Symcon-Forum-Hinweis (dismissible) und Lizenz-/Spenden-Hinweis (dauerhaft) ganz unten.
+        $forumHint = $this->forumHint();
+        if ($forumHint !== null) {
+            $form['elements'][] = $forumHint;
+        }
+        $form['elements'][] = $this->licenseHint();
+
         return json_encode($form);
+    }
+
+    /**
+     * Symcon-Forum-Hinweis – einmalig dismissible, kein Versionsbezug (Formular-Konvention
+     * Punkt 4, SUITE.md, Referenz MeterHub).
+     */
+    private function forumHint(): ?array
+    {
+        if ($this->ReadAttributeBoolean(self::ATTR_FORUM_HINT_GONE)) {
+            return null;
+        }
+        return [
+            'type' => 'ExpansionPanel', 'name' => 'ForumHintPanel', 'expanded' => true,
+            'caption' => '💬  Feedback im Symcon-Forum',
+            'items' => [
+                ['type' => 'Label', 'caption' => 'Tessie ist Beta – Rückmeldungen, Ideen und Erfahrungsberichte sind ausdrücklich willkommen im Community-Thread.'],
+                ['type' => 'Button', 'caption' => 'Zum Forums-Thread', 'onClick' => "echo '" . self::FORUM_THREAD_URL . "';", 'link' => true],
+                ['type' => 'Button', 'caption' => 'Verstanden – nicht mehr anzeigen', 'onClick' => 'TESSIETILE_AckForumHint($id);'],
+            ],
+        ];
+    }
+
+    public function AckForumHint(): void
+    {
+        $this->WriteAttributeBoolean(self::ATTR_FORUM_HINT_GONE, true);
+        $this->UpdateFormField('ForumHintPanel', 'visible', false);
+        $this->PropagateDismiss('ForumHint');
+    }
+
+    /**
+     * "Über dieses Modul" – Lizenz-/Spenden-Hinweis, ganz unten NACH dem Forum-Hinweis.
+     * Bewusst NICHT dismissible (Formular-Konvention Punkt 5, SUITE.md). Wortlaut
+     * verbundweit identisch ("Variante A").
+     */
+    private function licenseHint(): array
+    {
+        return [
+            'type' => 'ExpansionPanel', 'expanded' => false,
+            'caption' => '🧡  Über dieses Modul',
+            'items' => [
+                ['type' => 'Label', 'caption' => 'Entstanden aus echter Begeisterung für die eigene Anlage — und ein paar durchgetippten Abenden. Trotzdem: Software-Hobby hin oder her, das hier ist geistiges Eigentum und echte Arbeit steckt drin.'],
+                ['type' => 'Label', 'caption' => 'Lizenz: PolyForm Noncommercial 1.0.0 — privat und nicht-kommerziell frei nutzbar, für den gewerblichen Einsatz braucht es eine gesonderte Lizenz vom Rechteinhaber.'],
+                ['type' => 'Button', 'caption' => 'Lizenztext ansehen', 'onClick' => "echo '" . self::LICENSE_URL . "';", 'link' => true],
+                ['type' => 'Label', 'caption' => 'Gewerbliche Nutzung oder Fragen zur Lizenz? Einfach melden: dietmar@gureth.eu'],
+                ['type' => 'Label', 'caption' => 'Gefällt dir das Modul und du möchtest trotzdem etwas dalassen? Über eine kleine Spende freue ich mich — völlig freiwillig, keine Gegenleistung nötig.'],
+                ['type' => 'Button', 'caption' => '☕  Spenden via PayPal', 'onClick' => "echo '" . self::PAYPAL_URL . "';", 'link' => true],
+            ],
+        ];
     }
 
     /** Modulversion aus library.json (Repo-Wurzel), leer wenn nicht lesbar. */
@@ -312,6 +373,10 @@ class TessieVehicleTile extends IPSModule
                 $this->WriteAttributeString(self::ATTR_SEEN_NEWS, $value);
                 $this->UpdateFormField('NewsPanel', 'visible', false);
                 break;
+            case 'ForumHint':
+                $this->WriteAttributeBoolean(self::ATTR_FORUM_HINT_GONE, true);
+                $this->UpdateFormField('ForumHintPanel', 'visible', false);
+                break;
         }
     }
 
@@ -321,6 +386,7 @@ class TessieVehicleTile extends IPSModule
         return [
             'purposeIntroGone' => $this->ReadAttributeBoolean(self::ATTR_PURPOSE_INTRO_GONE),
             'seenNews'         => $this->ReadAttributeString(self::ATTR_SEEN_NEWS),
+            'forumHintGone'    => $this->ReadAttributeBoolean(self::ATTR_FORUM_HINT_GONE),
         ];
     }
 
@@ -333,7 +399,8 @@ class TessieVehicleTile extends IPSModule
     private function AdoptDismissFromSibling(): void
     {
         if ($this->ReadAttributeBoolean(self::ATTR_PURPOSE_INTRO_GONE)
-            && $this->ReadAttributeString(self::ATTR_SEEN_NEWS) === self::NEWS_VERSION) {
+            && $this->ReadAttributeString(self::ATTR_SEEN_NEWS) === self::NEWS_VERSION
+            && $this->ReadAttributeBoolean(self::ATTR_FORUM_HINT_GONE)) {
             return;
         }
         foreach (IPS_GetInstanceListByModuleID(self::SELF_MODULE_ID) as $sib) {
@@ -353,6 +420,9 @@ class TessieVehicleTile extends IPSModule
             }
             if ($this->ReadAttributeString(self::ATTR_SEEN_NEWS) !== self::NEWS_VERSION && ($state['seenNews'] ?? '') === self::NEWS_VERSION) {
                 $this->WriteAttributeString(self::ATTR_SEEN_NEWS, self::NEWS_VERSION);
+            }
+            if (!$this->ReadAttributeBoolean(self::ATTR_FORUM_HINT_GONE) && !empty($state['forumHintGone'])) {
+                $this->WriteAttributeBoolean(self::ATTR_FORUM_HINT_GONE, true);
             }
             break;
         }

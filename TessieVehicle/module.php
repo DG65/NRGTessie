@@ -82,8 +82,13 @@ class TessieVehicle extends IPSModule
 
     // „Was ist neu"-Banner: Versionsnummer, bis zu der die Neuigkeiten hier zusammengefasst sind.
     // Beim nächsten kuratierten Update hochzählen und NEWS_ITEMS ersetzen.
-    private const NEWS_VERSION = '2.32.0';
+    private const FORUM_THREAD_URL = 'https://community.symcon.de/t/modul-tessie-tesla-fahrzeuge-in-ip-symcon-steuerung-telemetrie-kachel/143995';
+    private const LICENSE_URL = 'https://github.com/DG65/NRGTessie/blob/ems-integration/LICENSE';
+    private const PAYPAL_URL = 'https://paypal.me/DietmarGureth';
+
+    private const NEWS_VERSION = '2.33.0';
     private const NEWS_ITEMS = [
+        'Der Feedback-Hinweis ist jetzt ein eigenes, wegklickbares Panel; neu dazugekommen: "Über dieses Modul" mit Lizenzinfo und Spenden-Link.',
         'Hast du mehrere Fahrzeuge: „Wozu dieses Modul?" und „Was ist neu?" musst du nur noch an einer Instanz wegklicken, nicht an jeder einzeln.',
         '👋 Neue Zweck-Einführung ganz oben im Formular: kurz erklärt, was Tessie tut und wozu es gut ist.',
         'GetVehicleState() liefert jetzt zusätzlich die aktuelle Reichweite (km) direkt aus der Telemetrie.',
@@ -370,30 +375,12 @@ class TessieVehicle extends IPSModule
         };
         $patch($form['elements']);
 
-        // Einmaliger Feedback-Hinweis: erscheint, bis er per Button ausgeblendet wird
-        // (Attribut, keine Eigenschaft – der Nutzer muss nichts übernehmen)
-        if (!$this->ReadAttributeBoolean(self::ATTR_REVIEW_HINT_GONE)) {
-            $form['elements'][] = [
-                'type'  => 'RowLayout',
-                'name'  => 'ReviewHint',
-                'items' => [
-                    [
-                        'type'    => 'Label',
-                        'caption' => '⭐ Gefällt dir dieses Modul? Über eine Bewertung im Module Store oder eine Rückmeldung in der Symcon-Community freue ich mich!'
-                    ],
-                    [
-                        'type'    => 'Label',
-                        'link'    => true,
-                        'caption' => 'https://community.symcon.de/t/modul-tessie-tesla-fahrzeuge-in-ip-symcon-steuerung-telemetrie-kachel/143995'
-                    ],
-                    [
-                        'type'    => 'Button',
-                        'caption' => 'Nicht mehr anzeigen',
-                        'onClick' => 'TESSIE_DismissReviewHint($id);'
-                    ]
-                ]
-            ];
+        // Symcon-Forum-Hinweis (dismissible) und Lizenz-/Spenden-Hinweis (dauerhaft) ganz unten.
+        $forumHint = $this->forumHint();
+        if ($forumHint !== null) {
+            $form['elements'][] = $forumHint;
         }
+        $form['elements'][] = $this->licenseHint();
 
         // Telemetrie-Sammelbutton dynamisch beschriften
         foreach (($form['actions'] ?? []) as &$action) {
@@ -433,13 +420,52 @@ class TessieVehicle extends IPSModule
     }
 
     /**
-     * Blendet den Feedback-Hinweis dauerhaft aus (Attribut, kein Übernehmen nötig).
+     * Symcon-Forum-Hinweis – einmalig dismissible, kein Versionsbezug (Formular-Konvention
+     * Punkt 4, SUITE.md, Referenz MeterHub).
      */
-    public function DismissReviewHint(): void
+    private function forumHint(): ?array
+    {
+        if ($this->ReadAttributeBoolean(self::ATTR_REVIEW_HINT_GONE)) {
+            return null;
+        }
+        return [
+            'type' => 'ExpansionPanel', 'name' => 'ForumHintPanel', 'expanded' => true,
+            'caption' => '💬  Feedback im Symcon-Forum',
+            'items' => [
+                ['type' => 'Label', 'caption' => 'Tessie ist Beta – Rückmeldungen, Ideen und Erfahrungsberichte sind ausdrücklich willkommen im Community-Thread.'],
+                ['type' => 'Button', 'caption' => 'Zum Forums-Thread', 'onClick' => "echo '" . self::FORUM_THREAD_URL . "';", 'link' => true],
+                ['type' => 'Button', 'caption' => 'Verstanden – nicht mehr anzeigen', 'onClick' => 'TESSIE_AckForumHint($id);'],
+            ],
+        ];
+    }
+
+    public function AckForumHint(): void
     {
         $this->WriteAttributeBoolean(self::ATTR_REVIEW_HINT_GONE, true);
-        $this->UpdateFormField('ReviewHint', 'visible', false);
+        $this->UpdateFormField('ForumHintPanel', 'visible', false);
         $this->PropagateDismiss('ForumHint');
+    }
+
+    /**
+     * "Über dieses Modul" – Lizenz-/Spenden-Hinweis, ganz unten NACH dem Forum-Hinweis.
+     * Bewusst NICHT dismissible (Formular-Konvention Punkt 5, SUITE.md) – eine Lizenz ist
+     * kein einmaliger Hinweis, der nach dem ersten Lesen verschwinden sollte. Wortlaut
+     * verbundweit identisch ("Variante A").
+     */
+    private function licenseHint(): array
+    {
+        return [
+            'type' => 'ExpansionPanel', 'expanded' => false,
+            'caption' => '🧡  Über dieses Modul',
+            'items' => [
+                ['type' => 'Label', 'caption' => 'Entstanden aus echter Begeisterung für die eigene Anlage — und ein paar durchgetippten Abenden. Trotzdem: Software-Hobby hin oder her, das hier ist geistiges Eigentum und echte Arbeit steckt drin.'],
+                ['type' => 'Label', 'caption' => 'Lizenz: PolyForm Noncommercial 1.0.0 — privat und nicht-kommerziell frei nutzbar, für den gewerblichen Einsatz braucht es eine gesonderte Lizenz vom Rechteinhaber.'],
+                ['type' => 'Button', 'caption' => 'Lizenztext ansehen', 'onClick' => "echo '" . self::LICENSE_URL . "';", 'link' => true],
+                ['type' => 'Label', 'caption' => 'Gewerbliche Nutzung oder Fragen zur Lizenz? Einfach melden: dietmar@gureth.eu'],
+                ['type' => 'Label', 'caption' => 'Gefällt dir das Modul und du möchtest trotzdem etwas dalassen? Über eine kleine Spende freue ich mich — völlig freiwillig, keine Gegenleistung nötig.'],
+                ['type' => 'Button', 'caption' => '☕  Spenden via PayPal', 'onClick' => "echo '" . self::PAYPAL_URL . "';", 'link' => true],
+            ],
+        ];
     }
 
     /** Modulversion aus library.json (Repo-Wurzel), leer wenn nicht lesbar. */
@@ -535,7 +561,7 @@ class TessieVehicle extends IPSModule
                 break;
             case 'ForumHint':
                 $this->WriteAttributeBoolean(self::ATTR_REVIEW_HINT_GONE, true);
-                $this->UpdateFormField('ReviewHint', 'visible', false);
+                $this->UpdateFormField('ForumHintPanel', 'visible', false);
                 break;
             case 'News':
                 $this->WriteAttributeString(self::ATTR_SEEN_NEWS, $value);

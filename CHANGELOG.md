@@ -2,6 +2,13 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.33.0] - 2026-09-14
+### Hinzugefuegt
+- "🧡 Über dieses Modul"-Panel (Lizenz/Spenden, SUITE.md Formular-Konvention Punkt 5) in allen drei Modulen ergaenzt - bewusst NICHT dismissible, Wortlaut verbundweit identisch ("Variante A"). LICENSE_URL zeigt auf ems-integration (main traegt noch die alte MIT-Lizenz, vor jedem beta->main-Wechsel nachziehen).
+- Symcon-Forum-Hinweis auf das aktuelle Muster umgestellt (eigenes dismissibles ExpansionPanel "💬 Feedback im Symcon-Forum" statt RowLayout mit Store-Bewertungs-Framing) und bei TessieVehicleTile/TessieConfigurator neu ergaenzt (fehlte dort komplett). Bei TessieVehicle in AckForumHint() umbenannt (vorher DismissReviewHint()), bei TessieConfigurator wegen geteiltem Prefix "TESSIE" zu AckConfiguratorForumHint().
+### Geaendert
+- Beide neuen Panel-Typen an die bereits bestehende Geschwister-Instanz-Synchronisierung (PropagateDismiss()) angeschlossen.
+
 ## [2.32.0] - 2026-09-14
 ### Hinzugefuegt
 - "Ausblenden über mehrere Instanzen desselben Moduls teilen" (SUITE.md, 14.09.2026, Referenz MeterHub 0.29.1-beta.1): Wer mehrere Fahrzeuge hat (mehrere TessieVehicle-/TessieVehicleTile-Instanzen), muss "Wozu dieses Modul?"/"Was ist neu?"/den Forum-Hinweis nur noch an einer Instanz bestaetigen - alle Geschwister-Instanzen desselben Modultyps uebernehmen den Stand automatisch (PropagateDismiss()/AdoptDismissState()), auch spaeter neu angelegte (AdoptDismissFromSibling() beim ersten Uebernehmen). Ping-Pong strukturell ausgeschlossen (Uebernahme- und Propagier-Schritt sind getrennte Funktionen, kein Prozessmerker noetig), Cross-Instanz-Aufrufe in try/catch statt @-Unterdrueckung, damit eine defekte Geschwister-Instanz die Bestaetigung der aufrufenden Instanz nicht mitreisst.

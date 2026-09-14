@@ -14,6 +14,10 @@ class TessieConfigurator extends IPSModule
     private const ATTR_TOKEN = 'TokenSecret';
     private const ATTR_LAST_DISCOVERY_TS = 'LastDiscoveryTs';
     private const ATTR_PURPOSE_INTRO_GONE = 'PurposeIntroGone';
+    private const ATTR_FORUM_HINT_GONE = 'ForumHintGone';
+    private const FORUM_THREAD_URL = 'https://community.symcon.de/t/modul-tessie-tesla-fahrzeuge-in-ip-symcon-steuerung-telemetrie-kachel/143995';
+    private const LICENSE_URL = 'https://github.com/DG65/NRGTessie/blob/ems-integration/LICENSE';
+    private const PAYPAL_URL = 'https://paypal.me/DietmarGureth';
 
     public function Create()
     {
@@ -24,6 +28,7 @@ class TessieConfigurator extends IPSModule
         $this->RegisterAttributeString(self::ATTR_TOKEN, '');
         $this->RegisterAttributeInteger(self::ATTR_LAST_DISCOVERY_TS, 0);
         $this->RegisterAttributeBoolean(self::ATTR_PURPOSE_INTRO_GONE, false);
+        $this->RegisterAttributeBoolean(self::ATTR_FORUM_HINT_GONE, false);
     }
 
     /**
@@ -215,16 +220,25 @@ class TessieConfigurator extends IPSModule
      */
     public function AdoptConfiguratorDismissState(string $what, string $value): void
     {
-        if ($what === 'PurposeIntro') {
-            $this->WriteAttributeBoolean(self::ATTR_PURPOSE_INTRO_GONE, true);
-            $this->UpdateFormField('PurposeIntroPanel', 'visible', false);
+        switch ($what) {
+            case 'PurposeIntro':
+                $this->WriteAttributeBoolean(self::ATTR_PURPOSE_INTRO_GONE, true);
+                $this->UpdateFormField('PurposeIntroPanel', 'visible', false);
+                break;
+            case 'ForumHint':
+                $this->WriteAttributeBoolean(self::ATTR_FORUM_HINT_GONE, true);
+                $this->UpdateFormField('ForumHintPanel', 'visible', false);
+                break;
         }
     }
 
     /** Für Geschwister-Instanzen, die beim erstmaligen Kontakt den Ausblenden-Stand übernehmen wollen. */
     public function GetConfiguratorDismissState(): array
     {
-        return ['purposeIntroGone' => $this->ReadAttributeBoolean(self::ATTR_PURPOSE_INTRO_GONE)];
+        return [
+            'purposeIntroGone' => $this->ReadAttributeBoolean(self::ATTR_PURPOSE_INTRO_GONE),
+            'forumHintGone'    => $this->ReadAttributeBoolean(self::ATTR_FORUM_HINT_GONE),
+        ];
     }
 
     /**
@@ -233,7 +247,7 @@ class TessieConfigurator extends IPSModule
      */
     private function AdoptDismissFromSibling(): void
     {
-        if ($this->ReadAttributeBoolean(self::ATTR_PURPOSE_INTRO_GONE)) {
+        if ($this->ReadAttributeBoolean(self::ATTR_PURPOSE_INTRO_GONE) && $this->ReadAttributeBoolean(self::ATTR_FORUM_HINT_GONE)) {
             return;
         }
         foreach (IPS_GetInstanceListByModuleID(self::SELF_MODULE_ID) as $sib) {
@@ -245,11 +259,69 @@ class TessieConfigurator extends IPSModule
             } catch (\Throwable $e) {
                 continue;
             }
-            if (is_array($state) && !empty($state['purposeIntroGone'])) {
+            if (!is_array($state)) {
+                continue;
+            }
+            if (!$this->ReadAttributeBoolean(self::ATTR_PURPOSE_INTRO_GONE) && !empty($state['purposeIntroGone'])) {
                 $this->WriteAttributeBoolean(self::ATTR_PURPOSE_INTRO_GONE, true);
+            }
+            if (!$this->ReadAttributeBoolean(self::ATTR_FORUM_HINT_GONE) && !empty($state['forumHintGone'])) {
+                $this->WriteAttributeBoolean(self::ATTR_FORUM_HINT_GONE, true);
             }
             break;
         }
+    }
+
+    /**
+     * Symcon-Forum-Hinweis – einmalig dismissible, kein Versionsbezug (Formular-Konvention
+     * Punkt 4, SUITE.md, Referenz MeterHub).
+     */
+    private function forumHint(): ?array
+    {
+        if ($this->ReadAttributeBoolean(self::ATTR_FORUM_HINT_GONE)) {
+            return null;
+        }
+        return [
+            'type' => 'ExpansionPanel', 'name' => 'ForumHintPanel', 'expanded' => true,
+            'caption' => '💬  Feedback im Symcon-Forum',
+            'items' => [
+                ['type' => 'Label', 'caption' => 'Tessie ist Beta – Rückmeldungen, Ideen und Erfahrungsberichte sind ausdrücklich willkommen im Community-Thread.'],
+                ['type' => 'Button', 'caption' => 'Zum Forums-Thread', 'onClick' => "echo '" . self::FORUM_THREAD_URL . "';", 'link' => true],
+                ['type' => 'Button', 'caption' => 'Verstanden – nicht mehr anzeigen', 'onClick' => 'TESSIE_AckConfiguratorForumHint($id);'],
+            ],
+        ];
+    }
+
+    /**
+     * Eigener Methodenname statt AckForumHint() - geteilter Prefix "TESSIE" mit TessieVehicle,
+     * siehe AckConfiguratorPurposeIntro().
+     */
+    public function AckConfiguratorForumHint(): void
+    {
+        $this->WriteAttributeBoolean(self::ATTR_FORUM_HINT_GONE, true);
+        $this->UpdateFormField('ForumHintPanel', 'visible', false);
+        $this->PropagateDismiss('ForumHint');
+    }
+
+    /**
+     * "Über dieses Modul" – Lizenz-/Spenden-Hinweis, ganz unten NACH dem Forum-Hinweis.
+     * Bewusst NICHT dismissible (Formular-Konvention Punkt 5, SUITE.md). Wortlaut
+     * verbundweit identisch ("Variante A").
+     */
+    private function licenseHint(): array
+    {
+        return [
+            'type' => 'ExpansionPanel', 'expanded' => false,
+            'caption' => '🧡  Über dieses Modul',
+            'items' => [
+                ['type' => 'Label', 'caption' => 'Entstanden aus echter Begeisterung für die eigene Anlage — und ein paar durchgetippten Abenden. Trotzdem: Software-Hobby hin oder her, das hier ist geistiges Eigentum und echte Arbeit steckt drin.'],
+                ['type' => 'Label', 'caption' => 'Lizenz: PolyForm Noncommercial 1.0.0 — privat und nicht-kommerziell frei nutzbar, für den gewerblichen Einsatz braucht es eine gesonderte Lizenz vom Rechteinhaber.'],
+                ['type' => 'Button', 'caption' => 'Lizenztext ansehen', 'onClick' => "echo '" . self::LICENSE_URL . "';", 'link' => true],
+                ['type' => 'Label', 'caption' => 'Gewerbliche Nutzung oder Fragen zur Lizenz? Einfach melden: dietmar@gureth.eu'],
+                ['type' => 'Label', 'caption' => 'Gefällt dir das Modul und du möchtest trotzdem etwas dalassen? Über eine kleine Spende freue ich mich — völlig freiwillig, keine Gegenleistung nötig.'],
+                ['type' => 'Button', 'caption' => '☕  Spenden via PayPal', 'onClick' => "echo '" . self::PAYPAL_URL . "';", 'link' => true],
+            ],
+        ];
     }
 
     public function GetConfigurationForm()
@@ -289,6 +361,13 @@ class TessieConfigurator extends IPSModule
         if ($purposeIntro !== null) {
             array_unshift($elements, $purposeIntro);
         }
+
+        // Symcon-Forum-Hinweis (dismissible) und Lizenz-/Spenden-Hinweis (dauerhaft) ganz unten.
+        $forumHint = $this->forumHint();
+        if ($forumHint !== null) {
+            $elements[] = $forumHint;
+        }
+        $elements[] = $this->licenseHint();
 
         $form = [
             'elements' => $elements,

@@ -1,8 +1,8 @@
-# [Modul] Tessie – Tesla-Fahrzeuge in IP-Symcon (Steuerung, Telemetrie & Kachel)
+# [Modul] Tessie – Tesla-Fahrzeuge in IP-Symcon (Steuerung, Telemetrie & Kachel) – Beta-Tester gesucht
 
 Hallo zusammen,
 
-ich möchte euch mein Modul **NRG-Stack Tessie** vorstellen, das ab sofort im **Module Store** verfügbar ist (einfach im Store nach *Tessie* suchen).
+ich möchte euch mein Modul **NRG-Stack Tessie** vorstellen und suche Beta-Tester, bevor es in den Module Store geht. Installation aktuell über die GitHub-Beta-URL (siehe „Einrichtung in Kürze" unten).
 
 *Teil des NRG-Stack – meines Energie-Modulverbunds für IP-Symcon. Tessie ist auch eigenständig voll nutzbar, spielt aber z. B. mit einem Energiemanagement-Modul zusammen (Fahrzeug-Ladezustand als Eingangsgröße für die Ladeplanung).*
 
@@ -59,9 +59,10 @@ Mitgeliefert wird ein eigenes Modul **TessieVehicleTile** – eine eigenständig
 
 ## Einrichtung in Kürze
 
-1. Instanz **Tessie Configurator** anlegen, den Tessie-Token eintragen.
-2. Die gefundenen Fahrzeuge anlegen – TessieVehicle und WebSocket-Client werden automatisch erzeugt.
-3. Optional eine Instanz **TessieVehicleTile** für die Kachel-Visualisierung anlegen.
+1. In der Modulverwaltung über das „+" unten rechts die URL `https://github.com/DG65/NRGTessie` eintragen, Branch **beta** wählen.
+2. Instanz **Tessie Configurator** anlegen, den Tessie-Token eintragen.
+3. Die gefundenen Fahrzeuge anlegen – TessieVehicle und WebSocket-Client werden automatisch erzeugt.
+4. Optional eine Instanz **TessieVehicleTile** für die Kachel-Visualisierung anlegen.
 
 ## Open Source, Marken & Haftung
 
