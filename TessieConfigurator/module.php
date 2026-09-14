@@ -10,6 +10,7 @@ class TessieConfigurator extends IPSModule
     // in ApplyChanges sofort ins Attribut übernommen und geleert.
     private const ATTR_TOKEN = 'TokenSecret';
     private const ATTR_LAST_DISCOVERY_TS = 'LastDiscoveryTs';
+    private const ATTR_PURPOSE_INTRO_GONE = 'PurposeIntroGone';
 
     public function Create()
     {
@@ -19,6 +20,7 @@ class TessieConfigurator extends IPSModule
         $this->RegisterPropertyString('TelemetryToken', '');
         $this->RegisterAttributeString(self::ATTR_TOKEN, '');
         $this->RegisterAttributeInteger(self::ATTR_LAST_DISCOVERY_TS, 0);
+        $this->RegisterAttributeBoolean(self::ATTR_PURPOSE_INTRO_GONE, false);
     }
 
     /**
@@ -142,6 +144,41 @@ class TessieConfigurator extends IPSModule
         return is_array($d) ? (string)($d['version'] ?? '') : '';
     }
 
+    /**
+     * "Wozu dieses Modul?" – ganz vorn, noch vor dem Doku-Panel (SUITE.md Formular-Konvention
+     * Punkt 0). Einmalig dismissible (kein Versionsbezug wie beim News-Banner): der Zweck
+     * eines Moduls ändert sich nicht mit jedem Release. Gerade beim Configurator wichtig, da
+     * er für einen neuen Nutzer der allererste Bildschirm überhaupt ist.
+     */
+    private function purposeIntro(): ?array
+    {
+        if ($this->ReadAttributeBoolean(self::ATTR_PURPOSE_INTRO_GONE)) {
+            return null;
+        }
+        return [
+            'type' => 'ExpansionPanel', 'name' => 'PurposeIntroPanel', 'expanded' => true,
+            'caption' => '👋  Wozu dieses Modul?',
+            'items' => [
+                ['type' => 'Label', 'caption' => 'Der Tessie Konfigurator ist der Einstiegspunkt: Zugangsschlüssel eintragen, Fahrzeuge deines Tessie-Kontos finden und per Klick die passende TessieVehicle-Instanz samt Telemetrie-Verbindung anlegen.'],
+                ['type' => 'Label', 'caption' => 'Der Nutzen: du richtest nichts von Hand ein – Instanz, WebSocket-Verbindung und Datenpunkte entstehen automatisch. Nach dem Einrichten brauchst du dieses Modul nur noch, wenn ein weiteres Fahrzeug hinzukommt oder sich der Zugangsschlüssel ändert.'],
+                ['type' => 'Label', 'caption' => 'Für die eigentliche Fahrzeugsteuerung/-anzeige ist TessieVehicle zuständig, für eine Kachel-Ansicht TessieVehicleTile.'],
+                ['type' => 'Button', 'caption' => 'Verstanden – nicht mehr anzeigen', 'onClick' => 'TESSIE_AckConfiguratorPurposeIntro($id);'],
+            ],
+        ];
+    }
+
+    /**
+     * Eigener Methodenname statt AckPurposeIntro() - TessieVehicle nutzt bereits diesen Namen
+     * und teilt sich mit TessieConfigurator den Prefix "TESSIE" (module.json); zwei Methoden
+     * mit identischem Namen unter demselben Prefix würden die globale Funktion
+     * TESSIE_AckPurposeIntro() doppelt deklarieren (Fatal Error beim Kernel-Laden).
+     */
+    public function AckConfiguratorPurposeIntro(): void
+    {
+        $this->WriteAttributeBoolean(self::ATTR_PURPOSE_INTRO_GONE, true);
+        $this->UpdateFormField('PurposeIntroPanel', 'visible', false);
+    }
+
     public function GetConfigurationForm()
     {
         $token = $this->getToken();
@@ -173,6 +210,12 @@ class TessieConfigurator extends IPSModule
             ['type' => 'Button', 'caption' => '🔎 Fahrzeuge jetzt suchen', 'onClick' => 'TESSIE_RefreshVehicles($id);'],
             ['type' => 'Label', 'name' => 'DiscoverySummary', 'caption' => $this->getDiscoverySummaryLine(count($values))]
         ];
+
+        // „Wozu dieses Modul?" ganz vorn.
+        $purposeIntro = $this->purposeIntro();
+        if ($purposeIntro !== null) {
+            array_unshift($elements, $purposeIntro);
+        }
 
         $form = [
             'elements' => $elements,

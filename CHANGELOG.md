@@ -2,6 +2,12 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.31.1] - 2026-09-14
+### Hinzugefuegt
+- "Wozu dieses Modul?"-Panel jetzt auch in TessieConfigurator (auf Rueckfrage bei EMS: Configurator ist fuer neue Nutzer der allererste Bildschirm ueberhaupt, ein bewusster Ausschluss war es nicht).
+### Behoben
+- Eigener Fehler beim Einbau: TessieConfigurator und TessieVehicle teilen sich den Prefix "TESSIE" (module.json), eine zweite Methode AckPurposeIntro() unter demselben Prefix haette beim Kernel-Laden "Cannot redeclare function TESSIE_AckPurposeIntro" verursacht - noch vor dem Push selbst gefunden und auf AckConfiguratorPurposeIntro() umbenannt. Analog zur bereits bekannten ModbusTcpClient-Klassenkollision (ems-integration-Branch-Konvention): globale Namen brauchen bei geteiltem Prefix Eindeutigkeit, nicht nur pro Datei.
+
 ## [2.31.0] - 2026-09-14
 ### Hinzugefuegt
 - "Wozu dieses Modul?"-Panel ganz oben im Formular (TessieVehicle + TessieVehicleTile), noch vor dem "Was ist neu"-Banner - Verbund-Konvention SUITE.md Formular-Punkt 0, Referenzimplementierung MeterHub. Standardmaessig aufgeklappt, einmalig dismissible (bool-Attribut PurposeIntroGone, kein Versionsbezug wie beim News-Banner). Erklaert in 2-3 Saetzen WOFUER/WARUM statt WIE, mit Verweis auf die jeweils anderen Tessie-Instanzen (TessieConfigurator/TessieVehicleTile bzw. TessieVehicle/TessieConfigurator).
