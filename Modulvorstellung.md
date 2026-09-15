@@ -59,7 +59,7 @@ Mitgeliefert wird ein eigenes Modul **TessieVehicleTile** – eine eigenständig
 
 ## Einrichtung in Kürze
 
-1. Im Module Store nach *Tessie* suchen, Kanal **Beta** wählen.
+1. Im Module Store nach *NRG-Stack Tessie* suchen, Kanal **Beta** wählen.
 2. Instanz **Tessie Configurator** anlegen, den Tessie-Token eintragen.
 3. Die gefundenen Fahrzeuge anlegen – TessieVehicle und WebSocket-Client werden automatisch erzeugt.
 4. Optional eine Instanz **TessieVehicleTile** für die Kachel-Visualisierung anlegen.
