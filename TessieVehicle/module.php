@@ -447,6 +447,17 @@ class TessieVehicle extends IPSModule
     }
 
     /**
+     * Abwärtskompatibler Alias - TESSIE_DismissReviewHint() war auf main öffentlich, bevor der
+     * Forum-Hinweis auf das aktuelle Panel-Muster umgestellt wurde (jetzt AckForumHint()).
+     * Öffentliche Funktionen sind der Vertrag (Verbund-Regel) - Migrationsvergleich main→beta
+     * hat das Entfernen als Bruch gemeldet, daher hier als reiner Weiterleiter erhalten.
+     */
+    public function DismissReviewHint(): void
+    {
+        $this->AckForumHint();
+    }
+
+    /**
      * "Über dieses Modul" – Lizenz-/Spenden-Hinweis, ganz unten NACH dem Forum-Hinweis.
      * Bewusst NICHT dismissible (Formular-Konvention Punkt 5, SUITE.md) – eine Lizenz ist
      * kein einmaliger Hinweis, der nach dem ersten Lesen verschwinden sollte. Wortlaut
