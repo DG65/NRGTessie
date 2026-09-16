@@ -83,7 +83,7 @@ class TessieVehicle extends IPSModule
     // „Was ist neu"-Banner: Versionsnummer, bis zu der die Neuigkeiten hier zusammengefasst sind.
     // Beim nächsten kuratierten Update hochzählen und NEWS_ITEMS ersetzen.
     private const FORUM_THREAD_URL = 'https://community.symcon.de/t/modul-tessie-tesla-fahrzeuge-in-ip-symcon-steuerung-telemetrie-kachel/143995';
-    private const LICENSE_URL = 'https://github.com/DG65/NRGTessie/blob/ems-integration/LICENSE';
+    private const LICENSE_URL = 'https://github.com/DG65/NRGTessie/blob/main/LICENSE';
     private const PAYPAL_URL = 'https://paypal.me/DietmarGureth';
 
     private const NEWS_VERSION = '2.33.0';

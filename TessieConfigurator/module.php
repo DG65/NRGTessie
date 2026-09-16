@@ -16,7 +16,7 @@ class TessieConfigurator extends IPSModule
     private const ATTR_PURPOSE_INTRO_GONE = 'PurposeIntroGone';
     private const ATTR_FORUM_HINT_GONE = 'ForumHintGone';
     private const FORUM_THREAD_URL = 'https://community.symcon.de/t/modul-tessie-tesla-fahrzeuge-in-ip-symcon-steuerung-telemetrie-kachel/143995';
-    private const LICENSE_URL = 'https://github.com/DG65/NRGTessie/blob/ems-integration/LICENSE';
+    private const LICENSE_URL = 'https://github.com/DG65/NRGTessie/blob/main/LICENSE';
     private const PAYPAL_URL = 'https://paypal.me/DietmarGureth';
 
     public function Create()
