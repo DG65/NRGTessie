@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.33.1] - 2026-09-16
+### Behoben
+- `presSwitch()` gab die Parameter `CAPTION_ON`/`CAPTION_OFF` an `VARIABLE_PRESENTATION_SWITCH` weiter - diese existieren dort nicht (offizielle SDK-Doku: nur Icon-/Glow-Parameter). IP-Symcon hat das bisher stillschweigend ignoriert; eine von einem Symcon-Entwickler angekündigte, in Kürze aktive strengere Validierung würde das künftig hart abbrechen lassen (derselbe Fund betraf HeishaMon). Eigene Ein-/Aus-Beschriftungen waren mit dieser Presentation ohnehin nie darstellbar - die Parameter entfernt, betroffene Aufrufstellen (Verriegelung, Standort-Erkennung u. a.) angepasst, kein sichtbarer Verhaltensunterschied.
+
 ## [2.33.0] - 2026-09-14
 ### Hinzugefuegt
 - "🧡 Über dieses Modul"-Panel (Lizenz/Spenden, SUITE.md Formular-Konvention Punkt 5) in allen drei Modulen ergaenzt - bewusst NICHT dismissible, Wortlaut verbundweit identisch ("Variante A"). LICENSE_URL zeigt auf ems-integration (main traegt noch die alte MIT-Lizenz, vor jedem beta->main-Wechsel nachziehen).

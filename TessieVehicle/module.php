@@ -1717,9 +1717,18 @@ class TessieVehicle extends IPSModule
     }
 
     // -------- Presentations (IPS 9.0) statt Variablenprofile --------
-    private function presSwitch(string $on, string $off): array
+    /**
+     * CAPTION_ON/CAPTION_OFF sind bei VARIABLE_PRESENTATION_SWITCH keine gültigen Parameter
+     * (offizielle SDK-Doku: nur Icon-/Glow-Parameter, keine Text-Beschriftung für Ein/Aus) -
+     * IP-Symcon hat sie bisher stillschweigend ignoriert, eine angekündigte strengere
+     * Validierung würde künftig hart fehlschlagen (Fund eines Symcon-Entwicklers, 16.09.2026,
+     * derselbe Fehler auch bei HeishaMon). Eigene Ein-/Aus-Beschriftungen ("Verriegelt"/
+     * "Entriegelt" o. ä.) sind mit dieser Presentation demnach gar nicht darstellbar und waren
+     * es nie - die frühere Signatur mit $on/$off-Parametern täuschte das nur vor.
+     */
+    private function presSwitch(): array
     {
-        return ['PRESENTATION' => VARIABLE_PRESENTATION_SWITCH, 'CAPTION_ON' => $on, 'CAPTION_OFF' => $off];
+        return ['PRESENTATION' => VARIABLE_PRESENTATION_SWITCH];
     }
 
     private function presSlider(float $min, float $max, float $step, string $suffix, int $digits): array
@@ -1746,9 +1755,9 @@ class TessieVehicle extends IPSModule
     private function presFor(string $profile, bool $settable): array
     {
         switch ($profile) {
-            case '~Lock':                    return $this->presSwitch('Verriegelt', 'Entriegelt');
-            case '~Switch':                  return $this->presSwitch('An', 'Aus');
-            case 'Tessie.AtHome':            return $this->presSwitch('Zu Hause', 'Unterwegs');
+            case '~Lock':                    return $this->presSwitch();
+            case '~Switch':                  return $this->presSwitch();
+            case 'Tessie.AtHome':            return $this->presSwitch();
             case 'Tessie.PercentInt':        return $settable ? $this->presSlider(0, 100, 1, ' %', 0) : $this->presValue(' %', 0);
             case 'Tessie.Amps':              return $settable ? $this->presSlider(0, 48, 1, ' A', 0) : $this->presValue(' A', 0);
             case 'Tessie.AmpsFloat':         return $this->presValue(' A', 1);
@@ -2319,8 +2328,10 @@ class TessieVehicle extends IPSModule
                     }
                 }
             } elseif ($p === VARIABLE_PRESENTATION_SWITCH) {
-                $out[] = ['v' => 1, 'c' => (string)($pres['CAPTION_ON'] ?? 'Ein')];
-                $out[] = ['v' => 0, 'c' => (string)($pres['CAPTION_OFF'] ?? 'Aus')];
+                // Keine eigene Ein-/Aus-Beschriftung möglich (presSwitch() liefert keine
+                // CAPTION_ON/CAPTION_OFF mehr - siehe dortiger Kommentar), daher feste Texte.
+                $out[] = ['v' => 1, 'c' => 'Ein'];
+                $out[] = ['v' => 0, 'c' => 'Aus'];
             }
         }
 
@@ -2957,7 +2968,7 @@ class TessieVehicle extends IPSModule
                     $pres = $this->presFor('Tessie.AtHome', false);
                 } else {
                     $name = $f['name'];
-                    $pres = $this->presSwitch($f['name'], $this->Translate('Away'));
+                    $pres = $this->presSwitch();
                 }
                 $this->MaintainVariable($f['ident'], $name, VARIABLETYPE_BOOLEAN, $pres, $geoPos, true);
                 $geoActiveIdents[$f['ident']] = true;
