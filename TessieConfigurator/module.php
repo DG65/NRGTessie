@@ -13,11 +13,19 @@ class TessieConfigurator extends IPSModule
     // in ApplyChanges sofort ins Attribut übernommen und geleert.
     private const ATTR_TOKEN = 'TokenSecret';
     private const ATTR_LAST_DISCOVERY_TS = 'LastDiscoveryTs';
+    // Ergebnis der letzten Schlüsselprüfung (Abfrage beim Tessie-Konto): letzter Erfolg und
+    // Grund des letzten Fehlschlags (leer = letzte Prüfung war erfolgreich).
+    private const ATTR_LAST_OK_TS = 'LastOkTs';
+    private const ATTR_LAST_ERROR = 'LastCheckError';
     private const ATTR_PURPOSE_INTRO_GONE = 'PurposeIntroGone';
     private const ATTR_FORUM_HINT_GONE = 'ForumHintGone';
     private const FORUM_THREAD_URL = 'https://community.symcon.de/t/modul-tessie-tesla-fahrzeuge-in-ip-symcon-steuerung-telemetrie-kachel/143995';
     private const LICENSE_URL = 'https://github.com/DG65/NRGTessie/blob/main/LICENSE';
     private const PAYPAL_URL = 'https://paypal.me/DietmarGureth';
+
+    // Ergebnis des letzten apiRequest() (nur innerhalb desselben Aufrufs relevant).
+    private int $lastHttpCode = 0;
+    private string $lastApiError = '';
 
     public function Create()
     {
@@ -27,6 +35,8 @@ class TessieConfigurator extends IPSModule
         $this->RegisterPropertyString('TelemetryToken', '');
         $this->RegisterAttributeString(self::ATTR_TOKEN, '');
         $this->RegisterAttributeInteger(self::ATTR_LAST_DISCOVERY_TS, 0);
+        $this->RegisterAttributeInteger(self::ATTR_LAST_OK_TS, 0);
+        $this->RegisterAttributeString(self::ATTR_LAST_ERROR, '');
         $this->RegisterAttributeBoolean(self::ATTR_PURPOSE_INTRO_GONE, false);
         $this->RegisterAttributeBoolean(self::ATTR_FORUM_HINT_GONE, false);
     }
@@ -42,7 +52,10 @@ class TessieConfigurator extends IPSModule
         if ($token === '') {
             return $values;
         }
+        $this->lastHttpCode = 0;
+        $this->lastApiError = '';
         $vehicles = $this->fetchVehicles($token);
+        $this->recordCheckResult();
         foreach ($vehicles as $v) {
             $vin = (string)($v['vin'] ?? '');
             if ($vin === '') {
@@ -64,6 +77,48 @@ class TessieConfigurator extends IPSModule
         return $values;
     }
 
+    /** Hält das Ergebnis der Kontoabfrage fest: Zeitpunkt des letzten Erfolgs bzw. Grund des Fehlschlags. */
+    private function recordCheckResult(): void
+    {
+        $code = $this->lastHttpCode;
+        if ($this->lastApiError !== '') {
+            $reason = $this->lastApiError;
+        } elseif ($code === 401 || $code === 403) {
+            $reason = 'von Tessie abgelehnt (HTTP ' . $code . ')';
+        } elseif ($code < 200 || $code >= 300) {
+            $reason = 'Tessie antwortete mit HTTP ' . $code;
+        } else {
+            $reason = '';
+        }
+        if ($reason === '') {
+            $this->WriteAttributeInteger(self::ATTR_LAST_OK_TS, time());
+        }
+        $this->WriteAttributeString(self::ATTR_LAST_ERROR, $reason);
+    }
+
+    /**
+     * Statuszeile zum Zugangsschlüssel (Formular-Konvention "Verbund-Verbindungen sichtbar
+     * machen", SUITE.md). Das Feld bleibt nach dem Übernehmen absichtlich leer (Schlüssel liegt
+     * im Attribut) - die Zeile beantwortet, ob es geklappt hat. Der Schlüssel selbst wird nie
+     * angezeigt.
+     */
+    private function tokenStatusLine(string $token, int $vehicleCount): string
+    {
+        if ($token === '') {
+            return 'ℹ️ Kein Zugangsschlüssel gespeichert – oben eintragen und „Änderungen übernehmen“ drücken.';
+        }
+        $error = (string)$this->ReadAttributeString(self::ATTR_LAST_ERROR);
+        $okTs = (int)$this->ReadAttributeInteger(self::ATTR_LAST_OK_TS);
+        $last = $okTs > 0 ? ', zuletzt erfolgreich geprüft: ' . date('d.m.Y H:i:s', $okTs) . ' Uhr' : '';
+        if ($error !== '') {
+            return '⚠️ Zugangsschlüssel gespeichert, aber die Prüfung beim Tessie-Konto ist fehlgeschlagen: ' . $error . $last . '.';
+        }
+        if ($vehicleCount === 0) {
+            return '⚠️ Zugangsschlüssel gespeichert und von Tessie akzeptiert, das Konto liefert aber keine Fahrzeuge' . $last . '.';
+        }
+        return '✅ Zugangsschlüssel gespeichert (wird aus Sicherheitsgründen nicht angezeigt) und von Tessie akzeptiert' . $last . '.';
+    }
+
     /**
      * Sucht erneut und aktualisiert das BEREITS OFFENE Formular explizit per
      * UpdateFormField() - GetConfigurationForm() läuft nach einem Button-Klick NICHT
@@ -73,6 +128,7 @@ class TessieConfigurator extends IPSModule
     {
         $token = $this->getToken();
         $values = $this->discoverVehicles($token);
+        $this->UpdateFormField('TokenStatus', 'caption', $this->tokenStatusLine($token, count($values)));
         $this->UpdateFormField('DiscoverySummary', 'caption', $this->getDiscoverySummaryLine(count($values)));
         $this->UpdateFormField('Vehicles', 'values', $values);
     }
@@ -352,6 +408,7 @@ class TessieConfigurator extends IPSModule
             ['type' => 'Label', 'label' => 'Tessie Konfigurator – Fahrzeuge'],
             // Eigenschaftsname 'Token' bleibt unverändert (Code-Bezeichner), nur die Beschriftung ist deutsch
             ['type' => 'PasswordTextBox', 'name' => 'Token', 'caption' => 'Tessie-Zugangsschlüssel (bei Tessie \'Access Token\'; gilt für Abfragen und Telemetrie) – leer lassen, um den bestehenden Schlüssel zu behalten'],
+            ['type' => 'Label', 'name' => 'TokenStatus', 'caption' => $this->tokenStatusLine($token, count($values))],
             ['type' => 'Button', 'caption' => '🔎 Fahrzeuge jetzt suchen', 'onClick' => 'TESSIE_RefreshVehicles($id);'],
             ['type' => 'Label', 'name' => 'DiscoverySummary', 'caption' => $this->getDiscoverySummaryLine(count($values))]
         ];
@@ -555,14 +612,17 @@ class TessieConfigurator extends IPSModule
         $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
+        $this->lastHttpCode = $code;
         if ($resp === false) {
             $this->SendDebug('API-Anfrage', 'cURL-Fehler: ' . $err, 0);
+            $this->lastApiError = 'keine Verbindung zu Tessie' . ($err !== '' ? ' (' . $err . ')' : '');
             return [];
         }
 
         $json = json_decode($resp, true);
         if (!is_array($json)) {
             $this->SendDebug('API-Anfrage', 'HTTP ' . $code . ' – keine JSON-Antwort: ' . substr($resp, 0, 500), 0);
+            $this->lastApiError = 'keine gültige Antwort von Tessie (HTTP ' . $code . ')';
             return [];
         }
 

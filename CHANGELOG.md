@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.36.0] - 2026-09-21
+### Hinzugefuegt
+- Configurator: Unter dem Zugangsschluessel steht jetzt eine Statuszeile, ob es geklappt hat - das Feld ist nach dem Uebernehmen absichtlich leer (Schluessel liegt aus Sicherheitsgruenden im Attribut), das liess bisher offen, ob der Schluessel ankam und gueltig ist. ✅ gespeichert und von Tessie akzeptiert (mit Zeitpunkt der letzten erfolgreichen Pruefung), ⚠️ gespeichert, aber abgelehnt bzw. keine Verbindung bzw. Konto ohne Fahrzeuge (mit Grund, z. B. "von Tessie abgelehnt (HTTP 401)"), ℹ️ kein Schluessel gespeichert. Der Schluessel selbst wird nie angezeigt. Die Zeile aktualisiert sich auch beim Klick auf "Fahrzeuge jetzt suchen". Verbundkonvention "Verbund-Verbindungen im Formular sichtbar machen" (SUITE.md, 21.09.2026). Pruefstand um 7 Configurator-Faelle erweitert.
+
 ## [2.35.0] - 2026-09-21
 ### Geaendert
 - Kommt ein Wert automatisch, steht im Formular kein leeres Eingabefeld mehr daneben: Kachel ("Datenquelle", wenn genau eine TessieVehicle-Instanz automatisch erkannt wurde) und TessieVehicle ("Standort Zuhause", wenn der Systemstandort gilt) zeigen stattdessen eine Zeile "🔗 ... (automatisch ...)" mit Wert und Quelle; das Feld liegt eingeklappt im Panel "✏️ ... stattdessen verwenden" (eigene Angabe bleibt moeglich und hat Vorrang, dann zeigt die Zeile "✏️ ... (eigene Angabe)"). Bei nichts gefunden bzw. mehrdeutig bleibt das Feld sichtbar (ℹ️/⚠️). Es wird nie ein automatischer Wert in das Feld geschrieben. Verbundkonvention "Wert kommt automatisch: Eingabefeld ersetzen" (SUITE.md, 21.09.2026).

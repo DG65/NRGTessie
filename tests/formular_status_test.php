@@ -17,6 +17,9 @@ class IPSModule
     public function ReadAttributeString($n) { return $this->attrs[$n] ?? ''; }
     public function ReadAttributeBoolean($n) { return $this->attrs[$n] ?? false; }
     public function ReadAttributeInteger($n) { return $this->attrs[$n] ?? 0; }
+    public function WriteAttributeString($n, $v) { $this->attrs[$n] = $v; }
+    public function WriteAttributeInteger($n, $v) { $this->attrs[$n] = $v; }
+    public function WriteAttributeBoolean($n, $v) { $this->attrs[$n] = $v; }
     public function __call($n, $a) { return null; }
 }
 
@@ -46,6 +49,7 @@ function GetValue($id) { return null; }
 $root = dirname(__DIR__);
 require $root . '/TessieVehicleTile/module.php';
 require $root . '/TessieVehicle/module.php';
+require $root . '/TessieConfigurator/module.php';
 
 $fails = 0;
 $checks = 0;
@@ -182,6 +186,39 @@ $e = vehicleForm($loc(49.1, 8.4), $loc(48.7, 9.1));
 check('Fahrzeug (echtes Formular): eigene Angabe -> ✏️-Zeile, Feld sichtbar', $e !== null && strpos(caption($e, 'HomeSourceStatus'), '✏️') === 0 && !isFolded($e, 'HomeLocation'), $e === null ? 'Formular nicht erzeugbar' : caption($e, 'HomeSourceStatus'));
 $e = vehicleForm('', null);
 check('Fahrzeug (echtes Formular): nichts -> ℹ️-Zeile, Feld sichtbar', $e !== null && strpos(caption($e, 'HomeSourceStatus'), 'ℹ️') === 0 && !isFolded($e, 'HomeLocation'), $e === null ? 'Formular nicht erzeugbar' : caption($e, 'HomeSourceStatus'));
+
+
+// ---------------- Configurator: Zugangsschlüssel ----------------
+echo "== Configurator ==\n";
+const GEHEIMNIS = 'sk-test-geheimer-schluessel-123';
+function tokenLine(string $token, int $http, string $curlError, int $vehicles): string
+{
+    $m = new TessieConfigurator(3);
+    $m->attrs['TokenSecret'] = $token;
+    foreach (['lastHttpCode' => $http, 'lastApiError' => $curlError] as $prop => $val) {
+        $rp = new ReflectionProperty($m, $prop);
+        $rp->setValue($m, $val);
+    }
+    $rc = new ReflectionMethod($m, 'recordCheckResult');
+    $rc->invoke($m);
+    $rl = new ReflectionMethod($m, 'tokenStatusLine');
+    return $rl->invoke($m, $token, $vehicles);
+}
+$l = tokenLine('', 0, '', 0);
+check('Configurator: kein Schlüssel -> ℹ️', strpos($l, 'ℹ️') === 0, $l);
+$l = tokenLine(GEHEIMNIS, 200, '', 2);
+check('Configurator: akzeptiert -> ✅ mit Zeitpunkt, Schlüssel nicht angezeigt', strpos($l, '✅') === 0 && strpos($l, 'zuletzt erfolgreich geprüft') !== false && strpos($l, GEHEIMNIS) === false, $l);
+$l = tokenLine(GEHEIMNIS, 401, '', 0);
+check('Configurator: HTTP 401 -> ⚠️ abgelehnt mit Grund', strpos($l, '⚠️') === 0 && strpos($l, 'abgelehnt (HTTP 401)') !== false && strpos($l, GEHEIMNIS) === false, $l);
+$l = tokenLine(GEHEIMNIS, 0, 'keine Verbindung zu Tessie (Could not resolve host)', 0);
+check('Configurator: keine Verbindung -> ⚠️ mit Grund', strpos($l, '⚠️') === 0 && strpos($l, 'keine Verbindung') !== false, $l);
+$l = tokenLine(GEHEIMNIS, 200, '', 0);
+check('Configurator: akzeptiert, aber keine Fahrzeuge -> ⚠️', strpos($l, '⚠️') === 0 && strpos($l, 'keine Fahrzeuge') !== false, $l);
+$l = tokenLine(GEHEIMNIS, 500, '', 0);
+check('Configurator: HTTP 500 -> ⚠️ mit Code', strpos($l, '⚠️') === 0 && strpos($l, 'HTTP 500') !== false, $l);
+$m = new TessieConfigurator(3);
+$f = json_decode($m->GetConfigurationForm(), true);
+check('Configurator (echtes Formular, ohne Schlüssel): TokenStatus-Zeile vorhanden, ℹ️', $f !== null && strpos(caption($f['elements'], 'TokenStatus'), 'ℹ️') === 0, $f === null ? 'Formular nicht erzeugbar' : caption($f['elements'], 'TokenStatus'));
 
 echo "\n$checks Prüfungen, $fails Fehler\n";
 exit($fails > 0 ? 1 : 0);
