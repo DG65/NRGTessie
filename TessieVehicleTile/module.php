@@ -208,6 +208,9 @@ class TessieVehicleTile extends IPSModule
         }
         unset($element);
 
+        // Live berechnete Statuszeile zur (automatischen) Datenquelle statt statischem Satz.
+        $this->setLabelCaption($form['elements'], 'SourceStatus', $this->sourceStatusLine());
+
         // „Was ist neu"-Banner nach einem Update ganz oben.
         $banner = $this->newsBanner();
         if ($banner !== null) {
@@ -228,6 +231,80 @@ class TessieVehicleTile extends IPSModule
         $form['elements'][] = $this->licenseHint();
 
         return json_encode($form);
+    }
+
+    /** Setzt die Beschriftung des Elements mit dem Namen $name, rekursiv über alle `items`. */
+    private function setLabelCaption(array &$items, string $name, string $caption): bool
+    {
+        foreach ($items as &$item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            if (($item['name'] ?? '') === $name) {
+                $item['caption'] = $caption;
+                return true;
+            }
+            if (isset($item['items']) && is_array($item['items']) && $this->setLabelCaption($item['items'], $name, $caption)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Statuszeile zur Datenquelle (Formular-Konvention "Verbund-Verbindungen sichtbar machen",
+     * SUITE.md): ✅ verbunden mit übernommenen Werten, ⚠️ verbunden ohne brauchbare Werte bzw.
+     * mehrdeutig, ℹ️ nicht gefunden. Spiegelt exakt die Logik von ResolveSource() wider.
+     */
+    private function sourceStatusLine(): string
+    {
+        $configured = (int)$this->ReadPropertyInteger('SourceInstance');
+        $list = IPS_GetInstanceListByModuleID(self::SOURCE_MODULE);
+        $stale = ($configured > 0 && !IPS_InstanceExists($configured))
+            ? 'Die gewählte Datenquelle #' . $configured . ' existiert nicht mehr. ' : '';
+
+        $src = $this->ResolveSource();
+        if ($src <= 0) {
+            if (count($list) === 0) {
+                return 'ℹ️ ' . $stale . 'Keine TessieVehicle-Instanz gefunden – die Kachel zeigt so lange keine Werte. Fahrzeug zuerst über den Tessie Configurator anlegen.';
+            }
+            $names = [];
+            foreach ($list as $iid) {
+                $names[] = '#' . $iid . ' „' . IPS_GetName($iid) . '“';
+            }
+            return '⚠️ ' . $stale . count($list) . ' TessieVehicle-Instanzen gefunden (' . implode(', ', $names) . ') – bitte unten die Datenquelle auswählen. Solange keine gewählt ist, zeigt die Kachel keine Werte.';
+        }
+
+        $how = ($configured > 0 && $configured === $src)
+            ? 'manuell gewählt'
+            : 'automatisch erkannt, einzige TessieVehicle-Instanz';
+        $head = '#' . $src . ' „' . IPS_GetName($src) . '“';
+
+        $json = @TESSIE_GetVehicleState($src);
+        $state = is_string($json) ? json_decode($json, true) : null;
+        if (!is_array($state)) {
+            return '⚠️ ' . $stale . 'Datenquelle ' . $head . ' (' . $how . ') gefunden, liefert aber keinen Fahrzeugzustand.';
+        }
+
+        $details = [];
+        $vin = trim((string)($state['vin'] ?? ''));
+        if ($vin !== '') {
+            $details[] = 'VIN ' . $vin;
+        }
+        $details[] = 'Vertragsversion ' . (string)($state['contractVersion'] ?? '?');
+        $details[] = $how;
+
+        $soc = $state['soc'] ?? null;
+        $socID = (int)($state['socID'] ?? 0);
+        if (!is_numeric($soc) || $socID <= 0) {
+            return '⚠️ ' . $stale . 'Datenquelle ' . $head . ' (' . implode(', ', $details) . ') verbunden, aber es liegt noch kein Ladestand vor – Telemetrie bzw. Datenpunkt „Ladestand“ fehlt oder wurde noch nicht empfangen.';
+        }
+
+        $taken = 'Ladestand ' . number_format((float)$soc, 0, ',', '.') . ' % (Quelle: Variable #' . $socID . ')';
+        if (array_key_exists('connected', $state)) {
+            $taken .= ', Ladekabel ' . ($state['connected'] ? 'angesteckt' : 'nicht angesteckt');
+        }
+        return ($stale !== '' ? '⚠️ ' : '✅ ') . $stale . 'Datenquelle ' . $head . ' (' . implode(', ', $details) . '). Übernommen: ' . $taken . '.';
     }
 
     /**

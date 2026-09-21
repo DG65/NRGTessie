@@ -53,7 +53,12 @@
     },
     {
       "type": "Label",
-      "caption": "Eigenständige Kachel für ein Tessie-Fahrzeug. Die Datenquelle wird automatisch erkannt, wenn es genau eine TessieVehicle-Instanz gibt – nur bei mehreren musst du unten manuell wählen. Die Kachel füllt die Tile randlos und ist von der Datenverbindung getrennt."
+      "caption": "Eigenständige Kachel für ein Tessie-Fahrzeug. Die Kachel füllt die Tile randlos und ist von der Datenverbindung getrennt."
+    },
+    {
+      "type": "Label",
+      "name": "SourceStatus",
+      "caption": "Datenquelle wird ermittelt …"
     },
     {
       "type": "SelectInstance",

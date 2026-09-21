@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.34.0] - 2026-09-21
+### Hinzugefuegt
+- Kachel (TessieVehicleTile): Das Formular zeigt jetzt live, welche Datenquelle tatsaechlich verwendet wird, statt nur zu behaupten, sie werde "automatisch erkannt". Statuszeile mit vier Zustaenden: ✅ verbunden (Instanz, Fahrzeugname, VIN, Vertragsversion, ob manuell gewaehlt oder automatisch erkannt, uebernommene Werte mit Quelle), ⚠️ verbunden aber noch kein Ladestand bzw. mehrere Fahrzeuge ohne Auswahl bzw. gewaehlte Instanz existiert nicht mehr, ℹ️ keine TessieVehicle-Instanz gefunden. Umsetzung der verbundweiten Formular-Konvention "Verbund-Verbindungen im Formular sichtbar machen" (SUITE.md, 21.09.2026).
+
 ## [2.33.2] - 2026-09-16
 ### Geaendert
 - "Lizenztext ansehen"-Schaltflaeche verlinkt jetzt auf die LICENSE-Datei im `main`-Branch statt im internen `ems-integration`-Branch. Seit der main-Promotion vom heutigen Tag steht dort ohnehin dieselbe, aktuelle PolyForm-Lizenz - der Link zeigt jetzt konsequent auf den fuer Nutzer relevanten Stable-Branch statt auf einen Entwicklungs-Branch.
