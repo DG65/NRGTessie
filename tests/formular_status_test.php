@@ -89,6 +89,11 @@ function caption(array $elements, string $name): string
     $f = findEl($elements, $name);
     return $f === null ? '<<fehlt>>' : (string)$f['el']['caption'];
 }
+function colorOf(array $elements, string $name): ?int
+{
+    $f = findEl($elements, $name);
+    return $f === null ? null : ($f['el']['color'] ?? null);
+}
 $vehicleState = fn(?float $soc) => json_encode(['vin' => '5YJ3E1EA7KF000001', 'contractVersion' => '1.5', 'soc' => $soc, 'socID' => $soc === null ? 0 : 12345, 'connected' => true]);
 
 // ---------------- Kachel: Datenquelle ----------------
@@ -109,11 +114,13 @@ $e = tileForm(0);
 $c = caption($e, 'SourceStatus');
 check('Kachel: eine Instanz automatisch -> 🔗 mit Wert und Quelle', strpos($c, '🔗') === 0 && strpos($c, '82 %') !== false && strpos($c, '#12345') !== false, $c);
 check('Kachel: automatisch -> Auswahlfeld eingeklappt', isFolded($e, 'SourceInstance'));
+check('Kachel: 🔗-Zeile grün (0x2E8B3D)', colorOf($e, 'SourceStatus') === 0x2E8B3D, var_export(colorOf($e, 'SourceStatus'), true));
 check('Kachel: statischer Erkennungssatz entfernt', strpos(json_encode($e, JSON_UNESCAPED_UNICODE), 'wird automatisch erkannt, wenn es genau eine') === false);
 
 $e = tileForm(111);
 $c = caption($e, 'SourceStatus');
 check('Kachel: eigene Auswahl -> ✏️, Feld sichtbar', strpos($c, '✏️') === 0 && !isFolded($e, 'SourceInstance'), $c);
+check('Kachel: ✏️-Zeile Standardfarbe (-1)', colorOf($e, 'SourceStatus') === -1, var_export(colorOf($e, 'SourceStatus'), true));
 
 $GLOBALS['STATE'][111] = $vehicleState(null);
 $e = tileForm(0);
@@ -181,10 +188,13 @@ function vehicleForm(string $own, ?string $sys): ?array
     }
 }
 $e = vehicleForm('', $loc(48.7, 9.1));
+$lastColor = $e === null ? null : colorOf($e, 'HomeSourceStatus');
 check('Fahrzeug (echtes Formular): Systemstandort -> 🔗-Zeile im Formular, Feld eingeklappt', $e !== null && strpos(caption($e, 'HomeSourceStatus'), '🔗') === 0 && isFolded($e, 'HomeLocation'), $e === null ? 'Formular nicht erzeugbar' : caption($e, 'HomeSourceStatus'));
 $e = vehicleForm($loc(49.1, 8.4), $loc(48.7, 9.1));
+check('Fahrzeug (echtes Formular): 🔗-Zeile grün (vorheriger Fall)', $lastColor === 0x2E8B3D, var_export($lastColor, true));
 check('Fahrzeug (echtes Formular): eigene Angabe -> ✏️-Zeile, Feld sichtbar', $e !== null && strpos(caption($e, 'HomeSourceStatus'), '✏️') === 0 && !isFolded($e, 'HomeLocation'), $e === null ? 'Formular nicht erzeugbar' : caption($e, 'HomeSourceStatus'));
 $e = vehicleForm('', null);
+check('Fahrzeug (echtes Formular): ✏️/ℹ️-Zeilen Standardfarbe (-1)', $e !== null && colorOf($e, 'HomeSourceStatus') === -1, var_export($e === null ? null : colorOf($e, 'HomeSourceStatus'), true));
 check('Fahrzeug (echtes Formular): nichts -> ℹ️-Zeile, Feld sichtbar', $e !== null && strpos(caption($e, 'HomeSourceStatus'), 'ℹ️') === 0 && !isFolded($e, 'HomeLocation'), $e === null ? 'Formular nicht erzeugbar' : caption($e, 'HomeSourceStatus'));
 
 

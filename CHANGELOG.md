@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.36.1] - 2026-09-21
+### Geaendert
+- Automatisch uebernommene Werte (🔗-Statuszeilen der Kachel-Datenquelle und von "Standort Zuhause") werden gruen dargestellt (0x2E8B3D), alle anderen Zeilen (✏️/ℹ️/⚠️) in Standardfarbe. Verbundkonvention "Wert kommt automatisch" (SUITE.md). Pruefstand um vier Farbfaelle erweitert.
+
 ## [2.36.0] - 2026-09-21
 ### Hinzugefuegt
 - Configurator: Unter dem Zugangsschluessel steht jetzt eine Statuszeile, ob es geklappt hat - das Feld ist nach dem Uebernehmen absichtlich leer (Schluessel liegt aus Sicherheitsgruenden im Attribut), das liess bisher offen, ob der Schluessel ankam und gueltig ist. ✅ gespeichert und von Tessie akzeptiert (mit Zeitpunkt der letzten erfolgreichen Pruefung), ⚠️ gespeichert, aber abgelehnt bzw. keine Verbindung bzw. Konto ohne Fahrzeuge (mit Grund, z. B. "von Tessie abgelehnt (HTTP 401)"), ℹ️ kein Schluessel gespeichert. Der Schluessel selbst wird nie angezeigt. Die Zeile aktualisiert sich auch beim Klick auf "Fahrzeuge jetzt suchen". Verbundkonvention "Verbund-Verbindungen im Formular sichtbar machen" (SUITE.md, 21.09.2026). Pruefstand um 7 Configurator-Faelle erweitert.

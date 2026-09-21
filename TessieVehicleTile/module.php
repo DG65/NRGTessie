@@ -16,6 +16,8 @@ class TessieVehicleTile extends IPSModule
 {
     // GUID des Datenmoduls TessieVehicle (für die Quellen-Auswahl)
     private const SOURCE_MODULE = '{3F1F7E31-8BA0-4B8F-9B62-47DAD7A0B6C9}';
+    // Grün für automatisch übernommene Werte (🔗-Statuszeilen, SUITE.md "Wert kommt automatisch"); -1 = Standardfarbe.
+    private const AUTO_COLOR = 0x2E8B3D;
     // Eigene GUID (module.json "id") - für die Geschwister-Instanz-Synchronisierung des
     // Ausblenden-Zustands (siehe PropagateDismiss()).
     private const SELF_MODULE_ID = '{ACAFF26A-C6AB-4D45-B51B-3832BE5C2CFA}';
@@ -212,7 +214,7 @@ class TessieVehicleTile extends IPSModule
         // Kommt die Quelle automatisch, verschwindet das Auswahlfeld in einem eingeklappten
         // Überschreiben-Panel (SUITE.md "Wert kommt automatisch"), statt leer daneben zu stehen.
         $source = $this->sourceStatus();
-        $this->setLabelCaption($form['elements'], 'SourceStatus', $source['line']);
+        $this->setLabelCaption($form['elements'], 'SourceStatus', $source['line'], strpos($source['line'], '🔗') === 0 ? self::AUTO_COLOR : -1);
         if ($source['auto']) {
             $this->foldFieldIntoOverridePanel($form['elements'], 'SourceInstance', '✏️ Eigene Datenquelle stattdessen verwenden');
         }
@@ -239,8 +241,8 @@ class TessieVehicleTile extends IPSModule
         return json_encode($form);
     }
 
-    /** Setzt die Beschriftung des Elements mit dem Namen $name, rekursiv über alle `items`. */
-    private function setLabelCaption(array &$items, string $name, string $caption): bool
+    /** Setzt Beschriftung (und ggf. Farbe) des Elements mit dem Namen $name, rekursiv über alle `items`. */
+    private function setLabelCaption(array &$items, string $name, string $caption, ?int $color = null): bool
     {
         foreach ($items as &$item) {
             if (!is_array($item)) {
@@ -248,9 +250,12 @@ class TessieVehicleTile extends IPSModule
             }
             if (($item['name'] ?? '') === $name) {
                 $item['caption'] = $caption;
+                if ($color !== null) {
+                    $item['color'] = $color;
+                }
                 return true;
             }
-            if (isset($item['items']) && is_array($item['items']) && $this->setLabelCaption($item['items'], $name, $caption)) {
+            if (isset($item['items']) && is_array($item['items']) && $this->setLabelCaption($item['items'], $name, $caption, $color)) {
                 return true;
             }
         }

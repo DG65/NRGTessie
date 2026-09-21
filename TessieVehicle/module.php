@@ -6,6 +6,8 @@ class TessieVehicle extends IPSModule
     // Eigene GUID (module.json "id") - für IPS_GetInstanceListByModuleID() bei der
     // Geschwister-Instanz-Synchronisierung des Ausblenden-Zustands (siehe PropagateDismiss()).
     private const SELF_MODULE_ID = '{3F1F7E31-8BA0-4B8F-9B62-47DAD7A0B6C9}';
+    // Grün für automatisch übernommene Werte (🔗-Statuszeilen, SUITE.md "Wert kommt automatisch"); -1 = Standardfarbe.
+    private const AUTO_COLOR = 0x2E8B3D;
 
     // -------------------- Variable Idents (Aktionen) --------------------
     private const ACT_LOCKED                = 'act_locked';
@@ -357,6 +359,7 @@ class TessieVehicle extends IPSModule
                     }
                 } elseif ($elName === 'HomeSourceStatus') {
                     $element['caption'] = $homeStatus['line'];
+                    $element['color'] = strpos($homeStatus['line'], '🔗') === 0 ? self::AUTO_COLOR : -1;
                 } elseif ($elName === 'InstanceLocation') {
                     // Aktuellen Parent anzeigen; verschoben wird nur per onChange (siehe SetInstanceLocation)
                     $element['value'] = IPS_GetParent($this->InstanceID);
