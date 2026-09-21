@@ -354,6 +354,8 @@ class TessieVehicle extends IPSModule
                     if ($v !== '') {
                         $element['caption'] = '📖 Dokumentation & Hilfe (Modulversion ' . $v . ')';
                     }
+                } elseif ($elName === 'HomeSourceStatus') {
+                    $element['caption'] = $this->homeSourceStatusLine();
                 } elseif ($elName === 'InstanceLocation') {
                     // Aktuellen Parent anzeigen; verschoben wird nur per onChange (siehe SetInstanceLocation)
                     $element['value'] = IPS_GetParent($this->InstanceID);
@@ -1839,18 +1841,7 @@ class TessieVehicle extends IPSModule
     {
         $fences = [];
 
-        $parse = function ($locJson) {
-            $loc = is_array($locJson) ? $locJson : json_decode((string)$locJson, true);
-            if (!is_array($loc) || !isset($loc['latitude'], $loc['longitude'])) {
-                return null;
-            }
-            $lat = (float)$loc['latitude'];
-            $lon = (float)$loc['longitude'];
-            if (($lat == 0.0 && $lon == 0.0) || !is_finite($lat) || !is_finite($lon)) {
-                return null; // kein Standort gewählt
-            }
-            return [$lat, $lon];
-        };
+        $parse = fn($locJson) => $this->parseLatLon($locJson);
 
         // Zuhause (fester erster Eintrag, kompatibel zu 2.4.0).
         // Ohne eigene Angabe wird der Systemstandort aus der Kern-Instanz
@@ -1894,6 +1885,42 @@ class TessieVehicle extends IPSModule
      * Systemstandort aus der Kern-Instanz "Location Control" (JSON {latitude, longitude}).
      * Leerer String, wenn keine Instanz vorhanden oder kein Standort gepflegt ist.
      */
+    /** Liest [lat, lon] aus einer SelectLocation-Angabe; null bei leerer/ungültiger Auswahl. */
+    private function parseLatLon($locJson): ?array
+    {
+        $loc = is_array($locJson) ? $locJson : json_decode((string)$locJson, true);
+        if (!is_array($loc) || !isset($loc['latitude'], $loc['longitude'])) {
+            return null;
+        }
+        $lat = (float)$loc['latitude'];
+        $lon = (float)$loc['longitude'];
+        if (($lat == 0.0 && $lon == 0.0) || !is_finite($lat) || !is_finite($lon)) {
+            return null; // kein Standort gewählt
+        }
+        return [$lat, $lon];
+    }
+
+    /**
+     * Statuszeile zu "Standort Zuhause" (Formular-Konvention "Verbund-Verbindungen sichtbar
+     * machen", SUITE.md): zeigt, welche Koordinaten tatsächlich gelten und woher sie stammen.
+     * Spiegelt die Reihenfolge aus getGeofences() wider: eigene Angabe vor Systemstandort.
+     */
+    private function homeSourceStatusLine(): string
+    {
+        $radius = max(1, (int)$this->ReadPropertyInteger('HomeRadius'));
+        $fmt = fn(array $c) => number_format($c[0], 5, ',', '.') . ' / ' . number_format($c[1], 5, ',', '.');
+
+        $own = $this->parseLatLon($this->ReadPropertyString('HomeLocation'));
+        if ($own !== null) {
+            return '✅ Zuhause: eigene Angabe (' . $fmt($own) . '), Radius ' . $radius . ' m.';
+        }
+        $system = $this->parseLatLon($this->getSystemLocation());
+        if ($system !== null) {
+            return '✅ Zuhause: Systemstandort aus der Kern-Instanz „Location“ übernommen (' . $fmt($system) . '), Radius ' . $radius . ' m. Eine eigene Angabe würde Vorrang haben.';
+        }
+        return 'ℹ️ Kein Standort Zuhause ermittelbar: weder eine eigene Angabe noch ein Systemstandort in der Kern-Instanz „Location“ ist gepflegt. Die Standort-Erkennung „Zuhause“ und die Heimfahrt-/Entfernungswerte bleiben leer, bis einer von beiden eingetragen ist.';
+    }
+
     private function getSystemLocation(): string
     {
         $ids = @IPS_GetInstanceListByModuleID('{45E97A63-F870-408A-B259-2933F7EABF74}');

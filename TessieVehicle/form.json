@@ -360,6 +360,11 @@
                     "caption": "Standort Zuhause (leer = Systemstandort aus Kern-Instanz 'Location')"
                 },
                 {
+                    "type": "Label",
+                    "name": "HomeSourceStatus",
+                    "caption": "Standort Zuhause wird ermittelt …"
+                },
+                {
                     "type": "NumberSpinner",
                     "name": "HomeRadius",
                     "caption": "Radius Zuhause",

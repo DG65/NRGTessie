@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.34.1] - 2026-09-21
+### Hinzugefuegt
+- Instanzformular (TessieVehicle): Unter "Standort Zuhause" steht jetzt live, welche Koordinaten tatsaechlich gelten und woher sie stammen - ✅ eigene Angabe bzw. Systemstandort aus der Kern-Instanz "Location" (mit Koordinaten und Radius), ℹ️ nichts ermittelbar (mit Folge: Standort-Erkennung "Zuhause" und Heimfahrt-/Entfernungswerte bleiben leer). Bisher wurde der stille Fallback auf den Systemstandort nur im Hilfetext erklaert. Weiterer Baustein der Formular-Konvention "Verbund-Verbindungen sichtbar machen". Intern: Koordinaten-Auswertung in eine gemeinsame Hilfsfunktion ausgelagert, Verhalten unveraendert.
+
 ## [2.34.0] - 2026-09-21
 ### Hinzugefuegt
 - Kachel (TessieVehicleTile): Das Formular zeigt jetzt live, welche Datenquelle tatsaechlich verwendet wird, statt nur zu behaupten, sie werde "automatisch erkannt". Statuszeile mit vier Zustaenden: ✅ verbunden (Instanz, Fahrzeugname, VIN, Vertragsversion, ob manuell gewaehlt oder automatisch erkannt, uebernommene Werte mit Quelle), ⚠️ verbunden aber noch kein Ladestand bzw. mehrere Fahrzeuge ohne Auswahl bzw. gewaehlte Instanz existiert nicht mehr, ℹ️ keine TessieVehicle-Instanz gefunden. Umsetzung der verbundweiten Formular-Konvention "Verbund-Verbindungen im Formular sichtbar machen" (SUITE.md, 21.09.2026).
