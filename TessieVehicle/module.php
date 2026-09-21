@@ -341,7 +341,8 @@ class TessieVehicle extends IPSModule
 
         // form.json-Elemente befüllen (rekursiv, Listen liegen z. T. in ExpansionPanels):
         // Datenpunkt-Liste, aktueller Ablageort, Datenpunkt-Optionen der Automationsliste
-        $patch = function (array &$elements) use (&$patch, $fullList, $sourceOptions) {
+        $homeStatus = $this->homeSourceStatus();
+        $patch = function (array &$elements) use (&$patch, $fullList, $sourceOptions, $homeStatus) {
             foreach ($elements as &$element) {
                 if (!is_array($element)) continue;
                 $elName = $element['name'] ?? '';
@@ -355,7 +356,7 @@ class TessieVehicle extends IPSModule
                         $element['caption'] = '📖 Dokumentation & Hilfe (Modulversion ' . $v . ')';
                     }
                 } elseif ($elName === 'HomeSourceStatus') {
-                    $element['caption'] = $this->homeSourceStatusLine();
+                    $element['caption'] = $homeStatus['line'];
                 } elseif ($elName === 'InstanceLocation') {
                     // Aktuellen Parent anzeigen; verschoben wird nur per onChange (siehe SetInstanceLocation)
                     $element['value'] = IPS_GetParent($this->InstanceID);
@@ -376,6 +377,12 @@ class TessieVehicle extends IPSModule
             unset($element);
         };
         $patch($form['elements']);
+
+        // Kommt der Standort automatisch (Systemstandort), verschwindet das leere Auswahlfeld in
+        // einem eingeklappten Überschreiben-Panel (SUITE.md "Wert kommt automatisch").
+        if ($homeStatus['auto']) {
+            $this->foldFieldIntoOverridePanel($form['elements'], 'HomeLocation', '✏️ Eigenen Standort stattdessen verwenden');
+        }
 
         // Symcon-Forum-Hinweis (dismissible) und Lizenz-/Spenden-Hinweis (dauerhaft) ganz unten.
         $forumHint = $this->forumHint();
@@ -1905,20 +1912,41 @@ class TessieVehicle extends IPSModule
      * machen", SUITE.md): zeigt, welche Koordinaten tatsächlich gelten und woher sie stammen.
      * Spiegelt die Reihenfolge aus getGeofences() wider: eigene Angabe vor Systemstandort.
      */
-    private function homeSourceStatusLine(): string
+    private function homeSourceStatus(): array
     {
         $radius = max(1, (int)$this->ReadPropertyInteger('HomeRadius'));
         $fmt = fn(array $c) => number_format($c[0], 5, ',', '.') . ' / ' . number_format($c[1], 5, ',', '.');
 
         $own = $this->parseLatLon($this->ReadPropertyString('HomeLocation'));
         if ($own !== null) {
-            return '✅ Zuhause: eigene Angabe (' . $fmt($own) . '), Radius ' . $radius . ' m.';
+            return ['auto' => false, 'line' => '✏️ Standort Zuhause: ' . $fmt($own) . ' (eigene Angabe), Radius ' . $radius . ' m.'];
         }
         $system = $this->parseLatLon($this->getSystemLocation());
         if ($system !== null) {
-            return '✅ Zuhause: Systemstandort aus der Kern-Instanz „Location“ übernommen (' . $fmt($system) . '), Radius ' . $radius . ' m. Eine eigene Angabe würde Vorrang haben.';
+            return ['auto' => true, 'line' => '🔗 Standort Zuhause: ' . $fmt($system) . ' (automatisch vom Systemstandort der Kern-Instanz „Location“), Radius ' . $radius . ' m.'];
         }
-        return 'ℹ️ Kein Standort Zuhause ermittelbar: weder eine eigene Angabe noch ein Systemstandort in der Kern-Instanz „Location“ ist gepflegt. Die Standort-Erkennung „Zuhause“ und die Heimfahrt-/Entfernungswerte bleiben leer, bis einer von beiden eingetragen ist.';
+        return ['auto' => false, 'line' => 'ℹ️ Kein Standort Zuhause ermittelbar: weder eine eigene Angabe noch ein Systemstandort in der Kern-Instanz „Location“ ist gepflegt. Die Standort-Erkennung „Zuhause“ und die Heimfahrt-/Entfernungswerte bleiben leer, bis einer von beiden eingetragen ist.'];
+    }
+
+    /**
+     * Packt das Feld $name in ein eingeklapptes Panel (Überschreiben bleibt möglich, das Feld
+     * steht aber nicht mehr leer neben dem automatisch ermittelten Wert). Rekursiv über `items`.
+     */
+    private function foldFieldIntoOverridePanel(array &$items, string $name, string $panelCaption): bool
+    {
+        foreach ($items as &$item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            if (($item['name'] ?? '') === $name) {
+                $item = ['type' => 'ExpansionPanel', 'caption' => $panelCaption, 'expanded' => false, 'items' => [$item]];
+                return true;
+            }
+            if (isset($item['items']) && is_array($item['items']) && $this->foldFieldIntoOverridePanel($item['items'], $name, $panelCaption)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private function getSystemLocation(): string

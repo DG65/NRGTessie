@@ -2,6 +2,12 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.35.0] - 2026-09-21
+### Geaendert
+- Kommt ein Wert automatisch, steht im Formular kein leeres Eingabefeld mehr daneben: Kachel ("Datenquelle", wenn genau eine TessieVehicle-Instanz automatisch erkannt wurde) und TessieVehicle ("Standort Zuhause", wenn der Systemstandort gilt) zeigen stattdessen eine Zeile "🔗 ... (automatisch ...)" mit Wert und Quelle; das Feld liegt eingeklappt im Panel "✏️ ... stattdessen verwenden" (eigene Angabe bleibt moeglich und hat Vorrang, dann zeigt die Zeile "✏️ ... (eigene Angabe)"). Bei nichts gefunden bzw. mehrdeutig bleibt das Feld sichtbar (ℹ️/⚠️). Es wird nie ein automatischer Wert in das Feld geschrieben. Verbundkonvention "Wert kommt automatisch: Eingabefeld ersetzen" (SUITE.md, 21.09.2026).
+### Hinzugefuegt
+- Pruefstand `tests/formular_status_test.php` (php tests/formular_status_test.php): prueft an den ausgelieferten Formular-JSONs von Kachel und Fahrzeug jeden Zustand (🔗, ✏️, ⚠️, ℹ️), dass das Feld nur bei Automatik eingeklappt ist und der statische Erkennungssatz fehlt.
+
 ## [2.34.1] - 2026-09-21
 ### Hinzugefuegt
 - Instanzformular (TessieVehicle): Unter "Standort Zuhause" steht jetzt live, welche Koordinaten tatsaechlich gelten und woher sie stammen - ✅ eigene Angabe bzw. Systemstandort aus der Kern-Instanz "Location" (mit Koordinaten und Radius), ℹ️ nichts ermittelbar (mit Folge: Standort-Erkennung "Zuhause" und Heimfahrt-/Entfernungswerte bleiben leer). Bisher wurde der stille Fallback auf den Systemstandort nur im Hilfetext erklaert. Weiterer Baustein der Formular-Konvention "Verbund-Verbindungen sichtbar machen". Intern: Koordinaten-Auswertung in eine gemeinsame Hilfsfunktion ausgelagert, Verhalten unveraendert.

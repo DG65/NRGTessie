@@ -209,7 +209,13 @@ class TessieVehicleTile extends IPSModule
         unset($element);
 
         // Live berechnete Statuszeile zur (automatischen) Datenquelle statt statischem Satz.
-        $this->setLabelCaption($form['elements'], 'SourceStatus', $this->sourceStatusLine());
+        // Kommt die Quelle automatisch, verschwindet das Auswahlfeld in einem eingeklappten
+        // Überschreiben-Panel (SUITE.md "Wert kommt automatisch"), statt leer daneben zu stehen.
+        $source = $this->sourceStatus();
+        $this->setLabelCaption($form['elements'], 'SourceStatus', $source['line']);
+        if ($source['auto']) {
+            $this->foldFieldIntoOverridePanel($form['elements'], 'SourceInstance', '✏️ Eigene Datenquelle stattdessen verwenden');
+        }
 
         // „Was ist neu"-Banner nach einem Update ganz oben.
         $banner = $this->newsBanner();
@@ -252,11 +258,36 @@ class TessieVehicleTile extends IPSModule
     }
 
     /**
-     * Statuszeile zur Datenquelle (Formular-Konvention "Verbund-Verbindungen sichtbar machen",
-     * SUITE.md): ✅ verbunden mit übernommenen Werten, ⚠️ verbunden ohne brauchbare Werte bzw.
-     * mehrdeutig, ℹ️ nicht gefunden. Spiegelt exakt die Logik von ResolveSource() wider.
+     * Packt das Feld $name in ein eingeklapptes Panel (Überschreiben bleibt möglich, das Feld
+     * steht aber nicht mehr leer neben dem automatisch ermittelten Wert). Rekursiv über `items`.
      */
-    private function sourceStatusLine(): string
+    private function foldFieldIntoOverridePanel(array &$items, string $name, string $panelCaption): bool
+    {
+        foreach ($items as &$item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            if (($item['name'] ?? '') === $name) {
+                $item = ['type' => 'ExpansionPanel', 'caption' => $panelCaption, 'expanded' => false, 'items' => [$item]];
+                return true;
+            }
+            if (isset($item['items']) && is_array($item['items']) && $this->foldFieldIntoOverridePanel($item['items'], $name, $panelCaption)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Statuszeile zur Datenquelle (Formular-Konvention "Verbund-Verbindungen sichtbar machen",
+     * SUITE.md): 🔗 automatisch übernommen bzw. ✏️ eigene Auswahl mit übernommenen Werten,
+     * ⚠️ verbunden ohne brauchbare Werte bzw. mehrdeutig, ℹ️ nicht gefunden. Spiegelt die Logik
+     * von ResolveSource() wider. 'auto' = die Quelle kommt automatisch (Feld leer), das
+     * Auswahlfeld wird dann eingeklappt.
+     *
+     * @return array{line: string, auto: bool}
+     */
+    private function sourceStatus(): array
     {
         $configured = (int)$this->ReadPropertyInteger('SourceInstance');
         $list = IPS_GetInstanceListByModuleID(self::SOURCE_MODULE);
@@ -266,24 +297,25 @@ class TessieVehicleTile extends IPSModule
         $src = $this->ResolveSource();
         if ($src <= 0) {
             if (count($list) === 0) {
-                return 'ℹ️ ' . $stale . 'Keine TessieVehicle-Instanz gefunden – die Kachel zeigt so lange keine Werte. Fahrzeug zuerst über den Tessie Configurator anlegen.';
+                return ['auto' => false, 'line' => 'ℹ️ ' . $stale . 'Keine TessieVehicle-Instanz gefunden – die Kachel zeigt so lange keine Werte. Fahrzeug zuerst über den Tessie Configurator anlegen.'];
             }
             $names = [];
             foreach ($list as $iid) {
                 $names[] = '#' . $iid . ' „' . IPS_GetName($iid) . '“';
             }
-            return '⚠️ ' . $stale . count($list) . ' TessieVehicle-Instanzen gefunden (' . implode(', ', $names) . ') – bitte unten die Datenquelle auswählen. Solange keine gewählt ist, zeigt die Kachel keine Werte.';
+            return ['auto' => false, 'line' => '⚠️ ' . $stale . count($list) . ' TessieVehicle-Instanzen gefunden (' . implode(', ', $names) . ') – bitte unten die Datenquelle auswählen. Solange keine gewählt ist, zeigt die Kachel keine Werte.'];
         }
 
-        $how = ($configured > 0 && $configured === $src)
-            ? 'manuell gewählt'
-            : 'automatisch erkannt, einzige TessieVehicle-Instanz';
-        $head = '#' . $src . ' „' . IPS_GetName($src) . '“';
+        $manual = ($configured > 0 && $configured === $src);
+        $auto = ($configured <= 0);
+        $how = $manual ? 'eigene Auswahl' : 'automatisch erkannt, einzige TessieVehicle-Instanz';
+        $mark = $stale !== '' ? '⚠️ ' : ($manual ? '✏️ ' : '🔗 ');
+        $head = 'Datenquelle: #' . $src . ' „' . IPS_GetName($src) . '“';
 
         $json = @TESSIE_GetVehicleState($src);
         $state = is_string($json) ? json_decode($json, true) : null;
         if (!is_array($state)) {
-            return '⚠️ ' . $stale . 'Datenquelle ' . $head . ' (' . $how . ') gefunden, liefert aber keinen Fahrzeugzustand.';
+            return ['auto' => $auto, 'line' => '⚠️ ' . $stale . $head . ' (' . $how . ') gefunden, liefert aber keinen Fahrzeugzustand.'];
         }
 
         $details = [];
@@ -297,14 +329,14 @@ class TessieVehicleTile extends IPSModule
         $soc = $state['soc'] ?? null;
         $socID = (int)($state['socID'] ?? 0);
         if (!is_numeric($soc) || $socID <= 0) {
-            return '⚠️ ' . $stale . 'Datenquelle ' . $head . ' (' . implode(', ', $details) . ') verbunden, aber es liegt noch kein Ladestand vor – Telemetrie bzw. Datenpunkt „Ladestand“ fehlt oder wurde noch nicht empfangen.';
+            return ['auto' => $auto, 'line' => '⚠️ ' . $stale . $head . ' (' . implode(', ', $details) . ') verbunden, aber es liegt noch kein Ladestand vor – Telemetrie bzw. Datenpunkt „Ladestand“ fehlt oder wurde noch nicht empfangen.'];
         }
 
         $taken = 'Ladestand ' . number_format((float)$soc, 0, ',', '.') . ' % (Quelle: Variable #' . $socID . ')';
         if (array_key_exists('connected', $state)) {
             $taken .= ', Ladekabel ' . ($state['connected'] ? 'angesteckt' : 'nicht angesteckt');
         }
-        return ($stale !== '' ? '⚠️ ' : '✅ ') . $stale . 'Datenquelle ' . $head . ' (' . implode(', ', $details) . '). Übernommen: ' . $taken . '.';
+        return ['auto' => $auto, 'line' => $mark . $stale . $head . ' (' . implode(', ', $details) . '). Übernommen: ' . $taken . '.'];
     }
 
     /**
