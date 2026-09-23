@@ -8,6 +8,8 @@ class TessieVehicle extends IPSModule
     private const SELF_MODULE_ID = '{3F1F7E31-8BA0-4B8F-9B62-47DAD7A0B6C9}';
     // Grün für automatisch übernommene Werte (🔗-Statuszeilen, SUITE.md "Wert kommt automatisch"); -1 = Standardfarbe.
     private const AUTO_COLOR = 0x2E8B3D;
+    // library.json "id" - für IPS_GetLibrary() in AckNews() (tatsächlich installierte Version).
+    private const LIBRARY_GUID = '{A9E66B36-2E8F-4F52-9E4D-1A1D2F0E6F40}';
 
     // -------------------- Variable Idents (Aktionen) --------------------
     private const ACT_LOCKED                = 'act_locked';
@@ -82,21 +84,36 @@ class TessieVehicle extends IPSModule
     // Schwelle orientiert an der bekannten ~15-Minuten-Sendehäufigkeit seltener Telemetriewerte.
     private const TELEMETRY_STALE_AFTER  = 900;
 
-    // „Was ist neu"-Banner: Versionsnummer, bis zu der die Neuigkeiten hier zusammengefasst sind.
-    // Beim nächsten kuratierten Update hochzählen und NEWS_ITEMS ersetzen.
     private const FORUM_THREAD_URL = 'https://community.symcon.de/t/modul-tessie-tesla-fahrzeuge-in-ip-symcon-steuerung-telemetrie-kachel/143995';
     private const LICENSE_URL = 'https://github.com/DG65/NRGTessie/blob/main/LICENSE';
     private const PAYPAL_URL = 'https://paypal.me/DietmarGureth';
 
-    private const NEWS_VERSION = '2.33.0';
-    private const NEWS_ITEMS = [
-        'Der Feedback-Hinweis ist jetzt ein eigenes, wegklickbares Panel; neu dazugekommen: "Über dieses Modul" mit Lizenzinfo und Spenden-Link.',
-        'Hast du mehrere Fahrzeuge: „Wozu dieses Modul?" und „Was ist neu?" musst du nur noch an einer Instanz wegklicken, nicht an jeder einzeln.',
-        '👋 Neue Zweck-Einführung ganz oben im Formular: kurz erklärt, was Tessie tut und wozu es gut ist.',
-        'GetVehicleState() liefert jetzt zusätzlich die aktuelle Reichweite (km) direkt aus der Telemetrie.',
-        'Neuer Button "Fahrzeug jetzt aufwecken" – weckt das Fahrzeug gezielt auf, z. B. wenn die Telemetrie länger eingeschlafen war und aktuelle Daten gebraucht werden.',
-        'GetVehicleState() liefert jetzt Entfernung zum Zuhause, ob das aktuelle Navigationsziel tatsächlich Zuhause ist, und (nur dann) Teslas eigene Ankunfts-SoC-Prognose – Grundlage für eine EMS-Preis-Reserve bei erwarteter Heimkehr.',
-        'Neuer Button "Übernehmen erzwingen" – wendet die Instanz auch ohne Formularänderung neu an, praktisch zum Prüfen nach einem Modul-Update.'
+    // NEWS_VERSIONS statt einzelnem NEWS_VERSION/NEWS_ITEMS (Verbund-Konvention, Dashboard/
+    // Dietmar 23.09.2026, SUITE.md "Einheitliche Formular-Optik"): Schlüssel = Versionsnummer
+    // ohne Beta-/Build-Suffix, Wert = Zeilen wie bisher NEWS_ITEMS. newsBanner() zeigt alle
+    // Einträge, die neuer sind als das gespeicherte SeenNews - die Lücke seit dem letzten
+    // Bestätigen, nie mehr und nie weniger, auch wenn eine Version dazwischen keinen Eintrag
+    // hatte. Der alte, gewachsene Block bleibt unter seiner letzten bisherigen NEWS_VERSION-
+    // Nummer (2.33.0) erhalten; neue Einträge ab hier bekommen ihre eigene, korrekte Version.
+    private const NEWS_VERSIONS = [
+        '2.33.0' => [
+            'Der Feedback-Hinweis ist jetzt ein eigenes, wegklickbares Panel; neu dazugekommen: "Über dieses Modul" mit Lizenzinfo und Spenden-Link.',
+            'Hast du mehrere Fahrzeuge: „Wozu dieses Modul?" und „Was ist neu?" musst du nur noch an einer Instanz wegklicken, nicht an jeder einzeln.',
+            '👋 Neue Zweck-Einführung ganz oben im Formular: kurz erklärt, was Tessie tut und wozu es gut ist.',
+            'GetVehicleState() liefert jetzt zusätzlich die aktuelle Reichweite (km) direkt aus der Telemetrie.',
+            'Neuer Button "Fahrzeug jetzt aufwecken" – weckt das Fahrzeug gezielt auf, z. B. wenn die Telemetrie länger eingeschlafen war und aktuelle Daten gebraucht werden.',
+            'GetVehicleState() liefert jetzt Entfernung zum Zuhause, ob das aktuelle Navigationsziel tatsächlich Zuhause ist, und (nur dann) Teslas eigene Ankunfts-SoC-Prognose – Grundlage für eine EMS-Preis-Reserve bei erwarteter Heimkehr.',
+            'Neuer Button "Übernehmen erzwingen" – wendet die Instanz auch ohne Formularänderung neu an, praktisch zum Prüfen nach einem Modul-Update.'
+        ],
+        '2.34.0' => [
+            'Formular zeigt jetzt an mehreren Stellen live, ob eine automatische Verbindung wirklich geklappt hat, statt es nur zu behaupten – z. B. bei "Standort Zuhause", ob die eigene Angabe oder der Systemstandort gilt.'
+        ],
+        '2.35.0' => [
+            'Kommt ein Wert automatisch (z. B. Standort Zuhause vom Systemstandort), verschwindet das leere Eingabefeld dahinter – bei Bedarf lässt es sich weiterhin über ein eingeklapptes "…stattdessen verwenden"-Panel einblenden.'
+        ],
+        '2.36.0' => [
+            'Tessie Configurator: neue Statuszeile unter dem Zugangsschlüssel zeigt, ob er gespeichert und von Tessie akzeptiert wurde.'
+        ]
     ];
     // Zugangsschlüssel: liegt in einem Attribut (Modul-Hoheit), nicht als Property (Nutzer-
     // Hoheit/Formular). Die Property 'ApiToken' bleibt nur als Schreib-Kanal des Konfigurators
@@ -528,28 +545,57 @@ class TessieVehicle extends IPSModule
         $this->PropagateDismiss('PurposeIntro');
     }
 
+    /** Reine Versionszahl ohne Beta-/Build-Zusatz ("2.36.0-beta.1" -> "2.36.0") - Vergleichsbasis
+     * für NEWS_VERSIONS, damit Schlüssel und tatsächlich installierte Bibliotheksversion als
+     * gleich gelten. */
+    private function BaseVersion(string $v): string
+    {
+        return preg_replace('/-.*$/', '', $v) ?? $v;
+    }
+
     /**
-     * „Was ist neu"-Banner: erscheint nach einem Update (Attribut startet leer),
-     * bis der Nutzer „Verstanden" klickt. Eine Neuinstallation sieht es einmalig.
+     * „Was ist neu"-Banner: erscheint nach einem Update (Attribut startet leer), bis der Nutzer
+     * „Verstanden" klickt - zeigt nur die Versionen, die neuer sind als die zuletzt bestätigte,
+     * gruppiert nach Version (SUITE.md "NEWS_VERSIONS-Array", Dashboard/Dietmar 23.09.2026).
      */
     private function newsBanner(): ?array
     {
-        if ($this->ReadAttributeString(self::ATTR_SEEN_NEWS) === self::NEWS_VERSION) {
+        $seen = $this->ReadAttributeString(self::ATTR_SEEN_NEWS);
+        $pending = [];
+        foreach (self::NEWS_VERSIONS as $ver => $lines) {
+            if ($seen === '' || version_compare($ver, $seen, '>')) {
+                $pending[$ver] = $lines;
+            }
+        }
+        if (count($pending) === 0) {
             return null;
         }
+        uksort($pending, 'version_compare');
         $items = [['type' => 'Label', 'caption' => 'Neu seit dem letzten Store-Stand – bitte kurz ansehen und ggf. die Einstellungen prüfen:']];
-        foreach (self::NEWS_ITEMS as $line) {
-            $items[] = ['type' => 'Label', 'caption' => '• ' . $line];
+        $multi = count($pending) > 1;
+        foreach ($pending as $ver => $lines) {
+            if ($multi) {
+                $items[] = ['type' => 'Label', 'caption' => 'Version ' . $ver . ':'];
+            }
+            foreach ($lines as $line) {
+                $items[] = ['type' => 'Label', 'caption' => '• ' . $line];
+            }
         }
         $items[] = ['type' => 'Button', 'caption' => 'Verstanden – nicht mehr anzeigen', 'onClick' => 'TESSIE_AckNews($id);'];
-        return ['type' => 'ExpansionPanel', 'name' => 'NewsPanel', 'caption' => '🆕 Neu in Version ' . self::NEWS_VERSION, 'expanded' => true, 'items' => $items];
+        $latest = array_key_last($pending);
+        return ['type' => 'ExpansionPanel', 'name' => 'NewsPanel', 'caption' => '🆕 Neu bis Version ' . $latest, 'expanded' => true, 'items' => $items];
     }
 
     public function AckNews(): void
     {
-        $this->WriteAttributeString(self::ATTR_SEEN_NEWS, self::NEWS_VERSION);
+        $lib = @IPS_GetLibrary(self::LIBRARY_GUID);
+        $ver = is_array($lib) ? $this->BaseVersion((string)($lib['Version'] ?? '')) : '';
+        if ($ver === '') {
+            $ver = (string) array_key_last(self::NEWS_VERSIONS);
+        }
+        $this->WriteAttributeString(self::ATTR_SEEN_NEWS, $ver);
         $this->UpdateFormField('NewsPanel', 'visible', false);
-        $this->PropagateDismiss('News', self::NEWS_VERSION);
+        $this->PropagateDismiss('News', $ver);
     }
 
     /**
@@ -612,8 +658,10 @@ class TessieVehicle extends IPSModule
      */
     private function AdoptDismissFromSibling(): void
     {
+        $latestNews = (string) array_key_last(self::NEWS_VERSIONS);
+        $mySeen = $this->ReadAttributeString(self::ATTR_SEEN_NEWS);
         if ($this->ReadAttributeBoolean(self::ATTR_PURPOSE_INTRO_GONE) && $this->ReadAttributeBoolean(self::ATTR_REVIEW_HINT_GONE)
-            && $this->ReadAttributeString(self::ATTR_SEEN_NEWS) === self::NEWS_VERSION) {
+            && $mySeen !== '' && version_compare($mySeen, $latestNews, '>=')) {
             return;
         }
         foreach (IPS_GetInstanceListByModuleID(self::SELF_MODULE_ID) as $sib) {
@@ -634,8 +682,12 @@ class TessieVehicle extends IPSModule
             if (!$this->ReadAttributeBoolean(self::ATTR_REVIEW_HINT_GONE) && !empty($state['forumHintGone'])) {
                 $this->WriteAttributeBoolean(self::ATTR_REVIEW_HINT_GONE, true);
             }
-            if ($this->ReadAttributeString(self::ATTR_SEEN_NEWS) !== self::NEWS_VERSION && ($state['seenNews'] ?? '') === self::NEWS_VERSION) {
-                $this->WriteAttributeString(self::ATTR_SEEN_NEWS, self::NEWS_VERSION);
+            // Nur vorziehen (ältere -> neuere News-Version), nie einen schon weiter
+            // fortgeschrittenen eigenen Stand überschreiben.
+            $sibSeen = (string)($state['seenNews'] ?? '');
+            if ($sibSeen !== '' && ($mySeen === '' || version_compare($sibSeen, $mySeen, '>'))) {
+                $this->WriteAttributeString(self::ATTR_SEEN_NEWS, $sibSeen);
+                $mySeen = $sibSeen;
             }
             break;
         }

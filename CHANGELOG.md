@@ -2,6 +2,12 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.37.0] - 2026-09-23
+### Geaendert
+- "Was ist neu"-Banner (TessieVehicle, TessieVehicleTile) auf ein `NEWS_VERSIONS`-Array umgestellt statt einem einzelnen `NEWS_VERSION`/`NEWS_ITEMS`: der Banner zeigt jetzt IMMER genau die Neuerungen zwischen der zuletzt bestaetigten und der aktuell installierten Version (gruppiert nach Version, Caption "🆕 Neu bis Version X"), nie mehr und nie weniger - unabhaengig davon, wie oft `NEWS_VERSION` frueher hochgezaehlt wurde. `AckNews()` merkt sich dazu die tatsaechlich installierte Bibliotheksversion (`IPS_GetLibrary()`, Beta-/Build-Suffix entfernt) statt eines Versions-Strings. Verbundkonvention (SUITE.md, Dashboard/Dietmar 23.09.2026). Dabei nachgeholt: mehrere seit 2.33.0 tatsaechlich banner-wuerdige Aenderungen (Kachel-/Standort-Statuszeilen, automatisches Einklappen, Configurator-Statuszeile), die beim jeweiligen Release nicht ins Banner aufgenommen wurden.
+### Hinzugefuegt
+- Pruefstand um 6 Faelle fuer das Was-ist-Neu-Banner erweitert (Gruppierung, "kein Banner mehr" bei aktuellem Stand, Version aus IPS_GetLibrary vs. Fallback).
+
 ## [2.36.1] - 2026-09-21
 ### Geaendert
 - Automatisch uebernommene Werte (🔗-Statuszeilen der Kachel-Datenquelle und von "Standort Zuhause") werden gruen dargestellt (0x2E8B3D), alle anderen Zeilen (✏️/ℹ️/⚠️) in Standardfarbe. Verbundkonvention "Wert kommt automatisch" (SUITE.md). Pruefstand um vier Farbfaelle erweitert.

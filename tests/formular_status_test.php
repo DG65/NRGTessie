@@ -39,6 +39,8 @@ function IPS_GetName($id) { return $GLOBALS['INST'][$id] ?? ''; }
 function IPS_GetParent($id) { return 0; }
 function TESSIE_GetVehicleState($id) { return $GLOBALS['STATE'][$id] ?? false; }
 function IPS_GetObjectIDByIdent($ident, $parent) { return false; }
+$GLOBALS['LIBVER'] = null; // simulierte installierte Bibliotheksversion oder null (IPS_GetLibrary schlägt fehl)
+function IPS_GetLibrary($guid) { return $GLOBALS['LIBVER'] === null ? false : ['Version' => $GLOBALS['LIBVER']]; }
 function IPS_ObjectExists($id) { return false; }
 function IPS_VariableExists($id) { return false; }
 function IPS_GetChildrenIDs($id) { return []; }
@@ -229,6 +231,35 @@ check('Configurator: HTTP 500 -> ⚠️ mit Code', strpos($l, '⚠️') === 0 &&
 $m = new TessieConfigurator(3);
 $f = json_decode($m->GetConfigurationForm(), true);
 check('Configurator (echtes Formular, ohne Schlüssel): TokenStatus-Zeile vorhanden, ℹ️', $f !== null && strpos(caption($f['elements'], 'TokenStatus'), 'ℹ️') === 0, $f === null ? 'Formular nicht erzeugbar' : caption($f['elements'], 'TokenStatus'));
+
+// ---------------- NEWS_VERSIONS-Banner ----------------
+echo "== Was-ist-Neu-Banner ==\n";
+function newsBanner(string $seen): ?array
+{
+    $m = new TessieVehicle(5);
+    $m->attrs['SeenNews'] = $seen;
+    $r = new ReflectionMethod($m, 'newsBanner');
+    return $r->invoke($m);
+}
+$b = newsBanner('');
+check('Banner: nie bestätigt -> alle Versionen, Caption bis zur höchsten', $b !== null && strpos($b['caption'], '🆕 Neu bis Version 2.36.0') === 0, $b['caption'] ?? '<<null>>');
+$b = newsBanner('2.34.0');
+check('Banner: 2.34.0 gesehen -> nur 2.35.0/2.36.0, gruppiert', $b !== null && strpos(json_encode($b, JSON_UNESCAPED_UNICODE), 'Version 2.35.0:') !== false && strpos(json_encode($b, JSON_UNESCAPED_UNICODE), '2.33.0:') === false, $b === null ? 'null' : json_encode($b, JSON_UNESCAPED_UNICODE));
+$b = newsBanner('2.36.0');
+check('Banner: höchste Version gesehen -> kein Banner', $b === null, $b === null ? 'null' : $b['caption']);
+$b = newsBanner('2.99.0-beta.3');
+check('Banner: Beta-Suffix einer künftigen Version -> trotzdem kein Banner (version_compare ignoriert Suffix nicht, aber 2.99 > alles)', $b === null, $b === null ? 'null' : $b['caption']);
+
+function ackNewsSets(?string $libVer): string
+{
+    $m = new TessieVehicle(5);
+    $GLOBALS['LIBVER'] = $libVer;
+    $m->AckNews();
+    return $m->attrs['SeenNews'] ?? '<<fehlt>>';
+}
+check('AckNews: installierte Version (mit Beta-Suffix) -> SeenNews ohne Suffix', ackNewsSets('2.36.0-beta.2') === '2.36.0', ackNewsSets('2.36.0-beta.2'));
+check('AckNews: IPS_GetLibrary liefert nichts -> Fallback auf höchsten NEWS_VERSIONS-Schlüssel', ackNewsSets(null) === '2.36.0', ackNewsSets(null));
+$GLOBALS['LIBVER'] = null;
 
 echo "\n$checks Prüfungen, $fails Fehler\n";
 exit($fails > 0 ? 1 : 0);

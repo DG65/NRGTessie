@@ -18,6 +18,8 @@ class TessieVehicleTile extends IPSModule
     private const SOURCE_MODULE = '{3F1F7E31-8BA0-4B8F-9B62-47DAD7A0B6C9}';
     // Grün für automatisch übernommene Werte (🔗-Statuszeilen, SUITE.md "Wert kommt automatisch"); -1 = Standardfarbe.
     private const AUTO_COLOR = 0x2E8B3D;
+    // library.json "id" - für IPS_GetLibrary() in AckNews() (tatsächlich installierte Version).
+    private const LIBRARY_GUID = '{A9E66B36-2E8F-4F52-9E4D-1A1D2F0E6F40}';
     // Eigene GUID (module.json "id") - für die Geschwister-Instanz-Synchronisierung des
     // Ausblenden-Zustands (siehe PropagateDismiss()).
     private const SELF_MODULE_ID = '{ACAFF26A-C6AB-4D45-B51B-3832BE5C2CFA}';
@@ -81,17 +83,22 @@ class TessieVehicleTile extends IPSModule
     private const LICENSE_URL = 'https://github.com/DG65/NRGTessie/blob/main/LICENSE';
     private const PAYPAL_URL = 'https://paypal.me/DietmarGureth';
 
-    // „Was ist neu"-Banner: Versionsnummer, bis zu der die Neuigkeiten hier zusammengefasst sind.
-    // Beim nächsten kuratierten Update hochzählen und NEWS_ITEMS ersetzen.
-    private const NEWS_VERSION = '2.33.0';
-    private const NEWS_ITEMS = [
-        'Neu ganz unten im Formular: ein eigenes Feedback-Panel für den Forum-Thread, und "Über dieses Modul" mit Lizenzinfo und Spenden-Link.',
-        'Hast du mehrere Fahrzeug-Kacheln: „Wozu dieses Modul?" und „Was ist neu?" musst du nur noch an einer Instanz wegklicken, nicht an jeder einzeln.',
-        '👋 Neue Zweck-Einführung ganz oben im Formular: kurz erklärt, was diese Kachel zeigt und wozu sie gut ist.',
-        'Wenn→Dann-Regeln der Quelle direkt hier anlegen, bearbeiten und löschen – inklusive mehrerer UND-Bedingungen.',
-        'Standorte (Geofence) der Quelle direkt hier verwalten, mit eigenem Icon je Standort.',
-        'Bedien-Schaltflächen: Anzahl, Reihenfolge und Beschriftung selbst wählen (Stift-Symbol neben „Schaltflächen").',
-        'Vergleichswert einer Regel erscheint als Auswahlliste mit Klartext, wenn der Datenpunkt feste Werte hat.'
+    // NEWS_VERSIONS statt einzelnem NEWS_VERSION/NEWS_ITEMS (Verbund-Konvention, Dashboard/
+    // Dietmar 23.09.2026, SUITE.md "Einheitliche Formular-Optik") - siehe TessieVehicle für die
+    // ausführliche Begründung. Alter Block bleibt unter seiner letzten bisherigen Nummer (2.33.0).
+    private const NEWS_VERSIONS = [
+        '2.33.0' => [
+            'Neu ganz unten im Formular: ein eigenes Feedback-Panel für den Forum-Thread, und "Über dieses Modul" mit Lizenzinfo und Spenden-Link.',
+            'Hast du mehrere Fahrzeug-Kacheln: „Wozu dieses Modul?" und „Was ist neu?" musst du nur noch an einer Instanz wegklicken, nicht an jeder einzeln.',
+            '👋 Neue Zweck-Einführung ganz oben im Formular: kurz erklärt, was diese Kachel zeigt und wozu sie gut ist.',
+            'Wenn→Dann-Regeln der Quelle direkt hier anlegen, bearbeiten und löschen – inklusive mehrerer UND-Bedingungen.',
+            'Standorte (Geofence) der Quelle direkt hier verwalten, mit eigenem Icon je Standort.',
+            'Bedien-Schaltflächen: Anzahl, Reihenfolge und Beschriftung selbst wählen (Stift-Symbol neben „Schaltflächen").',
+            'Vergleichswert einer Regel erscheint als Auswahlliste mit Klartext, wenn der Datenpunkt feste Werte hat.'
+        ],
+        '2.34.0' => [
+            'Zeigt jetzt live, welches Fahrzeug automatisch erkannt wurde (Name, Ladestand, Quelle) statt es nur zu behaupten – bei mehreren Fahrzeugen oder keinem Treffer erscheint stattdessen ein Hinweis mit Auswahlfeld.'
+        ]
     ];
 
     public function Create()
@@ -429,28 +436,55 @@ class TessieVehicleTile extends IPSModule
         $this->PropagateDismiss('PurposeIntro');
     }
 
+    /** Reine Versionszahl ohne Beta-/Build-Zusatz - siehe TessieVehicle::BaseVersion(). */
+    private function BaseVersion(string $v): string
+    {
+        return preg_replace('/-.*$/', '', $v) ?? $v;
+    }
+
     /**
-     * „Was ist neu"-Banner: erscheint nach einem Update (Attribut startet leer),
-     * bis der Nutzer „Verstanden" klickt. Eine Neuinstallation sieht es einmalig.
+     * „Was ist neu"-Banner: erscheint nach einem Update (Attribut startet leer), bis der Nutzer
+     * „Verstanden" klickt - zeigt nur die Versionen, die neuer sind als die zuletzt bestätigte,
+     * gruppiert nach Version (SUITE.md "NEWS_VERSIONS-Array", Dashboard/Dietmar 23.09.2026).
      */
     private function newsBanner(): ?array
     {
-        if ($this->ReadAttributeString(self::ATTR_SEEN_NEWS) === self::NEWS_VERSION) {
+        $seen = $this->ReadAttributeString(self::ATTR_SEEN_NEWS);
+        $pending = [];
+        foreach (self::NEWS_VERSIONS as $ver => $lines) {
+            if ($seen === '' || version_compare($ver, $seen, '>')) {
+                $pending[$ver] = $lines;
+            }
+        }
+        if (count($pending) === 0) {
             return null;
         }
+        uksort($pending, 'version_compare');
         $items = [['type' => 'Label', 'caption' => 'Neu seit dem letzten Store-Stand – bitte kurz ansehen:']];
-        foreach (self::NEWS_ITEMS as $line) {
-            $items[] = ['type' => 'Label', 'caption' => '• ' . $line];
+        $multi = count($pending) > 1;
+        foreach ($pending as $ver => $lines) {
+            if ($multi) {
+                $items[] = ['type' => 'Label', 'caption' => 'Version ' . $ver . ':'];
+            }
+            foreach ($lines as $line) {
+                $items[] = ['type' => 'Label', 'caption' => '• ' . $line];
+            }
         }
         $items[] = ['type' => 'Button', 'caption' => 'Verstanden – nicht mehr anzeigen', 'onClick' => 'TESSIETILE_AckNews($id);'];
-        return ['type' => 'ExpansionPanel', 'name' => 'NewsPanel', 'caption' => '🆕 Neu in Version ' . self::NEWS_VERSION, 'expanded' => true, 'items' => $items];
+        $latest = array_key_last($pending);
+        return ['type' => 'ExpansionPanel', 'name' => 'NewsPanel', 'caption' => '🆕 Neu bis Version ' . $latest, 'expanded' => true, 'items' => $items];
     }
 
     public function AckNews(): void
     {
-        $this->WriteAttributeString(self::ATTR_SEEN_NEWS, self::NEWS_VERSION);
+        $lib = @IPS_GetLibrary(self::LIBRARY_GUID);
+        $ver = is_array($lib) ? $this->BaseVersion((string)($lib['Version'] ?? '')) : '';
+        if ($ver === '') {
+            $ver = (string) array_key_last(self::NEWS_VERSIONS);
+        }
+        $this->WriteAttributeString(self::ATTR_SEEN_NEWS, $ver);
         $this->UpdateFormField('NewsPanel', 'visible', false);
-        $this->PropagateDismiss('News', self::NEWS_VERSION);
+        $this->PropagateDismiss('News', $ver);
     }
 
     /**
@@ -512,8 +546,10 @@ class TessieVehicleTile extends IPSModule
      */
     private function AdoptDismissFromSibling(): void
     {
+        $latestNews = (string) array_key_last(self::NEWS_VERSIONS);
+        $mySeen = $this->ReadAttributeString(self::ATTR_SEEN_NEWS);
         if ($this->ReadAttributeBoolean(self::ATTR_PURPOSE_INTRO_GONE)
-            && $this->ReadAttributeString(self::ATTR_SEEN_NEWS) === self::NEWS_VERSION
+            && $mySeen !== '' && version_compare($mySeen, $latestNews, '>=')
             && $this->ReadAttributeBoolean(self::ATTR_FORUM_HINT_GONE)) {
             return;
         }
@@ -532,8 +568,12 @@ class TessieVehicleTile extends IPSModule
             if (!$this->ReadAttributeBoolean(self::ATTR_PURPOSE_INTRO_GONE) && !empty($state['purposeIntroGone'])) {
                 $this->WriteAttributeBoolean(self::ATTR_PURPOSE_INTRO_GONE, true);
             }
-            if ($this->ReadAttributeString(self::ATTR_SEEN_NEWS) !== self::NEWS_VERSION && ($state['seenNews'] ?? '') === self::NEWS_VERSION) {
-                $this->WriteAttributeString(self::ATTR_SEEN_NEWS, self::NEWS_VERSION);
+            // Nur vorziehen (ältere -> neuere News-Version), nie einen schon weiter
+            // fortgeschrittenen eigenen Stand überschreiben.
+            $sibSeen = (string)($state['seenNews'] ?? '');
+            if ($sibSeen !== '' && ($mySeen === '' || version_compare($sibSeen, $mySeen, '>'))) {
+                $this->WriteAttributeString(self::ATTR_SEEN_NEWS, $sibSeen);
+                $mySeen = $sibSeen;
             }
             if (!$this->ReadAttributeBoolean(self::ATTR_FORUM_HINT_GONE) && !empty($state['forumHintGone'])) {
                 $this->WriteAttributeBoolean(self::ATTR_FORUM_HINT_GONE, true);
