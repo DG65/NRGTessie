@@ -75,6 +75,9 @@ class TessieVehicle extends IPSModule
     private const ATTR_SEEN_NEWS           = 'SeenNews';
     private const ATTR_LAST_TELEMETRY_AT   = 'LastTelemetryAt';
     private const ATTR_API_ERROR_STREAK    = 'ApiErrorStreak';
+    // Letzter von Tessie gemeldeter Schlaf-/Wachzustand ('asleep'/'waiting_for_sleep'/'awake',
+    // per /status-Endpunkt - siehe getVehicleStatus()), fuer GetVehicleState() gespeichert.
+    private const ATTR_LAST_VEHICLE_STATUS = 'LastVehicleStatus';
 
     // -------------------- Status-Codes (sichtbar ohne Log-Zugriff) --------------------
     // 102 = Aktiv (IP-Symcon-Standard). Eigene Codes bewusst oberhalb 200 (Konvention:
@@ -208,6 +211,7 @@ class TessieVehicle extends IPSModule
         $this->RegisterAttributeString(self::ATTR_API_TOKEN, '');
         $this->RegisterAttributeInteger(self::ATTR_LAST_TELEMETRY_AT, 0);
         $this->RegisterAttributeInteger(self::ATTR_API_ERROR_STREAK, 0);
+        $this->RegisterAttributeString(self::ATTR_LAST_VEHICLE_STATUS, '');
     }
 
 
@@ -909,6 +913,7 @@ class TessieVehicle extends IPSModule
         if ($status !== '') {
             $this->SendDebug('Fahrzeugstatus', $status, 0);
             $this->WriteAttributeInteger(self::ATTR_API_ERROR_STREAK, 0);
+            $this->WriteAttributeString(self::ATTR_LAST_VEHICLE_STATUS, $status);
             if ($current === self::STATUS_API_ERROR) {
                 $this->SetStatus(102);
             }
@@ -2725,7 +2730,15 @@ class TessieVehicle extends IPSModule
             // Kein Verbrauchsfeld (kWh/100km): die Telemetrie liefert keinen solchen
             // Wert direkt, ein selbst berechneter Schätzwert wurde bewusst nicht
             // hinzugefügt (keine Vertragsdaten erfinden).
-            'contractVersion'         => '1.5',
+            // 1.6 = + vehicleStatus (roher Schlaf-/Wachzustand von Tessie: 'asleep',
+            // 'waiting_for_sleep' oder 'awake', laut offizieller Tessie-API-Doku die
+            // einzigen drei Werte - siehe getVehicleStatus()/Update()). Zuletzt bekannter
+            // Wert aus der eigenen REST-Statusabfrage, null falls noch keine Antwort kam.
+            // Bewusst roh statt einer eigenen "healthOk"-Bewertung: ob ein schlafendes
+            // Fahrzeug bei ausbleibender Telemetrie als unauffällig gilt, ist eine
+            // Geschäftsregel des Konsumenten (z. B. EMS_FederationHealth), keine hier zu
+            // treffende Entscheidung - analog distanceToHomeKm/headingHome (1.4).
+            'contractVersion'         => '1.6',
             'instanceID'              => $this->InstanceID,
             'name'                    => IPS_GetName($this->InstanceID),
             'vin'                     => trim((string)$this->ReadPropertyString('VIN')),
@@ -2764,8 +2777,16 @@ class TessieVehicle extends IPSModule
             // normiert), aus der Telemetrie (stat_tel_RatedRange) - wird beim Empfang
             // bereits von Meilen nach km umgerechnet (siehe convertTelemetryToMetric()),
             // hier also unverändert übernehmen.
-            'rangeKm'                 => $this->stateNumberOrNull('stat_tel_RatedRange')
+            'rangeKm'                 => $this->stateNumberOrNull('stat_tel_RatedRange'),
+            'vehicleStatus'           => $this->lastVehicleStatusOrNull()
         ]);
+    }
+
+    /** Zuletzt bekannter Schlaf-/Wachzustand (aus getVehicleStatus()/Update()), null falls noch keiner bekannt. */
+    private function lastVehicleStatusOrNull(): ?string
+    {
+        $v = $this->ReadAttributeString(self::ATTR_LAST_VEHICLE_STATUS);
+        return $v !== '' ? $v : null;
     }
 
     public function GetGeofenceConfig(): string

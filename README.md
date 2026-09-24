@@ -80,7 +80,7 @@ Status-/Telemetriewerte (Ladestand, Reichweite, Temperaturen, Standort …) ersc
 
 ```json
 {
-  "contractVersion": "1.5",
+  "contractVersion": "1.6",
   "instanceID": 12345,
   "name": "Mein Auto",
   "vin": "5YJ...",
@@ -100,11 +100,12 @@ Status-/Telemetriewerte (Ladestand, Reichweite, Temperaturen, Standort …) ersc
   "distanceToHomeKm": 105.1,
   "headingHome": false,
   "expectedHomeArrivalSocPercent": null,
-  "rangeKm": 312.4
+  "rangeKm": 312.4,
+  "vehicleStatus": "asleep"
 }
 ```
 
-- `contractVersion`: Version dieses Datenvertrags als `Major.Minor` (aktuell `1.5`). Konsumenten prüfen die Major-Version auf Kompatibilität – innerhalb derselben Major werden nur additive Felder ergänzt, ein Bruch erhöht die Major. Fehlt ein Feld, gilt die jeweils niedrigere Version.
+- `contractVersion`: Version dieses Datenvertrags als `Major.Minor` (aktuell `1.6`). Konsumenten prüfen die Major-Version auf Kompatibilität – innerhalb derselben Major werden nur additive Felder ergänzt, ein Bruch erhöht die Major. Fehlt ein Feld, gilt die jeweils niedrigere Version.
 - `socID`: Variablen-ID des Ladestands (0, falls der Datenpunkt nicht aktiviert ist)
 - `soc`: gemessener Ist-Ladestand in % (verlässlich; Ziel-SoC und Deadline hält das steuernde Modul selbst)
 - `connected`: ob ein Ladekabel gesteckt ist (nicht: ob gerade aktiv geladen wird) – ermittelt primär über den Datenpunkt „Ladestatus (Detail)", ersatzweise über den Ladestatus; `null`, falls keine der beiden Quellen verfügbar ist
@@ -121,6 +122,7 @@ Status-/Telemetriewerte (Ladestand, Reichweite, Temperaturen, Standort …) ersc
 - `headingHome`: ob das **aktuelle Navigationsziel** den Heimkoordinaten entspricht (500 m Toleranz) – nicht, ob überhaupt navigiert wird. `null` ohne aktive Navigation oder ohne Heimkoordinaten
 - `expectedHomeArrivalSocPercent`: Teslas eigene Ankunfts-SoC-Prognose, aber **nur** übernommen, wenn `headingHome === true` – bei einem anderen Fahrtziel wäre die Prognose fürs Fremdziel und würde in eine Ladeplanung fürs Zuhause-Laden irreführen. `null` sonst
 - `rangeKm`: Teslas eigene Reichweitenprognose in km beim **aktuellen** SoC (nicht auf 100 % SoC normiert), direkt aus der Telemetrie (`stat_tel_RatedRange`, Umrechnung Meilen→km bereits beim Empfang erfolgt). Kein Verbrauchswert (kWh/100 km) verfügbar – die Telemetrie liefert dafür keinen Rohwert, ein selbst berechneter Schätzwert wurde bewusst nicht ergänzt. `null`, falls der Datenpunkt nicht aktiviert/empfangen ist
+- `vehicleStatus`: roher Schlaf-/Wachzustand des Fahrzeugs laut Tessie-eigener Statusabfrage – einer von `"asleep"`, `"waiting_for_sleep"` oder `"awake"` (laut offizieller Tessie-API-Dokumentation die einzigen drei Werte). Zuletzt bekannter Wert aus der eigenen REST-Statusabfrage (Update-Intervall), `null` bis zur ersten erfolgreichen Abfrage. Bewusst der rohe Wert statt einer eigenen Bewertung „gesund"/„auffällig": ob ausbleibende Telemetrie bei einem schlafenden Fahrzeug unauffällig ist, entscheidet der jeweilige Konsument (z. B. eine Verbund-Gesundheitsprüfung), nicht dieses Modul – ausbleibende Telemetrie **trotz** `"awake"` deutet dagegen auf ein echtes Problem hin (Telemetrie-Stream getrennt, obwohl das Fahrzeug erreichbar ist)
 
 Alle Zusatzfelder sind `null`, wenn der zugehörige Datenpunkt in der Instanz nicht aktiviert bzw. noch nicht empfangen wurde. Rein additive, lesende Funktion – ändert nichts am Modulverhalten. Fremde Module sollten den Aufruf hinter `function_exists('TESSIE_GetVehicleState')` absichern.
 

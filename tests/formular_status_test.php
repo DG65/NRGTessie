@@ -261,5 +261,21 @@ check('AckNews: installierte Version (mit Beta-Suffix) -> SeenNews ohne Suffix',
 check('AckNews: IPS_GetLibrary liefert nichts -> Fallback auf höchsten NEWS_VERSIONS-Schlüssel', ackNewsSets(null) === '2.36.0', ackNewsSets(null));
 $GLOBALS['LIBVER'] = null;
 
+// ---------------- GetVehicleState(): vehicleStatus (contractVersion 1.6) ----------------
+echo "== GetVehicleState ==\n";
+function vehicleState(?string $status): array
+{
+    $m = new TessieVehicle(5);
+    if ($status !== null) {
+        $m->attrs['LastVehicleStatus'] = $status;
+    }
+    return json_decode($m->GetVehicleState(), true);
+}
+$s = vehicleState(null);
+check('GetVehicleState: contractVersion 1.6', ($s['contractVersion'] ?? null) === '1.6', var_export($s['contractVersion'] ?? null, true));
+check('GetVehicleState: vehicleStatus null vor erster Antwort', array_key_exists('vehicleStatus', $s) && $s['vehicleStatus'] === null, var_export($s['vehicleStatus'] ?? '<<fehlt>>', true));
+$s = vehicleState('asleep');
+check('GetVehicleState: vehicleStatus "asleep" nach Update()', ($s['vehicleStatus'] ?? null) === 'asleep', var_export($s['vehicleStatus'] ?? null, true));
+
 echo "\n$checks Prüfungen, $fails Fehler\n";
 exit($fails > 0 ? 1 : 0);

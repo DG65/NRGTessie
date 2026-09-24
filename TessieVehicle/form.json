@@ -75,7 +75,7 @@
                 },
                 {
                     "type": "Label",
-                    "caption": "Das Statussymbol im Objektbaum zeigt Betriebsprobleme, ohne dass du ins Protokoll schauen musst: 'API-Fehler' bedeutet, dass der Zugangsschlüssel ungültig geworden ist oder die Tessie-API wiederholt nicht erreichbar war (erst nach zwei Fehlschlägen in Folge, damit ein einzelner Aussetzer nicht gleich alarmiert). 'Telemetrie veraltet' bedeutet, dass seit über 15 Minuten keine neuen Daten mehr vom Fahrzeug ankamen – meist, weil es länger geschlafen hat. Beide Zustände verschwinden automatisch, sobald sich die Lage normalisiert."
+                    "caption": "Das Statussymbol im Objektbaum zeigt Betriebsprobleme, ohne dass du ins Protokoll schauen musst: 'API-Fehler' bedeutet, dass der Zugangsschlüssel ungültig geworden ist oder die Tessie-API wiederholt nicht erreichbar war (erst nach zwei Fehlschlägen in Folge, damit ein einzelner Aussetzer nicht gleich alarmiert). 'Telemetrie veraltet' bedeutet, dass seit über 15 Minuten keine neuen Daten mehr vom Fahrzeug ankamen. Das ist meist harmlos (Fahrzeug schläft), kann aber auch einen getrennten Telemetrie-Stream trotz erreichbarem Fahrzeug anzeigen – wer das automatisiert unterscheiden will, kann bei TESSIE_GetVehicleState() den zusätzlichen Wert 'vehicleStatus' (asleep/waiting_for_sleep/awake) heranziehen. Beide Zustände verschwinden automatisch, sobald sich die Lage normalisiert."
                 },
                 {
                     "type": "Label",

@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.38.0] - 2026-09-24
+### Hinzugefuegt
+- `TESSIE_GetVehicleState()`: Vertrag 1.5 -> 1.6, neues Feld `vehicleStatus` (roher Schlaf-/Wachzustand laut Tessie: `asleep`/`waiting_for_sleep`/`awake`, gegen die offizielle Tessie-API-Doku verifiziert). Anlass: EMS_FederationHealth konnte den Instanzstatus 203 ("Telemetrie veraltet") nicht von einem echten Problem unterscheiden - 203 bedeutet nur "seit 15 Minuten kein Telemetrie-Paket", unabhaengig vom Grund (schlafendes Fahrzeug harmlos, getrennter Telemetrie-Stream trotz erreichbarem Fahrzeug nicht). `vehicleStatus` liefert dafuer den zuletzt bekannten Wert der eigenen REST-Statusabfrage, rein additiv/lesend, `null` vor der ersten Antwort. Doku-Hinweis im Formular ("Status & Fehlerdiagnose") ergaenzt.
+
 ## [2.37.0] - 2026-09-23
 ### Geaendert
 - "Was ist neu"-Banner (TessieVehicle, TessieVehicleTile) auf ein `NEWS_VERSIONS`-Array umgestellt statt einem einzelnen `NEWS_VERSION`/`NEWS_ITEMS`: der Banner zeigt jetzt IMMER genau die Neuerungen zwischen der zuletzt bestaetigten und der aktuell installierten Version (gruppiert nach Version, Caption "🆕 Neu bis Version X"), nie mehr und nie weniger - unabhaengig davon, wie oft `NEWS_VERSION` frueher hochgezaehlt wurde. `AckNews()` merkt sich dazu die tatsaechlich installierte Bibliotheksversion (`IPS_GetLibrary()`, Beta-/Build-Suffix entfernt) statt eines Versions-Strings. Verbundkonvention (SUITE.md, Dashboard/Dietmar 23.09.2026). Dabei nachgeholt: mehrere seit 2.33.0 tatsaechlich banner-wuerdige Aenderungen (Kachel-/Standort-Statuszeilen, automatisches Einklappen, Configurator-Statuszeile), die beim jeweiligen Release nicht ins Banner aufgenommen wurden.
