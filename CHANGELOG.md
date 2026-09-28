@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.38.1] - 2026-09-28
+### Behoben
+- Die Datenpunktliste setzte bei JEDEM "Übernehmen" die Variablen-Position auf die zuletzt gespeicherte Listen-Reihenfolge zurück, auch wenn nur ein voellig anderes Feld geaendert wurde - eine manuelle Umsortierung direkt im Objektbaum der Konsole (oder in der optionalen Linkstruktur, die dieselbe Reihenfolge uebernimmt) wurde dadurch beim naechsten Uebernehmen automatisch wieder ueberschrieben. Ursache: `GetConfigurationForm()` zeigte immer nur die zuletzt gespeicherte Reihenfolge, Symcon persistiert beim Uebernehmen aber die gesamte offene Liste. Fix: die Maske zeigt jetzt beim Oeffnen die tatsaechliche Reihenfolge der Variablen im Objektbaum (`reconcileOrderWithLivePositions()`); nur eine Umsortierung IN der offenen Maske selbst loest danach noch eine aktive Positionsaenderung aus. Fund verbundweit dokumentiert (Symcon-Review-Ablehnung HeishaMon v1.33.0, SUITE.md 9m), hier bestaetigt und mit demselben, an HeishaMon verifizierten Muster behoben. Pruefstand um 4 Faelle erweitert.
+
 ## [2.38.0] - 2026-09-24
 ### Hinzugefuegt
 - `TESSIE_GetVehicleState()`: Vertrag 1.5 -> 1.6, neues Feld `vehicleStatus` (roher Schlaf-/Wachzustand laut Tessie: `asleep`/`waiting_for_sleep`/`awake`, gegen die offizielle Tessie-API-Doku verifiziert). Anlass: EMS_FederationHealth konnte den Instanzstatus 203 ("Telemetrie veraltet") nicht von einem echten Problem unterscheiden - 203 bedeutet nur "seit 15 Minuten kein Telemetrie-Paket", unabhaengig vom Grund (schlafendes Fahrzeug harmlos, getrennter Telemetrie-Stream trotz erreichbarem Fahrzeug nicht). `vehicleStatus` liefert dafuer den zuletzt bekannten Wert der eigenen REST-Statusabfrage, rein additiv/lesend, `null` vor der ersten Antwort. Doku-Hinweis im Formular ("Status & Fehlerdiagnose") ergaenzt.

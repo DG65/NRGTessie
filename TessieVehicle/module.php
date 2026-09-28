@@ -340,6 +340,32 @@ class TessieVehicle extends IPSModule
         return $base;
     }
 
+    /**
+     * Gleicht die gespeicherte Reihenfolge der Datenpunktliste mit der tatsächlichen Position
+     * der Variablen im Objektbaum ab (Symcon-Review-Ablehnung HeishaMon v1.33.0, SUITE.md 9m,
+     * 28.09.2026): ApplyChanges() persistiert beim nächsten Übernehmen die GESAMTE offene
+     * Liste, unabhängig davon, ob der Nutzer sie angefasst hat - zeigte die Maske weiterhin nur
+     * die zuletzt gespeicherte Reihenfolge, wurde eine Umsortierung von außen (Ziehen im
+     * Objektbaum der Konsole) beim nächsten Übernehmen automatisch wieder überschrieben (siehe
+     * getOrderPosMap()/IPS_SetPosition() in ApplyChanges() und ensureLinkUnder()). Jetzt zeigt
+     * die offene Maske die WIRKLICHE Reihenfolge; nur eine tatsächliche Umsortierung IN der
+     * Maske selbst führt danach noch zu einer aktiven IPS_SetPosition(). Zeilen ohne
+     * existierende Variable (noch nie aktiviert) haben keine echte Position und behalten daher
+     * ihren bisherigen relativen Platz, gebündelt ans Ende.
+     */
+    private function reconcileOrderWithLivePositions(array $rows): array
+    {
+        $sortKeys = [];
+        foreach ($rows as $i => $row) {
+            $ident = is_array($row) ? (string)($row['Ident'] ?? '') : '';
+            $vid = ($ident !== '') ? @IPS_GetObjectIDByIdent($ident, $this->InstanceID) : false;
+            $sortKeys[$i] = ($vid === false || $vid <= 0) ? [1, 0] : [0, (int)(IPS_GetObject($vid)['ObjectPosition'] ?? 0)];
+        }
+        $indices = array_keys($rows);
+        usort($indices, fn($a, $b) => $sortKeys[$a] <=> $sortKeys[$b]);
+        return array_map(fn($i) => $rows[$i], $indices);
+    }
+
     public function GetConfigurationForm()
     {
         $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
@@ -347,7 +373,7 @@ class TessieVehicle extends IPSModule
             $form = ['elements' => [], 'actions' => [], 'status' => []];
         }
 
-        $fullList = $this->buildFormRows($this->getEffectiveList());
+        $fullList = $this->reconcileOrderWithLivePositions($this->buildFormRows($this->getEffectiveList()));
 
         // Telemetrie-Status für den Sammelbutton
         $hasTelemetry = false;

@@ -38,13 +38,15 @@ function IPS_InstanceExists($id) { return isset($GLOBALS['INST'][$id]); }
 function IPS_GetName($id) { return $GLOBALS['INST'][$id] ?? ''; }
 function IPS_GetParent($id) { return 0; }
 function TESSIE_GetVehicleState($id) { return $GLOBALS['STATE'][$id] ?? false; }
-function IPS_GetObjectIDByIdent($ident, $parent) { return false; }
+$GLOBALS['IDENTMAP'] = []; // ident => Variablen-ID, fuer die Positions-Reconcile-Tests
+$GLOBALS['OBJPOS'] = [];   // Variablen-ID => ObjectPosition
+function IPS_GetObjectIDByIdent($ident, $parent) { return $GLOBALS['IDENTMAP'][$ident] ?? false; }
 $GLOBALS['LIBVER'] = null; // simulierte installierte Bibliotheksversion oder null (IPS_GetLibrary schlägt fehl)
 function IPS_GetLibrary($guid) { return $GLOBALS['LIBVER'] === null ? false : ['Version' => $GLOBALS['LIBVER']]; }
 function IPS_ObjectExists($id) { return false; }
 function IPS_VariableExists($id) { return false; }
 function IPS_GetChildrenIDs($id) { return []; }
-function IPS_GetObject($id) { return ['ObjectIdent' => '', 'ObjectName' => '', 'ObjectType' => 2, 'ParentID' => 0, 'ChildrenIDs' => []]; }
+function IPS_GetObject($id) { return ['ObjectIdent' => '', 'ObjectName' => '', 'ObjectType' => 2, 'ParentID' => 0, 'ChildrenIDs' => [], 'ObjectPosition' => $GLOBALS['OBJPOS'][$id] ?? 0]; }
 function IPS_GetVariable($id) { return ['VariableType' => 3, 'VariableUpdated' => 0]; }
 function GetValue($id) { return null; }
 
@@ -276,6 +278,47 @@ check('GetVehicleState: contractVersion 1.6', ($s['contractVersion'] ?? null) ==
 check('GetVehicleState: vehicleStatus null vor erster Antwort', array_key_exists('vehicleStatus', $s) && $s['vehicleStatus'] === null, var_export($s['vehicleStatus'] ?? '<<fehlt>>', true));
 $s = vehicleState('asleep');
 check('GetVehicleState: vehicleStatus "asleep" nach Update()', ($s['vehicleStatus'] ?? null) === 'asleep', var_export($s['vehicleStatus'] ?? null, true));
+
+// ---------------- reconcileOrderWithLivePositions() (SUITE.md 9m) ----------------
+echo "== Positions-Reconcile (SUITE.md 9m) ==\n";
+function reconciledIdents(array $storedOrderIdents, array $livePositions): array
+{
+    $m = new TessieVehicle(5);
+    $GLOBALS['IDENTMAP'] = [];
+    $GLOBALS['OBJPOS'] = [];
+    $vid = 100;
+    foreach ($livePositions as $ident => $pos) {
+        $GLOBALS['IDENTMAP'][$ident] = $vid;
+        $GLOBALS['OBJPOS'][$vid] = $pos;
+        $vid++;
+    }
+    $rows = array_map(fn($ident) => ['Ident' => $ident], $storedOrderIdents);
+    $r = new ReflectionMethod($m, 'reconcileOrderWithLivePositions');
+    $result = $r->invoke($m, $rows);
+    return array_map(fn($row) => $row['Ident'], $result);
+}
+// Gespeicherte Reihenfolge A,B,C - Nutzer hat im Objektbaum auf C,A,B umsortiert.
+$out = reconciledIdents(['A', 'B', 'C'], ['C' => 10, 'A' => 20, 'B' => 30]);
+check('Reconcile: Objektbaum-Umsortierung schlägt durch (C,A,B statt gespeichert A,B,C)', $out === ['C', 'A', 'B'], implode(',', $out));
+// Unveränderte Live-Positionen entsprechen der gespeicherten Reihenfolge -> keine Änderung.
+$out = reconciledIdents(['A', 'B', 'C'], ['A' => 10, 'B' => 20, 'C' => 30]);
+check('Reconcile: unveränderte Live-Positionen -> Reihenfolge bleibt A,B,C', $out === ['A', 'B', 'C'], implode(',', $out));
+// D ist noch nie angelegt (z.B. Telemetrie noch nie aktiviert) - bleibt an seinem relativen Platz, ans Ende gebündelt.
+$out = reconciledIdents(['A', 'D', 'B'], ['A' => 20, 'B' => 10]);
+check('Reconcile: nie angelegte Variable D bleibt hinten, echte nach Live-Position (B,A,D)', $out === ['B', 'A', 'D'], implode(',', $out));
+
+// End-to-End: wirkt sich die Reconciliation tatsaechlich auf das ausgelieferte Formular aus?
+$GLOBALS['IDENTMAP'] = ['act_sentry' => 501, 'act_locked' => 502];
+$GLOBALS['OBJPOS'] = [501 => 10, 502 => 20]; // act_sentry liegt live VOR act_locked, gespeichert ist es umgekehrt (act_locked zuerst)
+$m = new TessieVehicle(5);
+$form = json_decode($m->GetConfigurationForm(), true);
+$visibleVarsFound = findEl($form['elements'], 'VisibleVars');
+$idents = array_map(fn($r) => $r['Ident'] ?? '', $visibleVarsFound['el']['values'] ?? []);
+$posLocked = array_search('act_locked', $idents, true);
+$posSentry = array_search('act_sentry', $idents, true);
+check('Reconcile (echtes Formular): act_sentry (live vorn) erscheint vor act_locked', $posSentry !== false && $posLocked !== false && $posSentry < $posLocked, "sentry@$posSentry locked@$posLocked");
+$GLOBALS['IDENTMAP'] = [];
+$GLOBALS['OBJPOS'] = [];
 
 echo "\n$checks Prüfungen, $fails Fehler\n";
 exit($fails > 0 ? 1 : 0);
