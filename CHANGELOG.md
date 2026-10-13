@@ -2,6 +2,12 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.38.2] - 2026-10-13
+### Behoben
+- Auswahl-Darstellungen (Sitzheizung, Klimahaltung, Überhitzeschutz-Limit) gaben je Eintrag den Schlüssel `Icon` statt `IconValue` an die Presentation weiter. Laut offizieller Symcon-Doku heißt der Icon-Schlüssel in OPTIONS `IconValue`; neuere Symcon-Versionen brechen bei unbekannten Unterschlüsseln bereits das Anlegen der Instanz ab ("Entry in parameter OPTIONS includes unknown sub-parameters", Code -32603), ältere haben es still toleriert. Bestandsvariablen bekommen die Korrektur automatisch beim nächsten "Übernehmen", da die Presentation per `MaintainVariable()` bei jedem Lauf neu gesetzt wird. Fund aus dem RoboHub-Forum-Review, verbundweit in SUITE.md Stolperfalle 9 korrigiert; die Icon-Spalte der Standortliste ist davon nicht betroffen (eigene Nutzereingabe, keine Presentation).
+### Hinzugefuegt
+- Pruefstand: prueft je Auswahl-Profil, dass nur die erlaubten OPTIONS-Schluessel (`Value`, `Caption`, `IconActive`, `IconValue`, `Color`) vorkommen, und dass im Quelltext kein `ColorValue`/`ColorActive` auftaucht. Gegenprobe mit dem alten Schluessel schlaegt wie vorgesehen an.
+
 ## [2.38.1] - 2026-09-28
 ### Behoben
 - Die Datenpunktliste setzte bei JEDEM "Übernehmen" die Variablen-Position auf die zuletzt gespeicherte Listen-Reihenfolge zurück, auch wenn nur ein voellig anderes Feld geaendert wurde - eine manuelle Umsortierung direkt im Objektbaum der Konsole (oder in der optionalen Linkstruktur, die dieselbe Reihenfolge uebernimmt) wurde dadurch beim naechsten Uebernehmen automatisch wieder ueberschrieben. Ursache: `GetConfigurationForm()` zeigte immer nur die zuletzt gespeicherte Reihenfolge, Symcon persistiert beim Uebernehmen aber die gesamte offene Liste. Fix: die Maske zeigt jetzt beim Oeffnen die tatsaechliche Reihenfolge der Variablen im Objektbaum (`reconcileOrderWithLivePositions()`); nur eine Umsortierung IN der offenen Maske selbst loest danach noch eine aktive Positionsaenderung aus. Fund verbundweit dokumentiert (Symcon-Review-Ablehnung HeishaMon v1.33.0, SUITE.md 9m), hier bestaetigt und mit demselben, an HeishaMon verifizierten Muster behoben. Pruefstand um 4 Faelle erweitert.

@@ -50,6 +50,13 @@ function IPS_GetObject($id) { return ['ObjectIdent' => '', 'ObjectName' => '', '
 function IPS_GetVariable($id) { return ['VariableType' => 3, 'VariableUpdated' => 0]; }
 function GetValue($id) { return null; }
 
+// Presentation-Konstanten (in IP-Symcon GUID-Strings; hier nur als unterscheidbare Platzhalter)
+foreach (['SWITCH', 'SLIDER', 'VALUE_PRESENTATION', 'VALUE_INPUT', 'ENUMERATION'] as $p) {
+    if (!defined('VARIABLE_PRESENTATION_' . $p)) {
+        define('VARIABLE_PRESENTATION_' . $p, '{TEST-' . $p . '}');
+    }
+}
+
 $root = dirname(__DIR__);
 require $root . '/TessieVehicleTile/module.php';
 require $root . '/TessieVehicle/module.php';
@@ -319,6 +326,28 @@ $posSentry = array_search('act_sentry', $idents, true);
 check('Reconcile (echtes Formular): act_sentry (live vorn) erscheint vor act_locked', $posSentry !== false && $posLocked !== false && $posSentry < $posLocked, "sentry@$posSentry locked@$posLocked");
 $GLOBALS['IDENTMAP'] = [];
 $GLOBALS['OBJPOS'] = [];
+
+// ---------------- Presentation-OPTIONS: nur gültige Schlüssel (SUITE.md Stolperfalle 9) ----------------
+echo "== Presentation-OPTIONS ==\n";
+$allowedOptionKeys = ['Value', 'Caption', 'IconActive', 'IconValue', 'Color'];
+$enumProfiles = ['Tessie.SeatHeatLevel', 'Tessie.ClimateKeeperMode', 'Tessie.COPTemp'];
+$m = new TessieVehicle(5);
+$presFor = new ReflectionMethod($m, 'presFor');
+foreach ($enumProfiles as $profile) {
+    $pres = $presFor->invoke($m, $profile, true);
+    $options = json_decode((string)($pres['OPTIONS'] ?? '[]'), true);
+    $badKeys = [];
+    foreach ((array)$options as $opt) {
+        foreach (array_keys((array)$opt) as $k) {
+            if (!in_array($k, $allowedOptionKeys, true)) {
+                $badKeys[$k] = true;
+            }
+        }
+    }
+    check("Presentation $profile: nur erlaubte OPTIONS-Schlüssel", is_array($options) && count($options) > 0 && count($badKeys) === 0, 'ungültig: ' . implode(',', array_keys($badKeys)));
+}
+$src = file_get_contents($root . '/TessieVehicle/module.php') . file_get_contents($root . '/TessieVehicleTile/module.php') . file_get_contents($root . '/TessieConfigurator/module.php');
+check('Quelltext: kein ColorValue/ColorActive (ungültige OPTIONS-Schlüssel)', preg_match('/[\'"](ColorValue|ColorActive)[\'"]/', $src) !== 1);
 
 echo "\n$checks Prüfungen, $fails Fehler\n";
 exit($fails > 0 ? 1 : 0);

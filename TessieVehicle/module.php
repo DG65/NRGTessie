@@ -1851,7 +1851,10 @@ class TessieVehicle extends IPSModule
     {
         $options = [];
         foreach ($map as $v => $caption) {
-            $options[] = ['Value' => $v, 'Caption' => $caption, 'IconActive' => false, 'Icon' => '', 'Color' => -1];
+            // Gültige OPTIONS-Schlüssel laut Symcon-Doku (Darstellung Aufzählung): Value, Caption,
+            // IconActive, IconValue, Color. Ein 'Icon' bricht auf neueren Symcon-Versionen das
+            // Anlegen der Instanz ab (SUITE.md Stolperfalle 9, Fund RoboHub 13.10.2026).
+            $options[] = ['Value' => $v, 'Caption' => $caption, 'IconActive' => false, 'IconValue' => '', 'Color' => -1];
         }
         return ['PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION, 'OPTIONS' => json_encode($options)];
     }
