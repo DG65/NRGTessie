@@ -327,27 +327,54 @@ check('Reconcile (echtes Formular): act_sentry (live vorn) erscheint vor act_loc
 $GLOBALS['IDENTMAP'] = [];
 $GLOBALS['OBJPOS'] = [];
 
-// ---------------- Presentation-OPTIONS: nur gültige Schlüssel (SUITE.md Stolperfalle 9) ----------------
+// ---------------- Presentation-OPTIONS/INTERVALS: gültige Schlüssel JE DARSTELLUNG ----------------
+// SUITE.md Stolperfalle 9 (korrigiert 18.10.2026, gegen die Symcon-Doku geprüft): die Farb-Schlüssel
+// hängen von der Darstellung ab. ENUMERATION-OPTIONS: Value, Caption, IconActive, IconValue, Color.
+// VALUE_PRESENTATION-OPTIONS: Value, Caption, IconActive, IconValue, ColorActive, ColorValue (KEIN Color);
+// deren INTERVALS nutzen Color + ColorActive. Symcon 9.1 bricht das Anlegen bei unbekannten Schlüsseln ab.
 echo "== Presentation-OPTIONS ==\n";
-$allowedOptionKeys = ['Value', 'Caption', 'IconActive', 'IconValue', 'Color'];
-$enumProfiles = ['Tessie.SeatHeatLevel', 'Tessie.ClimateKeeperMode', 'Tessie.COPTemp'];
+$allowedByPresentation = [
+    VARIABLE_PRESENTATION_ENUMERATION      => ['Value', 'Caption', 'IconActive', 'IconValue', 'Color'],
+    VARIABLE_PRESENTATION_VALUE_PRESENTATION => ['Value', 'Caption', 'IconActive', 'IconValue', 'ColorActive', 'ColorValue'],
+];
+$allowedIntervalKeys = ['IntervalMinValue', 'IntervalMaxValue', 'ConstantActive', 'ConstantValue', 'ConversionFactor',
+    'PrefixActive', 'PrefixValue', 'SuffixActive', 'SuffixValue', 'DigitsActive', 'DigitsValue', 'IconActive', 'IconValue', 'ColorActive', 'Color'];
 $m = new TessieVehicle(5);
 $presFor = new ReflectionMethod($m, 'presFor');
-foreach ($enumProfiles as $profile) {
-    $pres = $presFor->invoke($m, $profile, true);
-    $options = json_decode((string)($pres['OPTIONS'] ?? '[]'), true);
-    $badKeys = [];
-    foreach ((array)$options as $opt) {
-        foreach (array_keys((array)$opt) as $k) {
-            if (!in_array($k, $allowedOptionKeys, true)) {
-                $badKeys[$k] = true;
+$vehicleSrc = file_get_contents($root . '/TessieVehicle/module.php');
+preg_match('/private function presFor\(.*?\n    \}\n/s', $vehicleSrc, $mm);
+preg_match_all("/case '([^']+)':/", $mm[0] ?? '', $cases);
+$profiles = array_values(array_unique($cases[1]));
+check('Presentation: Profilliste aus presFor() gefunden', count($profiles) >= 10, count($profiles) . ' Profile');
+$withOptions = 0;
+foreach ($profiles as $profile) {
+    foreach ([true, false] as $settable) {
+        $pres = $presFor->invoke($m, $profile, $settable);
+        $type = $pres['PRESENTATION'] ?? '';
+        foreach (['OPTIONS', 'INTERVALS'] as $listKey) {
+            if (!isset($pres[$listKey])) {
+                continue;
             }
+            $list = json_decode((string)$pres[$listKey], true);
+            $allowed = $listKey === 'OPTIONS' ? ($allowedByPresentation[$type] ?? null) : ($type === VARIABLE_PRESENTATION_VALUE_PRESENTATION ? $allowedIntervalKeys : null);
+            $bad = [];
+            foreach ((array)$list as $entry) {
+                foreach (array_keys((array)$entry) as $k) {
+                    if ($allowed === null || !in_array($k, $allowed, true)) {
+                        $bad[$k] = true;
+                    }
+                }
+            }
+            if ($listKey === 'OPTIONS') {
+                $withOptions++;
+            }
+            check("Presentation $profile ($listKey, " . ($settable ? 'schreibbar' : 'Anzeige') . '): nur erlaubte Schlüssel', is_array($list) && count($list) > 0 && count($bad) === 0, $allowed === null ? "Darstellung $type ohne Prüfregel" : 'ungültig: ' . implode(',', array_keys($bad)));
         }
     }
-    check("Presentation $profile: nur erlaubte OPTIONS-Schlüssel", is_array($options) && count($options) > 0 && count($badKeys) === 0, 'ungültig: ' . implode(',', array_keys($badKeys)));
 }
+check('Presentation: mindestens ein Profil mit OPTIONS geprüft', $withOptions > 0);
 $src = file_get_contents($root . '/TessieVehicle/module.php') . file_get_contents($root . '/TessieVehicleTile/module.php') . file_get_contents($root . '/TessieConfigurator/module.php');
-check('Quelltext: kein ColorValue/ColorActive (ungültige OPTIONS-Schlüssel)', preg_match('/[\'"](ColorValue|ColorActive)[\'"]/', $src) !== 1);
+check('Quelltext: kein ColorActive/ColorValue (Tessie nutzt keine Wertanzeige-OPTIONS)', preg_match('/[\'"](ColorValue|ColorActive)[\'"]/', $src) !== 1);
 
 echo "\n$checks Prüfungen, $fails Fehler\n";
 exit($fails > 0 ? 1 : 0);
