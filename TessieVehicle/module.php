@@ -1837,7 +1837,13 @@ class TessieVehicle extends IPSModule
         return ['PRESENTATION' => VARIABLE_PRESENTATION_SWITCH];
     }
 
-    private function presSlider(float $min, float $max, float $step, string $suffix, int $digits): array
+    /**
+     * MIN/MAX/STEP_SIZE müssen zum Typ der Variable passen: Integer-Variable -> int, Float-Variable
+     * -> float (Symcon-Review 23.10.2026: "Der Parameter MAX hat einen falschen Typ", weil 100.0 an
+     * einer Integer-Variable steht). Deshalb bewusst int|float ohne Umwandlung - der Aufrufer
+     * übergibt Literale passend zur Variable (100 bzw. 100.0), siehe presFor().
+     */
+    private function presSlider(int|float $min, int|float $max, int|float $step, string $suffix, int $digits): array
     {
         return ['PRESENTATION' => VARIABLE_PRESENTATION_SLIDER, 'MIN' => $min, 'MAX' => $max, 'STEP_SIZE' => $step, 'SUFFIX' => $suffix, 'DIGITS' => $digits];
     }
@@ -1878,7 +1884,7 @@ class TessieVehicle extends IPSModule
             case 'Tessie.SpeedKmh':          return $this->presValue(' km/h', 1);
             case 'Tessie.DistanceKm':        return $this->presValue(' km', 1);
             case 'Tessie.TempC':             return $this->presValue(' °C', 1);
-            case 'Tessie.TempSetC':          return $settable ? $this->presSlider(15, 28, 0.5, ' °C', 1) : $this->presValue(' °C', 1);
+            case 'Tessie.TempSetC':          return $settable ? $this->presSlider(15.0, 28.0, 0.5, ' °C', 1) : $this->presValue(' °C', 1);
             case 'Tessie.SeatHeatLevel':     return $this->presEnum([0 => 'Aus', 1 => 'Niedrig', 2 => 'Mittel', 3 => 'Hoch']);
             // Wert 3 = "Camp Mode" (so auch im Fahrzeugmenü benannt; Kommando
             // set_climate_keeper_mode erwartet mode=3 für diesen Zustand). Die

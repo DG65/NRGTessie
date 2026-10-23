@@ -2,6 +2,12 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.38.3] - 2026-10-23
+### Behoben
+- Symcon-Review-Ablehnung von 2.38.2: Beim Anlegen kam durch die Validierung der Darstellung "Der Parameter MAX hat einen falschen Typ" (Ladelimit, Ladestrom Soll). Die Slider-Grenzen MIN/MAX/STEP_SIZE waren fest als float typisiert (100.0), muessen an einer Integer-Variable aber ein Integer sein (100). `presSlider()` wandelt jetzt nichts mehr um (`int|float`), die Profile geben die Grenzen passend zur Variable an: Ladelimit (%) und Ladestrom (A) als int, die Solltemperaturen (Float-Variablen) als float. Bestandsvariablen bekommen die Korrektur beim naechsten "Uebernehmen" (Presentation wird per `MaintainVariable()` bei jedem Lauf neu gesetzt).
+### Hinzugefuegt
+- Pruefstand: liest die Zuordnung Profil -> Variablentyp aus den `MaintainVariable()`-Aufrufen und prueft, dass MIN/MAX/STEP_SIZE zum Typ passen (int an Integer-, float an Float-Variablen) und DIGITS ein int ist. Gegenprobe mit den alten Float-Grenzen schlaegt an.
+
 ## [2.38.2] - 2026-10-13
 ### Behoben
 - Auswahl-Darstellungen (Sitzheizung, Klimahaltung, Überhitzeschutz-Limit) gaben je Eintrag den Schlüssel `Icon` statt `IconValue` an die Presentation weiter. Laut offizieller Symcon-Doku heißt der Icon-Schlüssel in OPTIONS `IconValue`; neuere Symcon-Versionen brechen bei unbekannten Unterschlüsseln bereits das Anlegen der Instanz ab ("Entry in parameter OPTIONS includes unknown sub-parameters", Code -32603), ältere haben es still toleriert. Bestandsvariablen bekommen die Korrektur automatisch beim nächsten "Übernehmen", da die Presentation per `MaintainVariable()` bei jedem Lauf neu gesetzt wird. Fund aus dem RoboHub-Forum-Review, verbundweit in SUITE.md Stolperfalle 9 korrigiert; die Icon-Spalte der Standortliste ist davon nicht betroffen (eigene Nutzereingabe, keine Presentation).

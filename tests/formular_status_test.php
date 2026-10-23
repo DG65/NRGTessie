@@ -376,5 +376,30 @@ check('Presentation: mindestens ein Profil mit OPTIONS geprüft', $withOptions >
 $src = file_get_contents($root . '/TessieVehicle/module.php') . file_get_contents($root . '/TessieVehicleTile/module.php') . file_get_contents($root . '/TessieConfigurator/module.php');
 check('Quelltext: kein ColorActive/ColorValue (Tessie nutzt keine Wertanzeige-OPTIONS)', preg_match('/[\'"](ColorValue|ColorActive)[\'"]/', $src) !== 1);
 
+// ---------------- Slider: MIN/MAX/STEP_SIZE passend zum Variablentyp (Symcon-Review 23.10.2026) ----------------
+// "Der Parameter MAX hat einen falschen Typ": an einer Integer-Variable muss MAX ein int sein (100, nicht 100.0),
+// an einer Float-Variable ein float. Die Zuordnung Profil -> Variablentyp wird aus den MaintainVariable()-Aufrufen gelesen.
+echo "== Slider-Typen ==\n";
+preg_match_all('/MaintainVariable\([^;]*?VARIABLETYPE_(INTEGER|FLOAT)\s*,\s*\$this->presFor\(\'([^\']+)\',\s*true\)/', $vehicleSrc, $sl, PREG_SET_ORDER);
+$sliderChecked = 0;
+foreach ($sl as $hit) {
+    [$all, $varType, $profile] = $hit;
+    $pres = $presFor->invoke($m, $profile, true);
+    if (($pres['PRESENTATION'] ?? '') !== VARIABLE_PRESENTATION_SLIDER) {
+        continue;
+    }
+    $sliderChecked++;
+    $okType = true;
+    $seen = [];
+    foreach (['MIN', 'MAX', 'STEP_SIZE'] as $k) {
+        $v = $pres[$k] ?? null;
+        $seen[] = $k . '=' . var_export($v, true);
+        $okType = $okType && ($varType === 'INTEGER' ? is_int($v) : is_float($v));
+    }
+    $okType = $okType && is_int($pres['DIGITS'] ?? null);
+    check("Slider $profile an " . strtolower($varType) . '-Variable: MIN/MAX/STEP_SIZE passend typisiert, DIGITS int', $okType, implode(' ', $seen));
+}
+check('Slider: mindestens ein Slider-Profil mit Variablentyp gefunden', $sliderChecked >= 3, "$sliderChecked gefunden");
+
 echo "\n$checks Prüfungen, $fails Fehler\n";
 exit($fails > 0 ? 1 : 0);
