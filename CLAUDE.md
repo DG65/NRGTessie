@@ -2,13 +2,10 @@
 
 ## Branch-Workflow
 
-> **Update (Dietmar, 15.09.2026): Tessies EMS-Integrationsphase ist abgeschlossen.** `ems-integration` wurde per Fast-Forward nach `beta` gemergt (Commit `61889b2`) — Tessie ist jetzt über den IP-Symcon Module Store, Kanal **Beta**, installierbar. Ab sofort gilt wieder die normale Regel unten (`beta` als Standard-Ziel). Ob das auch für den restlichen Verbund gilt, entscheidet Dietmar/EMS separat pro Modul — dieser Hinweis betrifft nur Tessie.
+> **Update (Dietmar, 27.10.2026): Alle Betas im Symcon-Store sind auf Stable umgestellt, der Branch `ems-integration` entfällt.** Er war für Tessie schon am 15.09.2026 per Fast-Forward nach `beta` gemergt (Commit `61889b2`) und ist am 27.10.2026 gelöscht worden. Tessie läuft jetzt über `beta` → `main`; Stable wird wirklich ausgeliefert, also vor jedem Zusammenführen die Store-Review-Checkliste (SUITE.md) gegen den `beta`-Stand prüfen.
 
-- **`beta`**: laufende Entwicklung, ab sofort wieder Standard-Ziel für Commits. Auch über den Module Store (Kanal Beta) beziehbar, nicht mehr nur per direkter GitHub-URL.
-- **`main`**: Store-geprüfter Stand. Wird über den IP-Symcon Module Store bezogen (fremde Nutzer). Nur bei einer bewussten neuen Store-Einreichung nach expliziter Bestätigung durch Dietmar aktualisieren (Merge/Fast-Forward main←beta).
-- **`ems-integration`**: Verbund-weiter Branch (identischer Name in allen Modul-Repos, Dietmar 25.07.2026), war während der Integrationsphase der einzige Push-Ziel-Branch. Für Tessie mit dem Merge nach `beta` am 15.09.2026 erledigt — bei Bedarf (z. B. neue riskante EMS-Änderungen) wieder von `beta` abzweigen.
-
-`beta` wurde am 21.07.2026 additiv von `main` abgezweigt (identischer Commit zum Zeitpunkt der Abzweigung) — kein Verlust, keine Divergenz zu dem Zeitpunkt.
+- **`beta`**: laufende Entwicklung, Standard-Ziel für Commits.
+- **`main`**: ausgelieferter Stable-Stand (Module Store). Wird nur auf Dietmars ausdrückliche Anweisung per Fast-Forward auf den `beta`-Stand gezogen (`main` == `beta`, möglichst ohne Merge-Commit).
 
 ## Verwandte Repositories (loser Verbund, kein Kopplungszwang)
 
