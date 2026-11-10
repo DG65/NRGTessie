@@ -2,16 +2,16 @@
     "elements": [
         {
             "type": "ExpansionPanel",
-            "caption": "📖 Dokumentation & Hilfe",
+            "caption": "📖 Documentation & help",
             "expanded": false,
             "items": [
                 {
                     "type": "Label",
-                    "caption": "── Funktionsweise ──"
+                    "caption": "── How it works ──"
                 },
                 {
                     "type": "Label",
-                    "caption": "Das Modul verbindet dein Tesla-Fahrzeug über die Tessie-Cloud mit IP-Symcon. Zustandsdaten kommen auf zwei Wegen: per REST-Abfrage im eingestellten Update-Intervall (kompletter Fahrzeugzustand) und – sofern im Konfigurator eingerichtet – per Telemetrie-Push in Echtzeit, sobald das Fahrzeug etwas meldet. Befehle (Verriegeln, Klima, Laden …) gehen als beschreibbare Variablen über die REST-API zurück ans Fahrzeug."
+                    "caption": "The module connects your Tesla vehicle to Symcon through the Tessie cloud. State data arrives in two ways: by REST query at the configured update interval (complete vehicle state) and – if set up in the configurator – by real-time telemetry push as soon as the vehicle reports something. Commands (lock, climate, charging …) go back to the vehicle through the REST API as writable variables."
                 },
                 {
                     "type": "Image",
@@ -19,27 +19,27 @@
                 },
                 {
                     "type": "Label",
-                    "caption": "Tipp zum Update-Intervall: 0 deaktiviert die zyklische Abfrage (sinnvoll, wenn Telemetrie aktiv ist – dann genügt z. B. 300–900 s als Sicherheitsnetz). Häufiges Abfragen kann das Fahrzeug am Einschlafen hindern und den Standby-Verbrauch erhöhen; Tessie puffert Abfragen jedoch und weckt das Fahrzeug nicht."
+                    "caption": "Tip on the update interval: 0 disables the cyclic query (sensible when telemetry is active – then e.g. 300–900 s is enough as a safety net). Querying frequently can keep the vehicle from falling asleep and increase standby consumption; however, Tessie buffers queries and does not wake the vehicle."
                 },
                 {
                     "type": "Label",
-                    "caption": "── Liste 'Datenpunkte' ──"
+                    "caption": "── The 'Data points' list ──"
                 },
                 {
                     "type": "Label",
-                    "caption": "Jede Zeile ist eine Variable der Instanz. 'Aktiv' blendet den Datenpunkt ein oder aus – deaktivierte Variablen werden nur versteckt, Objekt-ID und Archivdaten bleiben erhalten. Die Reihenfolge per Ziehen und Ablegen bestimmt auch die Position im Objektbaum. 'Empfangen' zeigt, ob das Fahrzeug diesen Wert schon einmal geliefert hat. Telemetrie-Datenpunkte (Ident 'stat_tel_…') erscheinen automatisch, sobald das Fahrzeug sie erstmals sendet."
+                    "caption": "Each row is a variable of the instance. 'Active' shows or hides the data point – deactivated variables are only hidden; object ID and archive data are kept. The order set by drag and drop also determines the position in the object tree. 'Received' shows whether the vehicle has delivered this value at least once. Telemetry data points (ident 'stat_tel_…') appear automatically as soon as the vehicle sends them for the first time."
                 },
                 {
                     "type": "Label",
-                    "caption": "Die Schaltflächen unten setzen die Liste nur im offenen Formular zurück bzw. um – gespeichert wird erst mit 'Änderungen übernehmen'."
+                    "caption": "The buttons below only reset or change the list in the open form – it is saved only with 'Apply changes'."
                 },
                 {
                     "type": "Label",
-                    "caption": "── Standorte (Geofence) ──"
+                    "caption": "── Locations (geofence) ──"
                 },
                 {
                     "type": "Label",
-                    "caption": "Aus der GPS-Position (Datenpunkt 'Fahrzeugposition', GPS-Telemetrie muss aktiv sein) wird je Standort eine Schalter-Variable gesetzt, dazu die Textvariable 'Aktueller Standort'. Liegt das Fahrzeug in mehreren Zonen gleichzeitig, zeigt 'Aktueller Standort' den nächstgelegenen Standort; außerhalb aller Zonen steht dort 'Unterwegs'."
+                    "caption": "From the GPS position (data point 'Vehicle position', GPS telemetry must be active) a switch variable is set per location, plus the text variable 'Current location'. If the vehicle is in several zones at once, 'Current location' shows the nearest location; outside all zones it shows 'On the road'."
                 },
                 {
                     "type": "Image",
@@ -47,47 +47,47 @@
                 },
                 {
                     "type": "Label",
-                    "caption": "Bleibt 'Standort Zuhause' leer, übernimmt das Modul automatisch den Systemstandort aus der Kern-Instanz 'Location' – dort ist dein Zuhause in der Regel bereits gepflegt. Eine eigene Angabe hat Vorrang. Entfernte oder umbenannte Standorte werden nicht gelöscht, sondern nur ausgeblendet."
+                    "caption": "If 'Home location' is left empty, the module automatically takes over the system location from the core instance 'Location' – your home is usually already maintained there. An own entry takes precedence. Removed or renamed locations are not deleted but only hidden."
                 },
                 {
                     "type": "Label",
-                    "caption": "── Automationen (Wenn → Dann) ──"
+                    "caption": "── Automations (If → Then) ──"
                 },
                 {
                     "type": "Label",
-                    "caption": "Regeln über beliebige Datenpunkte: 'Wenn <Datenpunkt> <Bedingung> → <Zielvariable> <Aktion>'. Bedingungen: wird EIN/AUS (für Schalter), Vergleiche (=, ≠, >, ≥, <, ≤) für Zahlen und Texte, 'ändert sich' für jede Wertänderung, 'Durchfahrt (Standort)' für Standort-Variablen. Beispiele: 'Wenn Ladestand ≥ 80 → Wallbox-Freigabe ausschalten', 'Wenn Zu Hause wird EIN → Garagentor einschalten' (= Einfahrt), 'Wenn Ortseingang Durchfahrt → Heizung einschalten'. Regeln sind flankengesteuert: sie feuern beim Eintreten der Bedingung, nicht bei jeder Datenmeldung erneut – erst wenn die Bedingung zwischenzeitlich nicht mehr erfüllt war, feuert die Regel wieder. Nach 'Änderungen übernehmen' wird der Ausgangszustand neu eingelesen, ohne auszulösen. Die Regeln lassen sich komplett in der Kachel (TessieVehicleTile) verwalten. Eine Regel kann auch MEHRERE Bedingungen mit UND verknüpfen (im Instanzformular derzeit nur über den Kachel-Editor einstellbar, siehe unten) – Beispiel: 'Wenn Zu Hause wird EIN UND Ladestand < 30 → Ladeport öffnen'. Bei mehreren Bedingungen feuert die Regel, sobald ALLE gleichzeitig erfüllt sind (wieder flankengesteuert). Die Liste unten zeigt bei einer solchen Regel nur die erste Bedingung – wird die Regel HIER (ohne die Kachel) übernommen, bleibt nur diese erste Bedingung erhalten, weitere UND-Bedingungen entfallen dann. Datenpunkte mit festen Werten (Sitzheizung, Klimahaltung, Überhitzeschutz-Limit) zeigen den Vergleichswert in der Kachel als Dropdown mit Klartext an, sobald =/≠/… gewählt ist – wechselt die Bedingung dabei automatisch von 'wird EIN/AUS' auf '=', da das bei mehrwertigen Datenpunkten sinnvoller ist."
+                    "caption": "Rules over any data points: 'If <data point> <condition> → <target variable> <action>'. Conditions: becomes ON/OFF (for switches), comparisons (=, ≠, >, ≥, <, ≤) for numbers and texts, 'changes' for every value change, 'Drive-through (location)' for location variables. Examples: 'If charge level ≥ 80 → switch off wallbox release', 'If At home becomes ON → switch on garage door' (= arrival), 'If Village entrance drive-through → switch on heating'. Rules are edge-triggered: they fire when the condition becomes true, not again on every data message – only after the condition was no longer met in between does the rule fire again. After 'Apply changes' the initial state is read in again without triggering. The rules can be managed completely in the tile (TessieVehicleTile). A rule can also combine SEVERAL conditions with AND (in the instance form currently only adjustable through the tile editor, see below) – example: 'If At home becomes ON AND charge level < 30 → open charge port'. With several conditions the rule fires as soon as ALL are met at the same time (again edge-triggered). For such a rule the list below shows only the first condition – if the rule is applied HERE (without the tile), only this first condition is kept and further AND conditions are dropped. Data points with fixed values (seat heater, climate keeper, overheat protection limit) show the comparison value in the tile as a dropdown with plain text as soon as =/≠/… is chosen – the condition then switches automatically from 'becomes ON/OFF' to '=', which makes more sense for multi-valued data points."
                 },
                 {
                     "type": "Label",
-                    "caption": "Standort-Ereignisse: Die Variablen der Standort-Erkennung sind normale Datenpunkte der Automationen – 'wird EIN' entspricht der Einfahrt in die Zone, 'wird AUS' der Ausfahrt, 'Durchfahrt (Standort)' feuert bei Ein- und Ausfahrt binnen 15 Minuten (z. B. Vorbeifahren ohne Parken). Ausgelöst wird nur beim Zonenwechsel, nicht bei jeder Positionsmeldung. Hinweis: Die Reaktionszeit hängt von der GPS-Telemetrie ab; sehr kleine Zonen (< 50 m) können bei schneller Fahrt übersprungen werden."
+                    "caption": "Location events: The variables of the location detection are ordinary data points of the automations – 'becomes ON' corresponds to entering the zone, 'becomes OFF' to leaving it, 'Drive-through (location)' fires on entering and leaving within 15 minutes (e.g. driving past without parking). It is triggered only on a zone change, not on every position message. Note: the reaction time depends on the GPS telemetry; very small zones (< 50 m) can be skipped when driving fast."
                 },
                 {
                     "type": "Label",
-                    "caption": "── Linkstruktur ──"
+                    "caption": "── Link structure ──"
                 },
                 {
                     "type": "Label",
-                    "caption": "Optional erzeugt das Modul am gewählten Zielort einen gruppierten Kategoriebaum (Laden, Klima, Sicherheit, Sonstiges) mit Links auf alle aktiven Datenpunkte – praktisch für die Visualisierung, ohne die Instanz selbst umzubauen. 'Links automatisch bereinigen' entfernt Links deaktivierter Datenpunkte."
+                    "caption": "Optionally the module creates a grouped category tree (Charging, Climate, Security, Other) at the chosen target location, with links to all active data points – handy for visualization without restructuring the instance itself. 'Clean up links automatically' removes links of deactivated data points."
                 },
                 {
                     "type": "Label",
-                    "caption": "── Status & Fehlerdiagnose ──"
+                    "caption": "── Status & troubleshooting ──"
                 },
                 {
                     "type": "Label",
-                    "caption": "Das Statussymbol im Objektbaum zeigt Betriebsprobleme, ohne dass du ins Protokoll schauen musst: 'API-Fehler' bedeutet, dass der Zugangsschlüssel ungültig geworden ist oder die Tessie-API wiederholt nicht erreichbar war (erst nach zwei Fehlschlägen in Folge, damit ein einzelner Aussetzer nicht gleich alarmiert). 'Telemetrie veraltet' bedeutet, dass seit über 15 Minuten keine neuen Daten mehr vom Fahrzeug ankamen. Das ist meist harmlos (Fahrzeug schläft), kann aber auch einen getrennten Telemetrie-Stream trotz erreichbarem Fahrzeug anzeigen – wer das automatisiert unterscheiden will, kann bei TESSIE_GetVehicleState() den zusätzlichen Wert 'vehicleStatus' (asleep/waiting_for_sleep/awake) heranziehen. Beide Zustände verschwinden automatisch, sobald sich die Lage normalisiert."
+                    "caption": "The status icon in the object tree shows operating problems without you having to look at the log: 'API error' means the access token has become invalid or the Tessie API was repeatedly unreachable (only after two failures in a row, so that a single hiccup does not raise an alarm). 'Telemetry outdated' means that no new data has arrived from the vehicle for over 15 minutes. This is usually harmless (the vehicle is asleep), but can also indicate a disconnected telemetry stream although the vehicle is reachable – to tell these apart automatically, use the additional value 'vehicleStatus' (asleep/waiting_for_sleep/awake) of TESSIE_GetVehicleState(). Both states disappear automatically once the situation returns to normal."
                 },
                 {
                     "type": "Label",
-                    "caption": "Die Schaltfläche 'Fahrzeug jetzt aufwecken' hilft genau in diesem Fall: sie weckt das Fahrzeug gezielt, statt auf die nächste automatische Statusabfrage zu warten. 'Übernehmen erzwingen' wendet die Instanz auch ohne Formularänderung neu an – praktisch, um nach einem Modul-Update zu prüfen, ob alles angekommen ist."
+                    "caption": "The button 'Wake vehicle now' helps in exactly this case: it wakes the vehicle on purpose instead of waiting for the next automatic status query. 'Force apply' re-applies the instance even without a form change – handy for checking after a module update that everything has arrived."
                 },
                 {
                     "type": "Label",
-                    "caption": "── Weitere Hilfe ──"
+                    "caption": "── More help ──"
                 },
                 {
                     "type": "Label",
-                    "caption": "Ausführliche Dokumentation, Changelog und Fehlermeldungen: github.com/DG65/NRGTessie. Das Modul ist ein privates Community-Projekt und steht in keiner Verbindung zu Tesla, Inc. oder Tessie – Nutzung auf eigene Verantwortung."
+                    "caption": "Detailed documentation, changelog and error reports: github.com/DG65/NRGTessie. This module is a private community project and is not affiliated with Tesla, Inc. or Tessie – use at your own risk."
                 }
             ]
         },
@@ -97,21 +97,21 @@
                 {
                     "type": "NumberSpinner",
                     "name": "UpdateInterval",
-                    "caption": "Update Intervall (Sekunden)",
+                    "caption": "Update interval (seconds)",
                     "suffix": " s",
                     "minimum": 0,
                     "maximum": 3600
                 },
                 {
                     "type": "PopupButton",
-                    "caption": "Was macht das Update-Intervall?",
+                    "caption": "What does the update interval do?",
                     "width": "470px",
                     "popup": {
-                        "caption": "Was macht das Update-Intervall?",
+                        "caption": "What does the update interval do?",
                         "items": [
                             {
                                 "type": "Label",
-                                "caption": "Steuert nur die regelmäßige Statusabfrage (schlaf-sicher – weckt das Fahrzeug nie von selbst). Die eigentlichen Telemetriewerte (Ladestand, Standort, Temperaturen …) kommen unabhängig davon per Push in Echtzeit an, sobald Tesla sie sendet – ein kleinerer Wert hier beschleunigt sie nicht. 0 = Abfrage deaktiviert."
+                                "caption": "Controls only the regular status query (sleep-safe – it never wakes the vehicle by itself). The actual telemetry values (charge level, location, temperatures …) arrive independently by real-time push as soon as Tesla sends them – a smaller value here does not speed them up. 0 = query disabled."
                             }
                         ]
                     }
@@ -121,17 +121,17 @@
         {
             "type": "SelectCategory",
             "name": "InstanceLocation",
-            "caption": "Ablageort Instanz (optional)",
+            "caption": "Instance location (optional)",
             "onChange": "TESSIE_SetInstanceLocation($id, $InstanceLocation);"
         },
         {
             "type": "Label",
-            "caption": "Telemetrie-Variablen werden automatisch angelegt, sobald das Fahrzeug die entsprechenden Daten sendet."
+            "caption": "Telemetry variables are created automatically as soon as the vehicle sends the corresponding data."
         },
         {
             "type": "List",
             "name": "VisibleVars",
-            "caption": "Datenpunkte",
+            "caption": "Data points",
             "rowCount": 15,
             "add": false,
             "delete": false,
@@ -139,7 +139,7 @@
             "loadValuesFromConfiguration": false,
             "columns": [
                 {
-                    "caption": "Aktiv",
+                    "caption": "Active",
                     "name": "Enabled",
                     "width": "80px",
                     "add": true,
@@ -154,7 +154,7 @@
                     "add": ""
                 },
                 {
-                    "caption": "Gruppe",
+                    "caption": "Group",
                     "name": "Gruppe",
                     "width": "170px",
                     "add": ""
@@ -167,7 +167,7 @@
                     "save": true
                 },
                 {
-                    "caption": "Empfangen",
+                    "caption": "Received",
                     "name": "Empfangen",
                     "width": "110px",
                     "add": ""
@@ -177,26 +177,26 @@
         },
         {
             "type": "Label",
-            "caption": "Deaktivierte Datenpunkte werden ausgeblendet - Objekt-ID und Archivdaten bleiben erhalten. Neue Telemetrie wird nur angelegt, solange aktiviert. Zeilen per Ziehen und Ablegen sortieren - Variablen und Links folgen der Reihenfolge."
+            "caption": "Deactivated data points are hidden - object ID and archive data are kept. New telemetry is only created while enabled. Sort rows by drag and drop - variables and links follow the order."
         },
         {
             "type": "ExpansionPanel",
-            "caption": "Automationen (Wenn → Dann)",
+            "caption": "Automations (If → Then)",
             "items": [
                 {
                     "type": "Label",
-                    "caption": "Regeln über beliebige Datenpunkte des Fahrzeugs: sobald die Bedingung erfüllt wird, schaltet das Modul die Zielvariable. Flankengesteuert – eine Regel feuert beim Eintreten der Bedingung, nicht bei jeder Datenmeldung erneut. Die Kachel kann Regeln anzeigen und ein-/ausschalten."
+                    "caption": "Rules over any data points of the vehicle: as soon as the condition is met, the module switches the target variable. Edge-triggered – a rule fires when the condition becomes true, not again on every data message. The tile can show rules and switch them on/off."
                 },
                 {
                     "type": "List",
                     "name": "DataActions",
-                    "caption": "Regeln",
+                    "caption": "Rules",
                     "rowCount": 6,
                     "add": true,
                     "delete": true,
                     "columns": [
                         {
-                            "caption": "Aktiv",
+                            "caption": "Active",
                             "name": "Active",
                             "width": "70px",
                             "add": true,
@@ -205,7 +205,7 @@
                             }
                         },
                         {
-                            "caption": "Wenn Datenpunkt",
+                            "caption": "If data point",
                             "name": "Source",
                             "width": "230px",
                             "add": "",
@@ -215,7 +215,7 @@
                             }
                         },
                         {
-                            "caption": "Bedingung",
+                            "caption": "Condition",
                             "name": "Op",
                             "width": "140px",
                             "add": "true",
@@ -223,50 +223,50 @@
                                 "type": "Select",
                                 "options": [
                                     {
-                                        "caption": "wird EIN (true)",
+                                        "caption": "becomes ON (true)",
                                         "value": "true"
                                     },
                                     {
-                                        "caption": "wird AUS (false)",
+                                        "caption": "becomes OFF (false)",
                                         "value": "false"
                                     },
                                     {
-                                        "caption": "= (gleich)",
+                                        "caption": "= (equal)",
                                         "value": "eq"
                                     },
                                     {
-                                        "caption": "≠ (ungleich)",
+                                        "caption": "≠ (not equal)",
                                         "value": "ne"
                                     },
                                     {
-                                        "caption": "> (größer)",
+                                        "caption": "> (greater)",
                                         "value": "gt"
                                     },
                                     {
-                                        "caption": "≥ (größer gleich)",
+                                        "caption": "≥ (greater or equal)",
                                         "value": "ge"
                                     },
                                     {
-                                        "caption": "< (kleiner)",
+                                        "caption": "< (less)",
                                         "value": "lt"
                                     },
                                     {
-                                        "caption": "≤ (kleiner gleich)",
+                                        "caption": "≤ (less or equal)",
                                         "value": "le"
                                     },
                                     {
-                                        "caption": "ändert sich",
+                                        "caption": "changes",
                                         "value": "change"
                                     },
                                     {
-                                        "caption": "Durchfahrt (Standort)",
+                                        "caption": "Drive-through (location)",
                                         "value": "pass"
                                     }
                                 ]
                             }
                         },
                         {
-                            "caption": "Vergleichswert",
+                            "caption": "Comparison value",
                             "name": "Compare",
                             "width": "115px",
                             "add": "",
@@ -275,7 +275,7 @@
                             }
                         },
                         {
-                            "caption": "Dann Zielvariable",
+                            "caption": "Then target variable",
                             "name": "Target",
                             "width": "auto",
                             "add": 0,
@@ -284,7 +284,7 @@
                             }
                         },
                         {
-                            "caption": "Aktion",
+                            "caption": "Action",
                             "name": "Action",
                             "width": "140px",
                             "add": "on",
@@ -292,26 +292,26 @@
                                 "type": "Select",
                                 "options": [
                                     {
-                                        "caption": "Einschalten",
+                                        "caption": "Switch on",
                                         "value": "on"
                                     },
                                     {
-                                        "caption": "Ausschalten",
+                                        "caption": "Switch off",
                                         "value": "off"
                                     },
                                     {
-                                        "caption": "Umschalten",
+                                        "caption": "Toggle",
                                         "value": "toggle"
                                     },
                                     {
-                                        "caption": "Wert setzen",
+                                        "caption": "Set value",
                                         "value": "value"
                                     }
                                 ]
                             }
                         },
                         {
-                            "caption": "Wert",
+                            "caption": "Value",
                             "name": "Value",
                             "width": "100px",
                             "add": "",
@@ -323,51 +323,51 @@
                 },
                 {
                     "type": "Label",
-                    "caption": "'Vergleichswert' nur bei =, ≠, >, ≥, <, ≤ nötig; 'Wert' nur bei Aktion 'Wert setzen'. Zahlen mit Punkt oder Komma. Die Zielvariable wird per Aktion geschaltet (wie ein Klick in der Visualisierung); Variablen ohne Aktion werden direkt beschrieben."
+                    "caption": "'Comparison value' is only needed for =, ≠, >, ≥, <, ≤; 'Value' only for the action 'Set value'. Numbers with a period or comma. The target variable is switched through its action (like a click in the visualization); variables without an action are written directly."
                 },
                 {
                     "type": "Label",
-                    "caption": "Werte zum Nachschlagen (die Kachel bietet diese als Dropdown an, hier nur als Freitext möglich):"
+                    "caption": "Values for reference (the tile offers these as a dropdown; here only free text is possible):"
                 },
                 {
                     "type": "Label",
-                    "caption": "Sitzheizung Fahrer/Beifahrer: 0 Aus · 1 Niedrig · 2 Mittel · 3 Hoch"
+                    "caption": "Driver/passenger seat heater: 0 Off · 1 Low · 2 Medium · 3 High"
                 },
                 {
                     "type": "Label",
-                    "caption": "Klimahaltung: 0 Aus · 1 Behalten · 2 Hund · 3 Camp-Modus"
+                    "caption": "Climate keeper: 0 Off · 1 Keep · 2 Dog · 3 Camp mode"
                 },
                 {
                     "type": "Label",
-                    "caption": "Innenraum-Überhitzeschutz: Temperaturlimit: 1 Niedrig · 2 Mittel · 3 Hoch"
+                    "caption": "Cabin overheat protection: temperature limit: 1 Low · 2 Medium · 3 High"
                 },
                 {
                     "type": "Label",
-                    "caption": "── Standorte (Geofence) ──"
+                    "caption": "── Locations (geofence) ──"
                 },
                 {
                     "type": "Label",
-                    "caption": "Legt je Standort eine Status-Variable an ('Zu Hause' bzw. Standortname), die true wird, sobald die Fahrzeugposition innerhalb des Radius liegt, sowie eine Textvariable 'Aktueller Standort' (Standortname bzw. 'Unterwegs'). Benötigt aktive GPS-Telemetrie (Datenpunkt 'Fahrzeugposition'). Bei Deaktivierung oder Entfernen bleiben die Variablen erhalten (nur ausgeblendet)."
+                    "caption": "Creates a status variable per location ('At home' or the location name) that becomes true as soon as the vehicle position is within the radius, plus a text variable 'Current location' (location name or 'On the road'). Requires active GPS telemetry (data point 'Vehicle position'). When disabled or removed, the variables are kept (only hidden)."
                 },
                 {
                     "type": "CheckBox",
                     "name": "HomeDetection",
-                    "caption": "Standort-Erkennung aktivieren"
+                    "caption": "Enable location detection"
                 },
                 {
                     "type": "SelectLocation",
                     "name": "HomeLocation",
-                    "caption": "Standort Zuhause (leer = Systemstandort aus Kern-Instanz 'Location')"
+                    "caption": "Home location (empty = system location from the core instance 'Location')"
                 },
                 {
                     "type": "Label",
                     "name": "HomeSourceStatus",
-                    "caption": "Standort Zuhause wird ermittelt …"
+                    "caption": "Determining home location …"
                 },
                 {
                     "type": "NumberSpinner",
                     "name": "HomeRadius",
-                    "caption": "Radius Zuhause",
+                    "caption": "Home radius",
                     "suffix": " m",
                     "minimum": 10,
                     "maximum": 5000
@@ -375,7 +375,7 @@
                 {
                     "type": "List",
                     "name": "GeofenceList",
-                    "caption": "Weitere Standorte",
+                    "caption": "Additional locations",
                     "rowCount": 5,
                     "add": true,
                     "delete": true,
@@ -399,7 +399,7 @@
                             }
                         },
                         {
-                            "caption": "Standort",
+                            "caption": "Position",
                             "name": "Location",
                             "width": "auto",
                             "add": "",
@@ -423,32 +423,32 @@
                 },
                 {
                     "type": "Label",
-                    "caption": "Der Name des Standorts wird als Variablenname und in 'Aktueller Standort' verwendet. Bei überlappenden Zonen gewinnt der nächstgelegene Standort. 'Icon' ist ein optionales Emoji für die Kachel (z. B. 🏢 für Arbeit) – leer lassen für den Standard-Pin 📍."
+                    "caption": "The location name is used as the variable name and in 'Current location'. With overlapping zones the nearest location wins. 'Icon' is an optional emoji for the tile (e.g. 🏢 for work) – leave empty for the default pin 📍."
                 }
             ]
         },
         {
             "type": "ExpansionPanel",
-            "caption": "Linkstruktur (optional)",
+            "caption": "Link structure (optional)",
             "items": [
                 {
                     "type": "Label",
-                    "caption": "Rein optisch, für die Übersicht im Objektbaum – für die Funktion des Moduls nicht nötig. Erzeugt am gewählten Zielort einen gruppierten Kategoriebaum (Laden, Klima, Sicherheit, Sonstiges) mit Links auf alle aktiven Datenpunkte. Ohne Zielkategorie passiert nichts. Links deaktivierter Datenpunkte werden automatisch entfernt."
+                    "caption": "Purely visual, for an overview in the object tree – not needed for the module to work. Creates a grouped category tree (Charging, Climate, Security, Other) at the chosen target location, with links to all active data points. Without a target category nothing happens. Links of deactivated data points are removed automatically."
                 },
                 {
                     "type": "CheckBox",
                     "name": "CreateLinks",
-                    "caption": "Linkstruktur erzeugen"
+                    "caption": "Create link structure"
                 },
                 {
                     "type": "SelectCategory",
                     "name": "LinksLocation",
-                    "caption": "Zielkategorie"
+                    "caption": "Target category"
                 },
                 {
                     "type": "CheckBox",
                     "name": "CleanupLinks",
-                    "caption": "Links automatisch bereinigen"
+                    "caption": "Clean up links automatically"
                 }
             ]
         }
@@ -456,59 +456,59 @@
     "actions": [
         {
             "type": "Button",
-            "caption": "Reset: Standardliste wiederherstellen",
-            "confirm": "Wirklich die Variablenliste und Reihenfolge auf Standard zurücksetzen?",
+            "caption": "Reset: restore default list",
+            "confirm": "Really reset the variable list and order to the default?",
             "onClick": "TESSIE_ResetVisibleVars($id);"
         },
         {
             "type": "Button",
             "name": "ToggleTelemetry",
-            "caption": "Telemetrie: alle einblenden",
+            "caption": "Telemetry: show all",
             "onClick": "TESSIE_ToggleAllTelemetry($id);"
         },
         {
             "type": "Button",
-            "caption": "Telemetrie: nur wichtige einblenden",
-            "confirm": "Nicht wichtige Telemetrie-Datenpunkte werden ausgeblendet. Fortfahren?",
+            "caption": "Telemetry: show only important",
+            "confirm": "Non-important telemetry data points will be hidden. Continue?",
             "onClick": "TESSIE_SetImportantTelemetryEnabled($id);"
         },
         {
             "type": "Button",
-            "caption": "Telemetrie: Namen aktualisieren",
-            "confirm": "Telemetrie-Variablennamen im Objektbaum anhand locale.json aktualisieren?",
+            "caption": "Telemetry: update names",
+            "confirm": "Update the telemetry variable names in the object tree from locale.json?",
             "onClick": "echo TESSIE_RenameTelemetryVariables($id);"
         },
         {
             "type": "Button",
-            "caption": "🔄 Übernehmen erzwingen (ohne Formularänderung)",
-            "confirm": "Instanz jetzt neu anwenden (IPS_ApplyChanges), auch ohne Formularänderung? Praktisch nach einem Modul-Update.",
+            "caption": "🔄 Force apply (without form change)",
+            "confirm": "Re-apply the instance now (IPS_ApplyChanges), even without a form change? Handy after a module update.",
             "onClick": "IPS_ApplyChanges($id); echo '✅ ApplyChanges() ausgeführt.';"
         },
         {
             "type": "Button",
-            "caption": "🔔 Fahrzeug jetzt aufwecken",
+            "caption": "🔔 Wake vehicle now",
             "onClick": "echo TESSIE_WakeUp($id);"
         },
         {
             "type": "Label",
-            "caption": "Name/Ident sind schreibgeschützt - du änderst nur 'Aktiv'. Reihenfolge per Ziehen und Ablegen (danach Übernehmen)."
+            "caption": "Name/Ident are read-only - you only change 'Active'. Order by drag and drop (then apply)."
         }
     ],
     "status": [
         {
             "code": 102,
             "icon": "active",
-            "caption": "Aktiv"
+            "caption": "Active"
         },
         {
             "code": 201,
             "icon": "error",
-            "caption": "API-Fehler (Zugangsschlüssel ungültig oder Tessie-API nicht erreichbar)"
+            "caption": "API error (access token invalid or Tessie API unreachable)"
         },
         {
             "code": 203,
             "icon": "inactive",
-            "caption": "Telemetrie seit über 15 Minuten nicht aktualisiert"
+            "caption": "Telemetry not updated for over 15 minutes"
         }
     ]
 }

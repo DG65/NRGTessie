@@ -84,9 +84,9 @@ class TessieConfigurator extends IPSModule
         if ($this->lastApiError !== '') {
             $reason = $this->lastApiError;
         } elseif ($code === 401 || $code === 403) {
-            $reason = 'von Tessie abgelehnt (HTTP ' . $code . ')';
+            $reason = sprintf($this->Translate('rejected by Tessie (HTTP %d)'), $code);
         } elseif ($code < 200 || $code >= 300) {
-            $reason = 'Tessie antwortete mit HTTP ' . $code;
+            $reason = sprintf($this->Translate('Tessie responded with HTTP %d'), $code);
         } else {
             $reason = '';
         }
@@ -105,18 +105,18 @@ class TessieConfigurator extends IPSModule
     private function tokenStatusLine(string $token, int $vehicleCount): string
     {
         if ($token === '') {
-            return 'ℹ️ Kein Zugangsschlüssel gespeichert – oben eintragen und „Änderungen übernehmen“ drücken.';
+            return $this->Translate('ℹ️ No access token saved – enter it above and press "Apply changes".');
         }
         $error = (string)$this->ReadAttributeString(self::ATTR_LAST_ERROR);
         $okTs = (int)$this->ReadAttributeInteger(self::ATTR_LAST_OK_TS);
-        $last = $okTs > 0 ? ', zuletzt erfolgreich geprüft: ' . date('d.m.Y H:i:s', $okTs) . ' Uhr' : '';
+        $last = $okTs > 0 ? sprintf($this->Translate(', last successfully checked: %s'), date($this->Translate('Y-m-d H:i:s'), $okTs)) : '';
         if ($error !== '') {
-            return '⚠️ Zugangsschlüssel gespeichert, aber die Prüfung beim Tessie-Konto ist fehlgeschlagen: ' . $error . $last . '.';
+            return sprintf($this->Translate('⚠️ Access token saved, but the check against the Tessie account failed: %s%s.'), $error, $last);
         }
         if ($vehicleCount === 0) {
-            return '⚠️ Zugangsschlüssel gespeichert und von Tessie akzeptiert, das Konto liefert aber keine Fahrzeuge' . $last . '.';
+            return sprintf($this->Translate('⚠️ Access token saved and accepted by Tessie, but the account returns no vehicles%s.'), $last);
         }
-        return '✅ Zugangsschlüssel gespeichert (wird aus Sicherheitsgründen nicht angezeigt) und von Tessie akzeptiert' . $last . '.';
+        return sprintf($this->Translate('✅ Access token saved (not displayed for security reasons) and accepted by Tessie%s.'), $last);
     }
 
     /**
@@ -141,10 +141,10 @@ class TessieConfigurator extends IPSModule
     {
         $ts = (int)$this->ReadAttributeInteger(self::ATTR_LAST_DISCOVERY_TS);
         if ($ts === 0) {
-            return 'ℹ️ Noch nicht gesucht – Zugangsschlüssel eintragen und übernehmen.';
+            return $this->Translate('ℹ️ Not searched yet – enter the access token and apply the changes.');
         }
         $icon = $count > 0 ? '✅' : '⚠️';
-        return sprintf('%s %d Fahrzeug(e) gefunden (zuletzt %s Uhr).', $icon, $count, date('H:i:s', $ts));
+        return sprintf($this->Translate('%s %d vehicle(s) found (last search at %s).'), $icon, $count, date('H:i:s', $ts));
     }
 
     /**
@@ -224,12 +224,12 @@ class TessieConfigurator extends IPSModule
         }
         return [
             'type' => 'ExpansionPanel', 'name' => 'PurposeIntroPanel', 'expanded' => true,
-            'caption' => '👋  Wozu dieses Modul?',
+            'caption' => '👋  What is this module for?',
             'items' => [
-                ['type' => 'Label', 'caption' => 'Der Tessie Konfigurator ist der Einstiegspunkt: Zugangsschlüssel eintragen, Fahrzeuge deines Tessie-Kontos finden und per Klick die passende TessieVehicle-Instanz samt Telemetrie-Verbindung anlegen.'],
-                ['type' => 'Label', 'caption' => 'Der Nutzen: du richtest nichts von Hand ein – Instanz, WebSocket-Verbindung und Datenpunkte entstehen automatisch. Nach dem Einrichten brauchst du dieses Modul nur noch, wenn ein weiteres Fahrzeug hinzukommt oder sich der Zugangsschlüssel ändert.'],
-                ['type' => 'Label', 'caption' => 'Für die eigentliche Fahrzeugsteuerung/-anzeige ist TessieVehicle zuständig, für eine Kachel-Ansicht TessieVehicleTile.'],
-                ['type' => 'Button', 'caption' => 'Verstanden – nicht mehr anzeigen', 'onClick' => 'TESSIE_AckConfiguratorPurposeIntro($id);'],
+                ['type' => 'Label', 'caption' => 'The Tessie Configurator is the starting point: enter your access token, find the vehicles of your Tessie account and create the matching TessieVehicle instance, including its telemetry connection, with a single click.'],
+                ['type' => 'Label', 'caption' => 'The benefit: you set nothing up by hand – the instance, the WebSocket connection and the data points are created automatically. Once everything is set up, you only need this module again when another vehicle is added or the access token changes.'],
+                ['type' => 'Label', 'caption' => 'TessieVehicle handles the actual vehicle control and display; TessieVehicleTile provides a tile view.'],
+                ['type' => 'Button', 'caption' => 'Got it – do not show again', 'onClick' => 'TESSIE_AckConfiguratorPurposeIntro($id);'],
             ],
         ];
     }
@@ -339,11 +339,11 @@ class TessieConfigurator extends IPSModule
         }
         return [
             'type' => 'ExpansionPanel', 'name' => 'ForumHintPanel', 'expanded' => true,
-            'caption' => '💬  Feedback im Symcon-Forum',
+            'caption' => '💬  Feedback in the Symcon forum',
             'items' => [
-                ['type' => 'Label', 'caption' => 'Tessie ist Beta – Rückmeldungen, Ideen und Erfahrungsberichte sind ausdrücklich willkommen im Community-Thread.'],
-                ['type' => 'Button', 'caption' => 'Zum Forums-Thread', 'onClick' => "echo '" . self::FORUM_THREAD_URL . "';", 'link' => true],
-                ['type' => 'Button', 'caption' => 'Verstanden – nicht mehr anzeigen', 'onClick' => 'TESSIE_AckConfiguratorForumHint($id);'],
+                ['type' => 'Label', 'caption' => 'Tessie is in beta – feedback, ideas and field reports are very welcome in the community thread.'],
+                ['type' => 'Button', 'caption' => 'To the forum thread', 'onClick' => "echo '" . self::FORUM_THREAD_URL . "';", 'link' => true],
+                ['type' => 'Button', 'caption' => 'Got it – do not show again', 'onClick' => 'TESSIE_AckConfiguratorForumHint($id);'],
             ],
         ];
     }
@@ -368,14 +368,14 @@ class TessieConfigurator extends IPSModule
     {
         return [
             'type' => 'ExpansionPanel', 'expanded' => false,
-            'caption' => '🧡  Über dieses Modul',
+            'caption' => '🧡  About this module',
             'items' => [
-                ['type' => 'Label', 'caption' => 'Entstanden aus echter Begeisterung für die eigene Anlage — und ein paar durchgetippten Abenden. Trotzdem: Software-Hobby hin oder her, das hier ist geistiges Eigentum und echte Arbeit steckt drin.'],
-                ['type' => 'Label', 'caption' => 'Lizenz: PolyForm Noncommercial 1.0.0 — privat und nicht-kommerziell frei nutzbar, für den gewerblichen Einsatz braucht es eine gesonderte Lizenz vom Rechteinhaber.'],
-                ['type' => 'Button', 'caption' => 'Lizenztext ansehen', 'onClick' => "echo '" . self::LICENSE_URL . "';", 'link' => true],
-                ['type' => 'Label', 'caption' => 'Gewerbliche Nutzung oder Fragen zur Lizenz? Einfach melden: dietmar@gureth.eu'],
-                ['type' => 'Label', 'caption' => 'Gefällt dir das Modul und du möchtest trotzdem etwas dalassen? Über eine kleine Spende freue ich mich — völlig freiwillig, keine Gegenleistung nötig.'],
-                ['type' => 'Button', 'caption' => '☕  Spenden via PayPal', 'onClick' => "echo '" . self::PAYPAL_URL . "';", 'link' => true],
+                ['type' => 'Label', 'caption' => 'Born out of genuine enthusiasm for my own installation — and a few evenings of typing. Still: hobby software or not, this is intellectual property and real work went into it.'],
+                ['type' => 'Label', 'caption' => 'License: PolyForm Noncommercial 1.0.0 — free for private and non-commercial use; commercial use needs a separate license from the rights holder.'],
+                ['type' => 'Button', 'caption' => 'View license text', 'onClick' => "echo '" . self::LICENSE_URL . "';", 'link' => true],
+                ['type' => 'Label', 'caption' => 'Commercial use or questions about the license? Just get in touch: dietmar@gureth.eu'],
+                ['type' => 'Label', 'caption' => 'Do you like the module and still want to leave something? I would be happy about a small donation — completely voluntary, nothing owed in return.'],
+                ['type' => 'Button', 'caption' => '☕  Donate via PayPal', 'onClick' => "echo '" . self::PAYPAL_URL . "';", 'link' => true],
             ],
         ];
     }
@@ -384,7 +384,9 @@ class TessieConfigurator extends IPSModule
     {
         $token = $this->getToken();
         $v = $this->moduleVersion();
-        $dokuCaption = '📖 Dokumentation & Hilfe' . ($v !== '' ? ' (Modulversion ' . $v . ')' : '');
+        $dokuCaption = $v !== ''
+            ? sprintf($this->Translate('📖 Documentation & help (module version %s)'), $v)
+            : '📖 Documentation & help';
 
         // Fahrzeuge zuerst abfragen (Konto-Discovery), damit die Kopfzeile darunter
         // die aktuelle Trefferzahl kennt - siehe Verbund-Konvention "Einheitliche
@@ -397,19 +399,19 @@ class TessieConfigurator extends IPSModule
                 'caption' => $dokuCaption,
                 'expanded' => false,
                 'items' => [
-                    ['type' => 'Label', 'caption' => '── Funktionsweise ──'],
-                    ['type' => 'Label', 'caption' => 'Der Konfigurator listet alle Fahrzeuge deines Tessie-Kontos auf und legt per Klick auf \'Erstellen\' die passende TessieVehicle-Instanz samt Telemetrie-Verbindung (WebSocket) an. Ein einziger Zugangsschlüssel genügt sowohl für die Abfragen als auch für die Telemetrie.'],
-                    ['type' => 'Label', 'caption' => '── Zugangsschlüssel erstellen ──'],
-                    ['type' => 'Label', 'caption' => 'Auf my.tessie.com anmelden, dort unter Einstellungen → API einen Zugangsschlüssel erzeugen (in der Tessie-Oberfläche heißt er \'Access Token\') und hier eintragen. Gespeichert wird er ausschließlich lokal in deiner IP-Symcon-Installation. Nach \'Änderungen übernehmen\' erscheinen die Fahrzeuge in der Liste. Das Feld zeigt aus Sicherheitsgründen nie den gespeicherten Wert an und bleibt beim erneuten Öffnen leer – ein bestehender Schlüssel bleibt dabei erhalten, solange nichts eingetragen wird; zum Ändern einfach den neuen Schlüssel eintragen.'],
-                    ['type' => 'Label', 'caption' => '── Weitere Hilfe ──'],
-                    ['type' => 'Label', 'caption' => 'Ausführliche Dokumentation: github.com/DG65/NRGTessie. Das Modul ist ein privates Community-Projekt und steht in keiner Verbindung zu Tesla, Inc. oder Tessie.']
+                    ['type' => 'Label', 'caption' => '── How it works ──'],
+                    ['type' => 'Label', 'caption' => 'The configurator lists all vehicles of your Tessie account and, with a click on \'Create\', sets up the matching TessieVehicle instance including its telemetry connection (WebSocket). A single access token is enough for both queries and telemetry.'],
+                    ['type' => 'Label', 'caption' => '── Creating an access token ──'],
+                    ['type' => 'Label', 'caption' => 'Log in at my.tessie.com, create an access token under Settings → API (Tessie\'s interface calls it \'Access Token\') and enter it here. It is stored only locally in your Symcon installation. After \'Apply changes\' the vehicles appear in the list. For security reasons the field never shows the stored value and is empty when you reopen it – an existing token is kept as long as nothing is entered; to change it, simply enter the new token.'],
+                    ['type' => 'Label', 'caption' => '── More help ──'],
+                    ['type' => 'Label', 'caption' => 'Detailed documentation: github.com/DG65/NRGTessie. This module is a private community project and is not affiliated with Tesla, Inc. or Tessie.']
                 ]
             ],
-            ['type' => 'Label', 'label' => 'Tessie Konfigurator – Fahrzeuge'],
-            // Eigenschaftsname 'Token' bleibt unverändert (Code-Bezeichner), nur die Beschriftung ist deutsch
-            ['type' => 'PasswordTextBox', 'name' => 'Token', 'caption' => 'Tessie-Zugangsschlüssel (bei Tessie \'Access Token\'; gilt für Abfragen und Telemetrie) – leer lassen, um den bestehenden Schlüssel zu behalten'],
+            ['type' => 'Label', 'label' => 'Tessie Configurator – vehicles'],
+            // The property name 'Token' stays unchanged (code identifier); only the caption is translated
+            ['type' => 'PasswordTextBox', 'name' => 'Token', 'caption' => 'Tessie access token (used for queries and telemetry) – leave empty to keep the existing token'],
             ['type' => 'Label', 'name' => 'TokenStatus', 'caption' => $this->tokenStatusLine($token, count($values))],
-            ['type' => 'Button', 'caption' => '🔎 Fahrzeuge jetzt suchen', 'onClick' => 'TESSIE_RefreshVehicles($id);'],
+            ['type' => 'Button', 'caption' => '🔎 Search for vehicles now', 'onClick' => 'TESSIE_RefreshVehicles($id);'],
             ['type' => 'Label', 'name' => 'DiscoverySummary', 'caption' => $this->getDiscoverySummaryLine(count($values))]
         ];
 
@@ -432,7 +434,7 @@ class TessieConfigurator extends IPSModule
                 [
                     'type' => 'Configurator',
                     'name' => 'Vehicles',
-                    'caption' => 'Fahrzeuge',
+                    'caption' => 'Vehicles',
                     'rowCount' => 12,
                     'delete' => true,
                     'values' => $values
@@ -568,7 +570,7 @@ class TessieConfigurator extends IPSModule
             [
                 'moduleID' => self::WS_CLIENT_MODULE_ID,
                 'configuration' => $wsCfg,
-                'name' => 'Tessie Telemetrie ' . $vin
+                'name' => $this->Translate('Tessie telemetry') . ' ' . $vin
             ]
         ];
     }
@@ -614,15 +616,15 @@ class TessieConfigurator extends IPSModule
 
         $this->lastHttpCode = $code;
         if ($resp === false) {
-            $this->SendDebug('API-Anfrage', 'cURL-Fehler: ' . $err, 0);
-            $this->lastApiError = 'keine Verbindung zu Tessie' . ($err !== '' ? ' (' . $err . ')' : '');
+            $this->SendDebug('API request', 'cURL error: ' . $err, 0);
+            $this->lastApiError = $this->Translate('no connection to Tessie') . ($err !== '' ? ' (' . $err . ')' : '');
             return [];
         }
 
         $json = json_decode($resp, true);
         if (!is_array($json)) {
-            $this->SendDebug('API-Anfrage', 'HTTP ' . $code . ' – keine JSON-Antwort: ' . substr($resp, 0, 500), 0);
-            $this->lastApiError = 'keine gültige Antwort von Tessie (HTTP ' . $code . ')';
+            $this->SendDebug('API request', 'HTTP ' . $code . ' – no JSON response: ' . substr($resp, 0, 500), 0);
+            $this->lastApiError = sprintf($this->Translate('no valid response from Tessie (HTTP %d)'), $code);
             return [];
         }
 

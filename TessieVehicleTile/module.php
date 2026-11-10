@@ -40,30 +40,54 @@ class TessieVehicleTile extends IPSModule
     // 'toggle': Ein/Aus-Variable, Beschriftung "<Name> einschalten/ausschalten";
     // 'momentary': löst nur aus, kein dauerhafter Zustand (Modul setzt selbst auf false zurück).
     private const BUTTON_CATALOG = [
-        'act_locked'            => ['name' => 'Verriegelung',                'kind' => 'lock'],
-        'act_climate'           => ['name' => 'Klimaanlage',                 'kind' => 'climate'],
-        'act_charging'          => ['name' => 'Laden',                       'kind' => 'charge'],
-        'act_sentry'            => ['name' => 'Wächtermodus',                'kind' => 'toggle'],
-        'act_valet'             => ['name' => 'Valet-Modus',                 'kind' => 'toggle'],
-        'act_defrost'           => ['name' => 'Max. Entfrosten',             'kind' => 'toggle'],
-        'act_steering_wheel'    => ['name' => 'Lenkradheizung',              'kind' => 'toggle'],
-        'act_cop_enabled'       => ['name' => 'Innenraum-Überhitzeschutz',   'kind' => 'toggle'],
-        'act_cop_fan_only'      => ['name' => 'Überhitzeschutz: nur Lüfter', 'kind' => 'toggle'],
-        'act_bio_defense'       => ['name' => 'Biowaffen-Schutzmodus',       'kind' => 'toggle'],
-        'act_homelink'          => ['name' => 'HomeLink auslösen',           'kind' => 'momentary'],
-        'act_front_trunk'       => ['name' => 'Vorderer Kofferraum öffnen',  'kind' => 'momentary'],
-        'act_rear_trunk'        => ['name' => 'Heckklappe öffnen/schließen', 'kind' => 'momentary'],
-        'act_flash'             => ['name' => 'Lichthupe',                   'kind' => 'momentary'],
-        'act_honk'              => ['name' => 'Hupe',                       'kind' => 'momentary'],
-        'act_open_charge_port'  => ['name' => 'Ladeport öffnen',            'kind' => 'momentary'],
-        'act_close_charge_port' => ['name' => 'Ladeport schließen',         'kind' => 'momentary'],
-        'act_vent_windows'      => ['name' => 'Fenster lüften',             'kind' => 'momentary'],
-        'act_close_windows'     => ['name' => 'Fenster schließen',          'kind' => 'momentary']
+        'act_locked'            => ['name' => 'Door lock',                'kind' => 'lock'],
+        'act_climate'           => ['name' => 'Climate control',                 'kind' => 'climate'],
+        'act_charging'          => ['name' => 'Start/stop charging',                       'kind' => 'charge'],
+        'act_sentry'            => ['name' => 'Sentry mode',                'kind' => 'toggle'],
+        'act_valet'             => ['name' => 'Valet mode',                 'kind' => 'toggle'],
+        'act_defrost'           => ['name' => 'Max defrost',             'kind' => 'toggle'],
+        'act_steering_wheel'    => ['name' => 'Steering wheel heater',              'kind' => 'toggle'],
+        'act_cop_enabled'       => ['name' => 'Cabin overheat protection',   'kind' => 'toggle'],
+        'act_cop_fan_only'      => ['name' => 'Overheat protection: fan only', 'kind' => 'toggle'],
+        'act_bio_defense'       => ['name' => 'Bioweapon defense mode',       'kind' => 'toggle'],
+        'act_homelink'          => ['name' => 'Trigger HomeLink',           'kind' => 'momentary'],
+        'act_front_trunk'       => ['name' => 'Open front trunk',  'kind' => 'momentary'],
+        'act_rear_trunk'        => ['name' => 'Open/close rear trunk', 'kind' => 'momentary'],
+        'act_flash'             => ['name' => 'Flash headlights',                   'kind' => 'momentary'],
+        'act_honk'              => ['name' => 'Honk horn',                       'kind' => 'momentary'],
+        'act_open_charge_port'  => ['name' => 'Open charge port',            'kind' => 'momentary'],
+        'act_close_charge_port' => ['name' => 'Close charge port',         'kind' => 'momentary'],
+        'act_vent_windows'      => ['name' => 'Vent windows',             'kind' => 'momentary'],
+        'act_close_windows'     => ['name' => 'Close windows',          'kind' => 'momentary']
     ];
 
     // Default-Belegung der Buttons-Liste: identisch zu den bisher fest verdrahteten
     // drei Buttons, damit bestehende Kacheln nach dem Update unverändert aussehen.
     private const DEFAULT_BUTTONS = '[{"Ident":"act_locked","Label":""},{"Ident":"act_climate","Label":""},{"Ident":"act_charging","Label":""}]';
+
+    // Sichtbare Texte der Kachel (module.html): englische Quelltexte. Die Uebersetzung wird einmal mit der
+    // ersten Nachricht an die Kachel geschickt (d.texts) - siehe GetFullUpdateMessage(). Der Pruefstand
+    // gleicht diese Liste mit module.html und locale.json ab.
+    private const KACHEL_TEXTE = [
+        'Charging power', 'Charge current actual/max', 'Charge limit', 'Time to full', 'Open map', 'Buttons',
+        '+ New button', 'Edit button', 'Function', 'Custom label (optional)', 'Cancel', 'Save', 'Edit location',
+        'Name', 'Icon (optional, for the tile)', 'Latitude', 'Longitude', '📍 Use current vehicle position',
+        'Radius (m)', 'Edit rule', 'If (several conditions are combined with AND)', '+ Condition (AND)',
+        'Then target variable',
+        'Switchable variables (with an action) are offered. Other targets can be chosen in the instance form.',
+        'Action', 'Switch on', 'Switch off', 'Toggle', 'Set value', 'Value', 'Edit buttons', 'empty = automatic',
+        'e.g. Work', '📍 (default)', 'e.g. 48.340874', 'e.g. 8.032679', 'Search (name or path) …', 'Home', 'Locked',
+        'Unlocked', 'inside', 'outside', 'Climate', 'on', 'off', 'Map', 'Automations', '+ New rule', 'Delete rule',
+        'Sure?', 'Deactivate rule: ', 'Activate rule: ', 'Locations', '+ New location',
+        'Deactivate location detection', 'Activate location detection', 'Delete location', '(system location)',
+        '(no location!)', '(invalid!)', 'No buttons yet – tap "+ New button".', 'Move up', 'Move down',
+        'Delete button', 'Done', 'New button', 'Edit home', 'New location',
+        'Leave empty = system location from the core instance "Location". Map selection is available in the instance form.',
+        'Enter coordinates or use the vehicle position. Map selection is available in the instance form.',
+        'Remove condition', 'Comparison value', 'IF', 'AND', 'New rule', 'becomes ON (true)', 'becomes OFF (false)',
+        '= (equal)', '≠ (not equal)', '> (greater)', '≥ (greater or equal)', '< (less)', '≤ (less or equal)',
+        'changes', 'Drive-through (location)'
+    ];
 
     // Standardwerte (auch für „Zurücksetzen")
     private const DEF_CHARGING = 0x27D07F;
@@ -88,16 +112,19 @@ class TessieVehicleTile extends IPSModule
     // ausführliche Begründung. Alter Block bleibt unter seiner letzten bisherigen Nummer (2.33.0).
     private const NEWS_VERSIONS = [
         '2.33.0' => [
-            'Neu ganz unten im Formular: ein eigenes Feedback-Panel für den Forum-Thread, und "Über dieses Modul" mit Lizenzinfo und Spenden-Link.',
-            'Hast du mehrere Fahrzeug-Kacheln: „Wozu dieses Modul?" und „Was ist neu?" musst du nur noch an einer Instanz wegklicken, nicht an jeder einzeln.',
-            '👋 Neue Zweck-Einführung ganz oben im Formular: kurz erklärt, was diese Kachel zeigt und wozu sie gut ist.',
-            'Wenn→Dann-Regeln der Quelle direkt hier anlegen, bearbeiten und löschen – inklusive mehrerer UND-Bedingungen.',
-            'Standorte (Geofence) der Quelle direkt hier verwalten, mit eigenem Icon je Standort.',
-            'Bedien-Schaltflächen: Anzahl, Reihenfolge und Beschriftung selbst wählen (Stift-Symbol neben „Schaltflächen").',
-            'Vergleichswert einer Regel erscheint als Auswahlliste mit Klartext, wenn der Datenpunkt feste Werte hat.'
+            'New at the very bottom of the form: a separate feedback panel for the forum thread, and "About this module" with license information and a donation link.',
+            'If you have several vehicle tiles: you only need to dismiss "What is this module for?" and "What is new?" on one instance, not on each one separately.',
+            '👋 New introduction at the very top of the form: a short explanation of what this tile shows and what it is good for.',
+            'Create, edit and delete the If→Then rules of the source right here – including several AND conditions.',
+            'Manage the locations (geofence) of the source right here, with an icon of its own per location.',
+            'Control buttons: choose the number, order and labels yourself (pencil icon next to "Buttons").',
+            'The comparison value of a rule appears as a selection list with plain text when the data point has fixed values.'
         ],
         '2.34.0' => [
-            'Zeigt jetzt live, welches Fahrzeug automatisch erkannt wurde (Name, Ladestand, Quelle) statt es nur zu behaupten – bei mehreren Fahrzeugen oder keinem Treffer erscheint stattdessen ein Hinweis mit Auswahlfeld.'
+            'Now shows live which vehicle was detected automatically (name, charge level, source) instead of merely claiming it – with several vehicles or no match, a notice with a selection field appears instead.'
+        ],
+        '2.39.0' => [
+            'Now bilingual (German/English): the tile and its form follow the language of your Symcon installation.'
         ]
     ];
 
@@ -210,7 +237,7 @@ class TessieVehicleTile extends IPSModule
             if (is_array($element) && ($element['type'] ?? '') === 'ExpansionPanel' && strpos((string)($element['caption'] ?? ''), '📖') === 0) {
                 $v = $this->moduleVersion();
                 if ($v !== '') {
-                    $element['caption'] = '📖 Dokumentation & Hilfe (Modulversion ' . $v . ')';
+                    $element['caption'] = sprintf($this->t('📖 Documentation & help (module version %s)'), $v);
                 }
                 break;
             }
@@ -223,7 +250,7 @@ class TessieVehicleTile extends IPSModule
         $source = $this->sourceStatus();
         $this->setLabelCaption($form['elements'], 'SourceStatus', $source['line'], strpos($source['line'], '🔗') === 0 ? self::AUTO_COLOR : -1);
         if ($source['auto']) {
-            $this->foldFieldIntoOverridePanel($form['elements'], 'SourceInstance', '✏️ Eigene Datenquelle stattdessen verwenden');
+            $this->foldFieldIntoOverridePanel($form['elements'], 'SourceInstance', '✏️ Use own data source instead');
         }
 
         // „Was ist neu"-Banner nach einem Update ganz oben.
@@ -304,51 +331,51 @@ class TessieVehicleTile extends IPSModule
         $configured = (int)$this->ReadPropertyInteger('SourceInstance');
         $list = IPS_GetInstanceListByModuleID(self::SOURCE_MODULE);
         $stale = ($configured > 0 && !IPS_InstanceExists($configured))
-            ? 'Die gewählte Datenquelle #' . $configured . ' existiert nicht mehr. ' : '';
+            ? sprintf($this->t('The selected data source #%d no longer exists. '), $configured) : '';
 
         $src = $this->ResolveSource();
         if ($src <= 0) {
             if (count($list) === 0) {
-                return ['auto' => false, 'line' => 'ℹ️ ' . $stale . 'Keine TessieVehicle-Instanz gefunden – die Kachel zeigt so lange keine Werte. Fahrzeug zuerst über den Tessie Configurator anlegen.'];
+                return ['auto' => false, 'line' => sprintf($this->t('ℹ️ %sNo TessieVehicle instance found – the tile shows no values until one exists. Create the vehicle through the Tessie Configurator first.'), $stale)];
             }
             $names = [];
             foreach ($list as $iid) {
-                $names[] = '#' . $iid . ' „' . IPS_GetName($iid) . '“';
+                $names[] = sprintf($this->t('#%d "%s"'), $iid, IPS_GetName($iid));
             }
-            return ['auto' => false, 'line' => '⚠️ ' . $stale . count($list) . ' TessieVehicle-Instanzen gefunden (' . implode(', ', $names) . ') – bitte unten die Datenquelle auswählen. Solange keine gewählt ist, zeigt die Kachel keine Werte.'];
+            return ['auto' => false, 'line' => sprintf($this->t('⚠️ %s%d TessieVehicle instances found (%s) – please choose the data source below. Until one is chosen, the tile shows no values.'), $stale, count($list), implode(', ', $names))];
         }
 
         $manual = ($configured > 0 && $configured === $src);
         $auto = ($configured <= 0);
-        $how = $manual ? 'eigene Auswahl' : 'automatisch erkannt, einzige TessieVehicle-Instanz';
+        $how = $manual ? $this->t('own selection') : $this->t('detected automatically, the only TessieVehicle instance');
         $mark = $stale !== '' ? '⚠️ ' : ($manual ? '✏️ ' : '🔗 ');
-        $head = 'Datenquelle: #' . $src . ' „' . IPS_GetName($src) . '“';
+        $head = sprintf($this->t('Data source: #%d "%s"'), $src, IPS_GetName($src));
 
         $json = @TESSIE_GetVehicleState($src);
         $state = is_string($json) ? json_decode($json, true) : null;
         if (!is_array($state)) {
-            return ['auto' => $auto, 'line' => '⚠️ ' . $stale . $head . ' (' . $how . ') gefunden, liefert aber keinen Fahrzeugzustand.'];
+            return ['auto' => $auto, 'line' => sprintf($this->t('⚠️ %s%s (%s) found, but it returns no vehicle state.'), $stale, $head, $how)];
         }
 
         $details = [];
         $vin = trim((string)($state['vin'] ?? ''));
         if ($vin !== '') {
-            $details[] = 'VIN ' . $vin;
+            $details[] = sprintf($this->t('VIN %s'), $vin);
         }
-        $details[] = 'Vertragsversion ' . (string)($state['contractVersion'] ?? '?');
+        $details[] = sprintf($this->t('contract version %s'), (string)($state['contractVersion'] ?? '?'));
         $details[] = $how;
 
         $soc = $state['soc'] ?? null;
         $socID = (int)($state['socID'] ?? 0);
         if (!is_numeric($soc) || $socID <= 0) {
-            return ['auto' => $auto, 'line' => '⚠️ ' . $stale . $head . ' (' . implode(', ', $details) . ') verbunden, aber es liegt noch kein Ladestand vor – Telemetrie bzw. Datenpunkt „Ladestand“ fehlt oder wurde noch nicht empfangen.'];
+            return ['auto' => $auto, 'line' => sprintf($this->t('⚠️ %s%s (%s) connected, but there is no charge level yet – telemetry or the data point "Charge level" is missing or has not been received yet.'), $stale, $head, implode(', ', $details))];
         }
 
-        $taken = 'Ladestand ' . number_format((float)$soc, 0, ',', '.') . ' % (Quelle: Variable #' . $socID . ')';
+        $taken = sprintf($this->t('Charge level %s %% (source: variable #%d)'), number_format((float)$soc, 0, '.', ''), $socID);
         if (array_key_exists('connected', $state)) {
-            $taken .= ', Ladekabel ' . ($state['connected'] ? 'angesteckt' : 'nicht angesteckt');
+            $taken .= $state['connected'] ? $this->t(', charging cable plugged in') : $this->t(', charging cable not plugged in');
         }
-        return ['auto' => $auto, 'line' => $mark . $stale . $head . ' (' . implode(', ', $details) . '). Übernommen: ' . $taken . '.'];
+        return ['auto' => $auto, 'line' => sprintf($this->t('%s%s%s (%s). Taken over: %s.'), $mark, $stale, $head, implode(', ', $details), $taken)];
     }
 
     /**
@@ -362,11 +389,11 @@ class TessieVehicleTile extends IPSModule
         }
         return [
             'type' => 'ExpansionPanel', 'name' => 'ForumHintPanel', 'expanded' => true,
-            'caption' => '💬  Feedback im Symcon-Forum',
+            'caption' => '💬  Feedback in the Symcon forum',
             'items' => [
-                ['type' => 'Label', 'caption' => 'Tessie ist Beta – Rückmeldungen, Ideen und Erfahrungsberichte sind ausdrücklich willkommen im Community-Thread.'],
-                ['type' => 'Button', 'caption' => 'Zum Forums-Thread', 'onClick' => "echo '" . self::FORUM_THREAD_URL . "';", 'link' => true],
-                ['type' => 'Button', 'caption' => 'Verstanden – nicht mehr anzeigen', 'onClick' => 'TESSIETILE_AckForumHint($id);'],
+                ['type' => 'Label', 'caption' => 'Tessie is in beta – feedback, ideas and field reports are very welcome in the community thread.'],
+                ['type' => 'Button', 'caption' => 'To the forum thread', 'onClick' => "echo '" . self::FORUM_THREAD_URL . "';", 'link' => true],
+                ['type' => 'Button', 'caption' => 'Got it – do not show again', 'onClick' => 'TESSIETILE_AckForumHint($id);'],
             ],
         ];
     }
@@ -387,14 +414,14 @@ class TessieVehicleTile extends IPSModule
     {
         return [
             'type' => 'ExpansionPanel', 'expanded' => false,
-            'caption' => '🧡  Über dieses Modul',
+            'caption' => '🧡  About this module',
             'items' => [
-                ['type' => 'Label', 'caption' => 'Entstanden aus echter Begeisterung für die eigene Anlage — und ein paar durchgetippten Abenden. Trotzdem: Software-Hobby hin oder her, das hier ist geistiges Eigentum und echte Arbeit steckt drin.'],
-                ['type' => 'Label', 'caption' => 'Lizenz: PolyForm Noncommercial 1.0.0 — privat und nicht-kommerziell frei nutzbar, für den gewerblichen Einsatz braucht es eine gesonderte Lizenz vom Rechteinhaber.'],
-                ['type' => 'Button', 'caption' => 'Lizenztext ansehen', 'onClick' => "echo '" . self::LICENSE_URL . "';", 'link' => true],
-                ['type' => 'Label', 'caption' => 'Gewerbliche Nutzung oder Fragen zur Lizenz? Einfach melden: dietmar@gureth.eu'],
-                ['type' => 'Label', 'caption' => 'Gefällt dir das Modul und du möchtest trotzdem etwas dalassen? Über eine kleine Spende freue ich mich — völlig freiwillig, keine Gegenleistung nötig.'],
-                ['type' => 'Button', 'caption' => '☕  Spenden via PayPal', 'onClick' => "echo '" . self::PAYPAL_URL . "';", 'link' => true],
+                ['type' => 'Label', 'caption' => 'Born out of genuine enthusiasm for my own installation — and a few evenings of typing. Still: hobby software or not, this is intellectual property and real work went into it.'],
+                ['type' => 'Label', 'caption' => 'License: PolyForm Noncommercial 1.0.0 — free for private and non-commercial use; commercial use needs a separate license from the rights holder.'],
+                ['type' => 'Button', 'caption' => 'View license text', 'onClick' => "echo '" . self::LICENSE_URL . "';", 'link' => true],
+                ['type' => 'Label', 'caption' => 'Commercial use or questions about the license? Just get in touch: dietmar@gureth.eu'],
+                ['type' => 'Label', 'caption' => 'Do you like the module and still want to leave something? I would be happy about a small donation — completely voluntary, nothing owed in return.'],
+                ['type' => 'Button', 'caption' => '☕  Donate via PayPal', 'onClick' => "echo '" . self::PAYPAL_URL . "';", 'link' => true],
             ],
         ];
     }
@@ -419,12 +446,12 @@ class TessieVehicleTile extends IPSModule
         }
         return [
             'type' => 'ExpansionPanel', 'name' => 'PurposeIntroPanel', 'expanded' => true,
-            'caption' => '👋  Wozu dieses Modul?',
+            'caption' => '👋  What is this module for?',
             'items' => [
-                ['type' => 'Label', 'caption' => 'Diese Kachel zeigt Ladestand, Reichweite, Temperaturen und Fahrzeugstatus deines Tesla auf einen Blick – inklusive Bedien-Buttons für Verriegelung, Klima und mehr, direkt in der Kacheln-Visualisierung.'],
-                ['type' => 'Label', 'caption' => 'Der Nutzen: eine kompakte, optisch anpassbare Übersicht fürs WebFront, ohne selbst Variablen zusammenstellen zu müssen – die Datenquelle wird automatisch erkannt.'],
-                ['type' => 'Label', 'caption' => 'Die eigentliche Datenverbindung zum Fahrzeug liefert die Instanz TessieVehicle; die Konfiguration/Fahrzeugsuche läuft über TessieConfigurator.'],
-                ['type' => 'Button', 'caption' => 'Verstanden – nicht mehr anzeigen', 'onClick' => 'TESSIETILE_AckPurposeIntro($id);'],
+                ['type' => 'Label', 'caption' => 'This tile shows the charge level, range, temperatures and vehicle status of your Tesla at a glance – including control buttons for lock, climate and more, right in the tile visualization.'],
+                ['type' => 'Label', 'caption' => 'The benefit: a compact, visually customizable overview for the WebFront without having to assemble variables yourself – the data source is detected automatically.'],
+                ['type' => 'Label', 'caption' => 'The actual data connection to the vehicle is provided by the TessieVehicle instance; configuration and vehicle search go through TessieConfigurator.'],
+                ['type' => 'Button', 'caption' => 'Got it – do not show again', 'onClick' => 'TESSIETILE_AckPurposeIntro($id);'],
             ],
         ];
     }
@@ -437,6 +464,13 @@ class TessieVehicleTile extends IPSModule
     }
 
     /** Reine Versionszahl ohne Beta-/Build-Zusatz - siehe TessieVehicle::BaseVersion(). */
+    /** Translate() mit Prozess-Cache (jeder Quelltext wird nur einmal uebersetzt, SUITE.md Stolperstein 24). */
+    private function t(string $source): string
+    {
+        static $cache = [];
+        return $cache[$source] ??= $this->Translate($source);
+    }
+
     private function BaseVersion(string $v): string
     {
         return preg_replace('/-.*$/', '', $v) ?? $v;
@@ -460,19 +494,19 @@ class TessieVehicleTile extends IPSModule
             return null;
         }
         uksort($pending, 'version_compare');
-        $items = [['type' => 'Label', 'caption' => 'Neu seit dem letzten Store-Stand – bitte kurz ansehen:']];
+        $items = [['type' => 'Label', 'caption' => 'New since the last store version – please take a quick look:']];
         $multi = count($pending) > 1;
         foreach ($pending as $ver => $lines) {
             if ($multi) {
-                $items[] = ['type' => 'Label', 'caption' => 'Version ' . $ver . ':'];
+                $items[] = ['type' => 'Label', 'caption' => sprintf($this->t('Version %s:'), $ver)];
             }
             foreach ($lines as $line) {
-                $items[] = ['type' => 'Label', 'caption' => '• ' . $line];
+                $items[] = ['type' => 'Label', 'caption' => '• ' . $this->t($line)];
             }
         }
-        $items[] = ['type' => 'Button', 'caption' => 'Verstanden – nicht mehr anzeigen', 'onClick' => 'TESSIETILE_AckNews($id);'];
+        $items[] = ['type' => 'Button', 'caption' => 'Got it – do not show again', 'onClick' => 'TESSIETILE_AckNews($id);'];
         $latest = array_key_last($pending);
-        return ['type' => 'ExpansionPanel', 'name' => 'NewsPanel', 'caption' => '🆕 Neu bis Version ' . $latest, 'expanded' => true, 'items' => $items];
+        return ['type' => 'ExpansionPanel', 'name' => 'NewsPanel', 'caption' => sprintf($this->t('🆕 New up to version %s'), $latest), 'expanded' => true, 'items' => $items];
     }
 
     public function AckNews(): void
@@ -723,7 +757,7 @@ class TessieVehicleTile extends IPSModule
     {
         $module = file_get_contents(__DIR__ . '/module.html');
         // handleMessage() ist erst im HTML definiert -> initialen Aufruf ans Ende hängen.
-        $module .= '<script>handleMessage(' . json_encode($this->GetFullUpdateMessage()) . ');</script>';
+        $module .= '<script>handleMessage(' . json_encode($this->GetFullUpdateMessage(true)) . ');</script>';
         return $module;
     }
 
@@ -731,7 +765,7 @@ class TessieVehicleTile extends IPSModule
     // Datenaufbereitung
     // ---------------------------------------------------------------------
 
-    private function GetFullUpdateMessage(): string
+    private function GetFullUpdateMessage(bool $withTexts = false): string
     {
         $style = [
             'bg'        => $this->ColorOrEmpty((int)$this->ReadPropertyInteger('ColorBackground')),
@@ -742,6 +776,11 @@ class TessieVehicleTile extends IPSModule
             'scale'     => $this->FontScaleValue(),
             'controls'  => $this->ReadPropertyBoolean('ShowControls')
         ];
+        if ($withTexts) {
+            // Uebersetzungen der Kachel-Oberflaeche nur beim Laden der Kachel mitschicken (JS: T()).
+            $style['locale'] = $this->t('en-US');
+            $style['texts'] = array_combine(self::KACHEL_TEXTE, array_map([$this, 't'], self::KACHEL_TEXTE));
+        }
         $showButtons = $this->ReadPropertyBoolean('ShowControls');
 
         $cCharging = $this->ColorHex((int)$this->ReadPropertyInteger('ColorCharging'), '#27d07f');
@@ -752,7 +791,7 @@ class TessieVehicleTile extends IPSModule
         if ($src <= 0 || !IPS_InstanceExists($src)) {
             return json_encode(array_merge($style, [
                 'name'       => 'Tesla',
-                'stateLabel' => 'Keine Datenquelle',
+                'stateLabel' => $this->t('No data source'),
                 'accent'     => $cIdle,
                 'cls'        => 'idle',
                 'controls'   => false,
@@ -767,7 +806,7 @@ class TessieVehicleTile extends IPSModule
             'name'        => IPS_GetName($src),
             'accent'      => $accent,
             'cls'         => $charging ? 'live' : 'idle',
-            'stateLabel'  => $charging ? 'Lädt' : 'Bereit',
+            'stateLabel'  => $this->t($charging ? 'Charging' : 'Ready'),
             'locked'      => $this->ReadSourceBool($src, 'act_locked'),
             'climate'     => $this->ReadSourceBool($src, 'act_climate'),
             'charging'    => $charging,
@@ -880,34 +919,34 @@ class TessieVehicleTile extends IPSModule
 
             switch ($cat['kind']) {
                 case 'lock':
-                    $caption = ($custom !== '') ? $custom : ($state ? 'Entriegeln' : 'Verriegeln');
+                    $caption = ($custom !== '') ? $custom : ($state ? $this->t('Unlock') : $this->t('Lock'));
                     $on = false; // historisch: Schloss-Button hebt sich farblich nicht ab
                     $value = !$state;
                     break;
                 case 'climate':
-                    $caption = ($custom !== '') ? $custom : ($state ? 'Klima aus' : 'Klima ein');
+                    $caption = ($custom !== '') ? $custom : ($state ? $this->t('Climate off') : $this->t('Climate on'));
                     $on = $state;
                     $value = !$state;
                     break;
                 case 'charge':
-                    $caption = ($custom !== '') ? $custom : ($state ? 'Laden stop' : 'Laden start');
+                    $caption = ($custom !== '') ? $custom : ($state ? $this->t('Stop charging') : $this->t('Start charging'));
                     $on = $state;
                     $value = !$state;
                     break;
                 case 'toggle':
-                    $caption = ($custom !== '') ? $custom : ($cat['name'] . ($state ? ' ausschalten' : ' einschalten'));
+                    $caption = ($custom !== '') ? $custom : sprintf($this->t($state ? 'Switch off %s' : 'Switch on %s'), $this->t($cat['name']));
                     $on = $state;
                     $value = !$state;
                     break;
                 case 'momentary':
                 default:
-                    $caption = ($custom !== '') ? $custom : $cat['name'];
+                    $caption = ($custom !== '') ? $custom : $this->t($cat['name']);
                     $on = false;
                     $value = true;
                     break;
             }
 
-            $out[] = ['i' => $ident, 'idx' => $btn['idx'], 'n' => $cat['name'], 'label' => $custom, 'c' => $caption, 'on' => $on, 'v' => $value];
+            $out[] = ['i' => $ident, 'idx' => $btn['idx'], 'n' => $this->t($cat['name']), 'label' => $custom, 'c' => $caption, 'on' => $on, 'v' => $value];
         }
         return $out;
     }
@@ -917,7 +956,7 @@ class TessieVehicleTile extends IPSModule
     {
         $out = [];
         foreach (self::BUTTON_CATALOG as $ident => $cat) {
-            $out[] = ['v' => $ident, 'c' => $cat['name']];
+            $out[] = ['v' => $ident, 'c' => $this->t($cat['name'])];
         }
         return json_encode($out);
     }

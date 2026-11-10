@@ -2,6 +2,15 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.39.0] - 2026-11-10
+### Hinzugefuegt
+- **Zweisprachig (Deutsch/Englisch)** in allen drei Modulen (TessieVehicle, TessieVehicleTile, TessieConfigurator), nach der Verbund-Konvention SUITE.md "Zweisprachigkeit": Formular, Meldungen, Variablennamen und Darstellungs-Beschriftungen, Statuszeilen, "Was ist neu"-Banner und die komplette Kachel (inkl. Editoren) folgen der Sprache der Symcon-Installation. Quelltexte sind Englisch, die deutsche Fassung steht in je einer `locale.json` je Modul - die deutsche Ausgabe ist gegenueber 2.38.3 unveraendert (per Vergleich mit den Ausgaben des alten Stands geprueft). Neue Datei `TessieVehicle/libs/TessieTelemetryNamesEn.php` liefert englische Anzeigenamen fuer die Telemetrie-Datenpunkte. README.en.md ergaenzt.
+- Kachel: die Texte der Oberflaeche werden einmalig beim Aufbau als Textliste (`KACHEL_TEXTE`) samt Zahlenformat-Sprache an das HTML uebergeben statt je Aktualisierung neu uebersetzt.
+- Pruefstand: `tests/sprache_test.php` (Sprachpruefung: kein Deutsch im Quelltext, Locale-Vollstaendigkeit und Platzhalter-Paritaet, deutsche Ausgabe == Referenzstand `tests/golden`, englische Ausgabe ohne deutsche Reste, Erkennung "laedt"/"geplant" in beiden Sprachen) und gemeinsame Stubs `tests/stubs.php`.
+### Geaendert
+- Bezeichner bleiben unveraendert (Idents, Properties, Funktionsnamen, Schluessel des `TESSIE_GetVehicleState`-Vertrags, Spaltenbezeichner der Listen) - der Migrationsvergleich zeigt keinen Bruch. Bestehende Variablen behalten ihre Namen; neue Variablen werden in der jeweils aktiven Sprache benannt.
+- `NEWS_VERSIONS`-Eintraege (Vehicle/Tile) auf Englisch als Quelltext umgestellt, deutsche Texte in `locale.json`.
+
 ## [2.38.3] - 2026-10-23
 ### Behoben
 - Symcon-Review-Ablehnung von 2.38.2: Beim Anlegen kam durch die Validierung der Darstellung "Der Parameter MAX hat einen falschen Typ" (Ladelimit, Ladestrom Soll). Die Slider-Grenzen MIN/MAX/STEP_SIZE waren fest als float typisiert (100.0), muessen an einer Integer-Variable aber ein Integer sein (100). `presSlider()` wandelt jetzt nichts mehr um (`int|float`), die Profile geben die Grenzen passend zur Variable an: Ladelimit (%) und Ladestrom (A) als int, die Solltemperaturen (Float-Variablen) als float. Bestandsvariablen bekommen die Korrektur beim naechsten "Uebernehmen" (Presentation wird per `MaintainVariable()` bei jedem Lauf neu gesetzt).

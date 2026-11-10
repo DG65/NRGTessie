@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/libs/TessieTelemetryNamesEn.php';
+
 class TessieVehicle extends IPSModule
 {
     // Eigene GUID (module.json "id") - für IPS_GetInstanceListByModuleID() bei der
@@ -59,6 +61,9 @@ class TessieVehicle extends IPSModule
     private const TIMER_UPDATE = 'UpdateTimer';
 
     // -------------------- Kategorien (Links) --------------------
+    // ACHTUNG Kennungen: Aus diesen Werten werden die Idents der Kategorien gebildet (IDENT_PURP_PREFIX .
+    // makeIdent()) - nicht aendern, sonst entstehen auf Bestandsinstanzen doppelte Kategorien.
+    // Der angezeigte Name kommt aus purposeLabel().
     private const PURPOSE_CHARGING = 'Laden';
     private const PURPOSE_CLIMATE  = 'Klima';
     private const PURPOSE_SECURITY = 'Sicherheit';
@@ -100,22 +105,25 @@ class TessieVehicle extends IPSModule
     // Nummer (2.33.0) erhalten; neue Einträge ab hier bekommen ihre eigene, korrekte Version.
     private const NEWS_VERSIONS = [
         '2.33.0' => [
-            'Der Feedback-Hinweis ist jetzt ein eigenes, wegklickbares Panel; neu dazugekommen: "Über dieses Modul" mit Lizenzinfo und Spenden-Link.',
-            'Hast du mehrere Fahrzeuge: „Wozu dieses Modul?" und „Was ist neu?" musst du nur noch an einer Instanz wegklicken, nicht an jeder einzeln.',
-            '👋 Neue Zweck-Einführung ganz oben im Formular: kurz erklärt, was Tessie tut und wozu es gut ist.',
-            'GetVehicleState() liefert jetzt zusätzlich die aktuelle Reichweite (km) direkt aus der Telemetrie.',
-            'Neuer Button "Fahrzeug jetzt aufwecken" – weckt das Fahrzeug gezielt auf, z. B. wenn die Telemetrie länger eingeschlafen war und aktuelle Daten gebraucht werden.',
-            'GetVehicleState() liefert jetzt Entfernung zum Zuhause, ob das aktuelle Navigationsziel tatsächlich Zuhause ist, und (nur dann) Teslas eigene Ankunfts-SoC-Prognose – Grundlage für eine EMS-Preis-Reserve bei erwarteter Heimkehr.',
-            'Neuer Button "Übernehmen erzwingen" – wendet die Instanz auch ohne Formularänderung neu an, praktisch zum Prüfen nach einem Modul-Update.'
+            'The feedback notice is now a separate panel that you can dismiss; new: "About this module" with license information and a donation link.',
+            'If you have several vehicles: you only need to dismiss "What is this module for?" and "What is new?" on one instance, not on each one separately.',
+            '👋 New introduction at the very top of the form: a short explanation of what Tessie does and what it is good for.',
+            'GetVehicleState() now also returns the current range (km) directly from the telemetry.',
+            'New button "Wake vehicle now" – wakes the vehicle on purpose, e.g. when the telemetry has been asleep for a while and up-to-date data is needed.',
+            'GetVehicleState() now returns the distance to home, whether the current navigation destination really is home and (only then) the arrival SoC forecast from Tesla itself – the basis for an EMS price reserve when a return home is expected.',
+            'New button "Force apply" – re-applies the instance even without a form change, handy for checking after a module update.'
         ],
         '2.34.0' => [
-            'Formular zeigt jetzt an mehreren Stellen live, ob eine automatische Verbindung wirklich geklappt hat, statt es nur zu behaupten – z. B. bei "Standort Zuhause", ob die eigene Angabe oder der Systemstandort gilt.'
+            'The form now shows live in several places whether an automatic connection really worked, instead of merely claiming it – e.g. for "Home location", whether your own entry or the system location applies.'
         ],
         '2.35.0' => [
-            'Kommt ein Wert automatisch (z. B. Standort Zuhause vom Systemstandort), verschwindet das leere Eingabefeld dahinter – bei Bedarf lässt es sich weiterhin über ein eingeklapptes "…stattdessen verwenden"-Panel einblenden.'
+            'When a value arrives automatically (e.g. the home location from the system location), the empty input field behind it disappears – if needed you can still show it through a collapsed "…use instead" panel.'
         ],
         '2.36.0' => [
-            'Tessie Configurator: neue Statuszeile unter dem Zugangsschlüssel zeigt, ob er gespeichert und von Tessie akzeptiert wurde.'
+            'Tessie Configurator: a new status line below the access token shows whether it was saved and accepted by Tessie.'
+        ],
+        '2.39.0' => [
+            'Now bilingual (German/English): form, messages, variable names, status lines and tile follow the language of your Symcon installation. Existing variables keep their names; new variables are named in the current language.'
         ]
     ];
     // Zugangsschlüssel: liegt in einem Attribut (Modul-Hoheit), nicht als Property (Nutzer-
@@ -242,7 +250,7 @@ class TessieVehicle extends IPSModule
         try {
             $this->ensureLinkTree();
         } catch (Throwable $e) {
-            $this->LogMessage('ensureLinkTree fehlgeschlagen: ' . $e->getMessage(), KL_WARNING);
+            $this->LogMessage(sprintf($this->t('ensureLinkTree failed: %s'), $e->getMessage()), KL_WARNING);
         }
 
         // Bereits gespeicherte Roh-JSON-Telemetriewerte (z.B. von vor einem Update oder
@@ -318,7 +326,7 @@ class TessieVehicle extends IPSModule
         $registry = $this->getTelemetryRegistry();
         $names = [];
         foreach ($this->getDefaultVisibleVars() as $d) {
-            $names[(string)($d['Ident'] ?? '')] = (string)($d['Name'] ?? '');
+            $names[(string)($d['Ident'] ?? '')] = $this->t((string)($d['Name'] ?? ''));
         }
         foreach ($registry as $tid => $m) {
             if (is_array($m)) $names[(string)$tid] = (string)($m['name'] ?? $tid);
@@ -332,7 +340,7 @@ class TessieVehicle extends IPSModule
             // Store-Review 9: sonst wuerde ein bereits deutscher String nochmal durch
             // Translate() laufen, was auf einem nicht-deutschen Symcon-Server sichtbar falsch waere.
             $row['Name']   = $names[$ident] ?? (string)($row['Name'] ?? $this->Translate($ident));
-            $row['Gruppe'] = $this->purposeForIdent($ident, $registry);
+            $row['Gruppe'] = $this->purposeLabel($this->purposeForIdent($ident, $registry));
             $vid = @IPS_GetObjectIDByIdent($ident, $this->InstanceID);
             $row['Empfangen'] = ($vid > 0 && (int)(@IPS_GetVariable($vid)['VariableUpdated'] ?? 0) > 0) ? 'Ja' : '';
         }
@@ -402,7 +410,7 @@ class TessieVehicle extends IPSModule
                     // Version, bis zu der die Neuigkeiten zusammengefasst sind).
                     $v = $this->moduleVersion();
                     if ($v !== '') {
-                        $element['caption'] = '📖 Dokumentation & Hilfe (Modulversion ' . $v . ')';
+                        $element['caption'] = sprintf($this->t('📖 Documentation & help (module version %s)'), $v);
                     }
                 } elseif ($elName === 'HomeSourceStatus') {
                     $element['caption'] = $homeStatus['line'];
@@ -431,7 +439,7 @@ class TessieVehicle extends IPSModule
         // Kommt der Standort automatisch (Systemstandort), verschwindet das leere Auswahlfeld in
         // einem eingeklappten Überschreiben-Panel (SUITE.md "Wert kommt automatisch").
         if ($homeStatus['auto']) {
-            $this->foldFieldIntoOverridePanel($form['elements'], 'HomeLocation', '✏️ Eigenen Standort stattdessen verwenden');
+            $this->foldFieldIntoOverridePanel($form['elements'], 'HomeLocation', '✏️ Use own location instead');
         }
 
         // Symcon-Forum-Hinweis (dismissible) und Lizenz-/Spenden-Hinweis (dauerhaft) ganz unten.
@@ -444,8 +452,8 @@ class TessieVehicle extends IPSModule
         // Telemetrie-Sammelbutton dynamisch beschriften
         foreach (($form['actions'] ?? []) as &$action) {
             if (($action['name'] ?? '') === 'ToggleTelemetry') {
-                $action['caption'] = $allTelemetryOn ? 'Telemetrie: alle ausblenden' : 'Telemetrie: alle einblenden';
-                $action['confirm'] = $allTelemetryOn ? 'Wirklich alle Telemetrie-Datenpunkte ausblenden?' : '';
+                $action['caption'] = $allTelemetryOn ? 'Telemetry: hide all' : 'Telemetry: show all';
+                $action['confirm'] = $allTelemetryOn ? 'Really hide all telemetry data points?' : '';
                 $action['enabled'] = $hasTelemetry;
                 break;
             }
@@ -489,11 +497,11 @@ class TessieVehicle extends IPSModule
         }
         return [
             'type' => 'ExpansionPanel', 'name' => 'ForumHintPanel', 'expanded' => true,
-            'caption' => '💬  Feedback im Symcon-Forum',
+            'caption' => '💬  Feedback in the Symcon forum',
             'items' => [
-                ['type' => 'Label', 'caption' => 'Tessie ist Beta – Rückmeldungen, Ideen und Erfahrungsberichte sind ausdrücklich willkommen im Community-Thread.'],
-                ['type' => 'Button', 'caption' => 'Zum Forums-Thread', 'onClick' => "echo '" . self::FORUM_THREAD_URL . "';", 'link' => true],
-                ['type' => 'Button', 'caption' => 'Verstanden – nicht mehr anzeigen', 'onClick' => 'TESSIE_AckForumHint($id);'],
+                ['type' => 'Label', 'caption' => 'Tessie is in beta – feedback, ideas and field reports are very welcome in the community thread.'],
+                ['type' => 'Button', 'caption' => 'To the forum thread', 'onClick' => "echo '" . self::FORUM_THREAD_URL . "';", 'link' => true],
+                ['type' => 'Button', 'caption' => 'Got it – do not show again', 'onClick' => 'TESSIE_AckForumHint($id);'],
             ],
         ];
     }
@@ -526,14 +534,14 @@ class TessieVehicle extends IPSModule
     {
         return [
             'type' => 'ExpansionPanel', 'expanded' => false,
-            'caption' => '🧡  Über dieses Modul',
+            'caption' => '🧡  About this module',
             'items' => [
-                ['type' => 'Label', 'caption' => 'Entstanden aus echter Begeisterung für die eigene Anlage — und ein paar durchgetippten Abenden. Trotzdem: Software-Hobby hin oder her, das hier ist geistiges Eigentum und echte Arbeit steckt drin.'],
-                ['type' => 'Label', 'caption' => 'Lizenz: PolyForm Noncommercial 1.0.0 — privat und nicht-kommerziell frei nutzbar, für den gewerblichen Einsatz braucht es eine gesonderte Lizenz vom Rechteinhaber.'],
-                ['type' => 'Button', 'caption' => 'Lizenztext ansehen', 'onClick' => "echo '" . self::LICENSE_URL . "';", 'link' => true],
-                ['type' => 'Label', 'caption' => 'Gewerbliche Nutzung oder Fragen zur Lizenz? Einfach melden: dietmar@gureth.eu'],
-                ['type' => 'Label', 'caption' => 'Gefällt dir das Modul und du möchtest trotzdem etwas dalassen? Über eine kleine Spende freue ich mich — völlig freiwillig, keine Gegenleistung nötig.'],
-                ['type' => 'Button', 'caption' => '☕  Spenden via PayPal', 'onClick' => "echo '" . self::PAYPAL_URL . "';", 'link' => true],
+                ['type' => 'Label', 'caption' => 'Born out of genuine enthusiasm for my own installation — and a few evenings of typing. Still: hobby software or not, this is intellectual property and real work went into it.'],
+                ['type' => 'Label', 'caption' => 'License: PolyForm Noncommercial 1.0.0 — free for private and non-commercial use; commercial use needs a separate license from the rights holder.'],
+                ['type' => 'Button', 'caption' => 'View license text', 'onClick' => "echo '" . self::LICENSE_URL . "';", 'link' => true],
+                ['type' => 'Label', 'caption' => 'Commercial use or questions about the license? Just get in touch: dietmar@gureth.eu'],
+                ['type' => 'Label', 'caption' => 'Do you like the module and still want to leave something? I would be happy about a small donation — completely voluntary, nothing owed in return.'],
+                ['type' => 'Button', 'caption' => '☕  Donate via PayPal', 'onClick' => "echo '" . self::PAYPAL_URL . "';", 'link' => true],
             ],
         ];
     }
@@ -558,12 +566,12 @@ class TessieVehicle extends IPSModule
         }
         return [
             'type' => 'ExpansionPanel', 'name' => 'PurposeIntroPanel', 'expanded' => true,
-            'caption' => '👋  Wozu dieses Modul?',
+            'caption' => '👋  What is this module for?',
             'items' => [
-                ['type' => 'Label', 'caption' => 'Tessie bindet dein Tesla-Fahrzeug in IP-Symcon ein: Ladestand, Standort, Temperaturen und Fahrzeugstatus werden zu normalen Symcon-Variablen, dazu lässt sich das Fahrzeug fernsteuern (Ver-/Entriegeln, Klima, Laden, Fenster u. a.).'],
-                ['type' => 'Label', 'caption' => 'Der Nutzen: dein Auto wird Teil deiner Hausautomatisierung – z. B. das Laden ans eigene PV-/Batteriesystem oder an günstige Stromtarife koppeln, vor der Abfahrt vorklimatisieren, oder einfach den Ladestand im Dashboard sehen.'],
-                ['type' => 'Label', 'caption' => 'Für die Konfiguration/Fahrzeugsuche brauchst du die Instanz TessieConfigurator; für eine Kachel-Ansicht gibt es TessieVehicleTile.'],
-                ['type' => 'Button', 'caption' => 'Verstanden – nicht mehr anzeigen', 'onClick' => 'TESSIE_AckPurposeIntro($id);'],
+                ['type' => 'Label', 'caption' => 'Tessie brings your Tesla vehicle into Symcon: charge level, location, temperatures and vehicle status become ordinary Symcon variables, and the vehicle can be remote-controlled (lock/unlock, climate, charging, windows and more).'],
+                ['type' => 'Label', 'caption' => 'The benefit: your car becomes part of your home automation – e.g. coupling charging to your own PV/battery system or to cheap electricity tariffs, preconditioning before departure, or simply seeing the charge level on a dashboard.'],
+                ['type' => 'Label', 'caption' => 'For configuration and vehicle search you need the TessieConfigurator instance; TessieVehicleTile provides a tile view.'],
+                ['type' => 'Button', 'caption' => 'Got it – do not show again', 'onClick' => 'TESSIE_AckPurposeIntro($id);'],
             ],
         ];
     }
@@ -578,6 +586,16 @@ class TessieVehicle extends IPSModule
     /** Reine Versionszahl ohne Beta-/Build-Zusatz ("2.36.0-beta.1" -> "2.36.0") - Vergleichsbasis
      * für NEWS_VERSIONS, damit Schlüssel und tatsächlich installierte Bibliotheksversion als
      * gleich gelten. */
+    /**
+     * Translate() mit Prozess-Cache: Symcon liest bei jedem Aufruf die locale.json - fuer Texte, die
+     * pro Telemetrie-Paket oder Timer-Lauf gebraucht werden, wird jeder Quelltext nur einmal uebersetzt.
+     */
+    private function t(string $source): string
+    {
+        static $cache = [];
+        return $cache[$source] ??= $this->Translate($source);
+    }
+
     private function BaseVersion(string $v): string
     {
         return preg_replace('/-.*$/', '', $v) ?? $v;
@@ -601,19 +619,19 @@ class TessieVehicle extends IPSModule
             return null;
         }
         uksort($pending, 'version_compare');
-        $items = [['type' => 'Label', 'caption' => 'Neu seit dem letzten Store-Stand – bitte kurz ansehen und ggf. die Einstellungen prüfen:']];
+        $items = [['type' => 'Label', 'caption' => 'New since the last store version – please take a quick look and check your settings if necessary:']];
         $multi = count($pending) > 1;
         foreach ($pending as $ver => $lines) {
             if ($multi) {
-                $items[] = ['type' => 'Label', 'caption' => 'Version ' . $ver . ':'];
+                $items[] = ['type' => 'Label', 'caption' => sprintf($this->t('Version %s:'), $ver)];
             }
             foreach ($lines as $line) {
-                $items[] = ['type' => 'Label', 'caption' => '• ' . $line];
+                $items[] = ['type' => 'Label', 'caption' => '• ' . $this->t($line)];
             }
         }
-        $items[] = ['type' => 'Button', 'caption' => 'Verstanden – nicht mehr anzeigen', 'onClick' => 'TESSIE_AckNews($id);'];
+        $items[] = ['type' => 'Button', 'caption' => 'Got it – do not show again', 'onClick' => 'TESSIE_AckNews($id);'];
         $latest = array_key_last($pending);
-        return ['type' => 'ExpansionPanel', 'name' => 'NewsPanel', 'caption' => '🆕 Neu bis Version ' . $latest, 'expanded' => true, 'items' => $items];
+        return ['type' => 'ExpansionPanel', 'name' => 'NewsPanel', 'caption' => sprintf($this->t('🆕 New up to version %s'), $latest), 'expanded' => true, 'items' => $items];
     }
 
     public function AckNews(): void
@@ -727,7 +745,7 @@ class TessieVehicle extends IPSModule
     {
         // Nur die offene Konfiguration zurücksetzen; der Nutzer bestätigt selbst mit „Änderungen übernehmen".
         $this->UpdateFormField('VisibleVars', 'values', json_encode($this->buildFormRows($this->getDefaultVisibleVars())));
-        $this->UpdateFormField('ToggleTelemetry', 'caption', 'Telemetrie: alle einblenden');
+        $this->UpdateFormField('ToggleTelemetry', 'caption', 'Telemetry: show all');
         $this->UpdateFormField('ToggleTelemetry', 'confirm', '');
     }
 
@@ -763,8 +781,8 @@ class TessieVehicle extends IPSModule
         unset($row);
         // Nur die offene Liste anpassen; Anwendung erst beim „Übernehmen" durch den Nutzer.
         $this->UpdateFormField('VisibleVars', 'values', json_encode($this->buildFormRows($base)));
-        $this->UpdateFormField('ToggleTelemetry', 'caption', $enabled ? 'Telemetrie: alle ausblenden' : 'Telemetrie: alle einblenden');
-        $this->UpdateFormField('ToggleTelemetry', 'confirm', $enabled ? 'Wirklich alle Telemetrie-Datenpunkte ausblenden?' : '');
+        $this->UpdateFormField('ToggleTelemetry', 'caption', $enabled ? 'Telemetry: hide all' : 'Telemetry: show all');
+        $this->UpdateFormField('ToggleTelemetry', 'confirm', $enabled ? 'Really hide all telemetry data points?' : '');
     }
 
     public function SetImportantTelemetryEnabled(): void
@@ -811,7 +829,7 @@ class TessieVehicle extends IPSModule
 
         // Nur die offene Liste anpassen; Anwendung erst beim „Übernehmen" durch den Nutzer.
         $this->UpdateFormField('VisibleVars', 'values', json_encode($this->buildFormRows($base)));
-        $this->UpdateFormField('ToggleTelemetry', 'caption', 'Telemetrie: alle einblenden');
+        $this->UpdateFormField('ToggleTelemetry', 'caption', 'Telemetry: show all');
         $this->UpdateFormField('ToggleTelemetry', 'confirm', '');
     }
 
@@ -824,7 +842,7 @@ class TessieVehicle extends IPSModule
     {
         $registry = $this->getTelemetryRegistry();
         if (count($registry) === 0) {
-            return 'Keine Telemetrie-Variablen vorhanden.';
+            return $this->t('No telemetry variables present.');
         }
 
         $renamed = 0;
@@ -841,7 +859,7 @@ class TessieVehicle extends IPSModule
                 continue;
             }
 
-            $name = $this->Translate($key);
+            $name = $this->translateTelemetryKey($key);
             if (str_ends_with($ident, '_lat')) {
                 $name .= ' – ' . $this->Translate('Latitude');
             } elseif (str_ends_with($ident, '_lon')) {
@@ -862,48 +880,48 @@ class TessieVehicle extends IPSModule
         }
 
         return $renamed > 0
-            ? sprintf('%d Variablenname(n) aktualisiert.', $renamed)
-            : 'Alle Variablennamen waren bereits aktuell.';
+            ? sprintf($this->t('%d variable name(s) updated.'), $renamed)
+            : $this->t('All variable names were already up to date.');
     }
 
     private function getDefaultVisibleVars(): array
     {
         return [
-            ['Ident' => self::ACT_LOCKED,               'Name' => 'Verriegelt',                      'Enabled' => true],
-            ['Ident' => self::ACT_SENTRY_MODE,          'Name' => 'Wächtermodus',                     'Enabled' => true],
-            ['Ident' => self::ACT_VALET_MODE,           'Name' => 'Valet-Modus',                     'Enabled' => true],
-            ['Ident' => self::ACT_FLASH,                'Name' => 'Licht blinken',                   'Enabled' => true],
-            ['Ident' => self::ACT_HONK,                 'Name' => 'Hupe',                            'Enabled' => true],
-            ['Ident' => self::ACT_VENT_WINDOWS,         'Name' => 'Fenster lüften',                  'Enabled' => true],
-            ['Ident' => self::ACT_CLOSE_WINDOWS,        'Name' => 'Fenster schließen',               'Enabled' => true],
+            ['Ident' => self::ACT_LOCKED,               'Name' => 'Vehicle locked',                      'Enabled' => true],
+            ['Ident' => self::ACT_SENTRY_MODE,          'Name' => 'Sentry mode',                     'Enabled' => true],
+            ['Ident' => self::ACT_VALET_MODE,           'Name' => 'Valet mode',                     'Enabled' => true],
+            ['Ident' => self::ACT_FLASH,                'Name' => 'Flash lights',                   'Enabled' => true],
+            ['Ident' => self::ACT_HONK,                 'Name' => 'Honk horn',                            'Enabled' => true],
+            ['Ident' => self::ACT_VENT_WINDOWS,         'Name' => 'Vent windows',                  'Enabled' => true],
+            ['Ident' => self::ACT_CLOSE_WINDOWS,        'Name' => 'Close windows',               'Enabled' => true],
 
-            ['Ident' => self::ACT_CLIMATE,              'Name' => 'Klima',                           'Enabled' => true],
+            ['Ident' => self::ACT_CLIMATE,              'Name' => 'Climate',                           'Enabled' => true],
             
-            ['Ident' => self::ACT_CLIMATE_KEEPER_MODE, 'Name' => 'Klimahaltung', 'Enabled' => true],
-            ['Ident' => self::ACT_COP_ENABLED, 'Name' => 'Innenraum-Überhitzeschutz', 'Enabled' => true],
-            ['Ident' => self::ACT_COP_FAN_ONLY, 'Name' => 'Innenraum-Überhitzeschutz: nur Lüfter', 'Enabled' => true],
-            ['Ident' => self::ACT_COP_TEMP, 'Name' => 'Innenraum-Überhitzeschutz: Temperaturlimit', 'Enabled' => true],
-            ['Ident' => self::ACT_BIO_DEFENSE, 'Name' => 'Biowaffen-Schutzmodus', 'Enabled' => true],
-            ['Ident' => self::ACT_HOMELINK, 'Name' => 'HomeLink auslösen', 'Enabled' => false],
-            ['Ident' => self::ACT_FRONT_TRUNK, 'Name' => 'Vorderer Kofferraum öffnen', 'Enabled' => false],
-            ['Ident' => self::ACT_REAR_TRUNK, 'Name' => 'Heckklappe öffnen/schließen', 'Enabled' => false],
+            ['Ident' => self::ACT_CLIMATE_KEEPER_MODE, 'Name' => 'Climate keeper', 'Enabled' => true],
+            ['Ident' => self::ACT_COP_ENABLED, 'Name' => 'Cabin overheat protection', 'Enabled' => true],
+            ['Ident' => self::ACT_COP_FAN_ONLY, 'Name' => 'Cabin overheat protection: fan only', 'Enabled' => true],
+            ['Ident' => self::ACT_COP_TEMP, 'Name' => 'Cabin overheat protection: temperature limit', 'Enabled' => true],
+            ['Ident' => self::ACT_BIO_DEFENSE, 'Name' => 'Bioweapon defense mode', 'Enabled' => true],
+            ['Ident' => self::ACT_HOMELINK, 'Name' => 'Trigger HomeLink', 'Enabled' => false],
+            ['Ident' => self::ACT_FRONT_TRUNK, 'Name' => 'Open front trunk', 'Enabled' => false],
+            ['Ident' => self::ACT_REAR_TRUNK, 'Name' => 'Open/close rear trunk', 'Enabled' => false],
 
-['Ident' => self::ACT_TEMP_DRIVER,          'Name' => 'Solltemperatur Fahrer (°C)',      'Enabled' => true],
-            ['Ident' => self::ACT_TEMP_PASSENGER,       'Name' => 'Solltemperatur Beifahrer (°C)',   'Enabled' => true],
-            ['Ident' => self::ACT_DEFROST,              'Name' => 'Max. Entfrosten',                      'Enabled' => true],
-            ['Ident' => self::ACT_STEERING_WHEEL_HEATER,'Name' => 'Lenkradheizung',                  'Enabled' => true],
-            ['Ident' => self::ACT_SEAT_HEAT_DRIVER,     'Name' => 'Sitzheizung Fahrer',              'Enabled' => true],
-            ['Ident' => self::ACT_SEAT_HEAT_PASSENGER,  'Name' => 'Sitzheizung Beifahrer',           'Enabled' => true],
+['Ident' => self::ACT_TEMP_DRIVER,          'Name' => 'Driver target temperature (°C)',      'Enabled' => true],
+            ['Ident' => self::ACT_TEMP_PASSENGER,       'Name' => 'Passenger target temperature (°C)',   'Enabled' => true],
+            ['Ident' => self::ACT_DEFROST,              'Name' => 'Max defrost',                      'Enabled' => true],
+            ['Ident' => self::ACT_STEERING_WHEEL_HEATER,'Name' => 'Steering wheel heater',                  'Enabled' => true],
+            ['Ident' => self::ACT_SEAT_HEAT_DRIVER,     'Name' => 'Driver seat heater',              'Enabled' => true],
+            ['Ident' => self::ACT_SEAT_HEAT_PASSENGER,  'Name' => 'Passenger seat heater',           'Enabled' => true],
 
-            ['Ident' => self::ACT_START_CHARGING,       'Name' => 'Laden',                           'Enabled' => true],
-            ['Ident' => self::ACT_CHARGE_LIMIT,         'Name' => 'Ladelimit (%)',                   'Enabled' => true],
-            ['Ident' => self::ACT_CHARGING_AMPS_REQUEST,'Name' => 'Ladestrom Soll (A)',              'Enabled' => true],
-            ['Ident' => self::ACT_OPEN_CHARGE_PORT,     'Name' => 'Ladeport öffnen/entriegeln',      'Enabled' => true],
-            ['Ident' => self::ACT_CLOSE_CHARGE_PORT,    'Name' => 'Ladeport schließen',              'Enabled' => true],
+            ['Ident' => self::ACT_START_CHARGING,       'Name' => 'Charging',                           'Enabled' => true],
+            ['Ident' => self::ACT_CHARGE_LIMIT,         'Name' => 'Charge limit (%)',                   'Enabled' => true],
+            ['Ident' => self::ACT_CHARGING_AMPS_REQUEST,'Name' => 'Charge current setpoint (A)',              'Enabled' => true],
+            ['Ident' => self::ACT_OPEN_CHARGE_PORT,     'Name' => 'Open/unlock charge port',      'Enabled' => true],
+            ['Ident' => self::ACT_CLOSE_CHARGE_PORT,    'Name' => 'Close charge port',              'Enabled' => true],
 
-            ['Ident' => self::STAT_CHARGING_AMPS_ACTUAL,'Name' => 'Ladestrom Ist (A)',               'Enabled' => true],
-            ['Ident' => self::STAT_CHARGING_AMPS_MAX,   'Name' => 'Ladestrom Max (A)',               'Enabled' => true],
-            ['Ident' => self::STAT_AC_CHARGING_POWER,   'Name' => 'AC Ladeleistung (kW)',            'Enabled' => true]
+            ['Ident' => self::STAT_CHARGING_AMPS_ACTUAL,'Name' => 'Charge current actual (A)',               'Enabled' => true],
+            ['Ident' => self::STAT_CHARGING_AMPS_MAX,   'Name' => 'Charge current max (A)',               'Enabled' => true],
+            ['Ident' => self::STAT_AC_CHARGING_POWER,   'Name' => 'AC charging power (kW)',            'Enabled' => true]
         ];
     }
 
@@ -937,7 +955,7 @@ class TessieVehicle extends IPSModule
         $inst = IPS_GetInstance($this->InstanceID);
         $current = (int)($inst['InstanceStatus'] ?? 0);
         if ($status !== '') {
-            $this->SendDebug('Fahrzeugstatus', $status, 0);
+            $this->SendDebug('Vehicle status', $status, 0);
             $this->WriteAttributeInteger(self::ATTR_API_ERROR_STREAK, 0);
             $this->WriteAttributeString(self::ATTR_LAST_VEHICLE_STATUS, $status);
             if ($current === self::STATUS_API_ERROR) {
@@ -949,7 +967,7 @@ class TessieVehicle extends IPSModule
             $streak = (int)$this->ReadAttributeInteger(self::ATTR_API_ERROR_STREAK) + 1;
             $this->WriteAttributeInteger(self::ATTR_API_ERROR_STREAK, $streak);
             if ($streak >= 2) {
-                $this->LogMessage('Tessie API: wiederholt keine gültige Antwort bei der Statusabfrage (Zugangsschlüssel ungültig oder API nicht erreichbar).', KL_WARNING);
+                $this->LogMessage($this->t('Tessie API: repeatedly no valid response to the status query (access token invalid or API unreachable).'), KL_WARNING);
                 $this->SetStatus(self::STATUS_API_ERROR);
             }
         }
@@ -977,7 +995,7 @@ class TessieVehicle extends IPSModule
         $stale = (time() - $last) > self::TELEMETRY_STALE_AFTER;
 
         if ($stale && $current === 102) {
-            $this->LogMessage('Tessie: seit über ' . (int)(self::TELEMETRY_STALE_AFTER / 60) . ' Minuten keine Telemetrie empfangen.', KL_WARNING);
+            $this->LogMessage(sprintf($this->t('Tessie: no telemetry received for over %d minutes.'), (int)(self::TELEMETRY_STALE_AFTER / 60)), KL_WARNING);
             $this->SetStatus(self::STATUS_TELEMETRY_STALE);
         } elseif (!$stale && $current === self::STATUS_TELEMETRY_STALE) {
             $this->SetStatus(102);
@@ -998,16 +1016,16 @@ class TessieVehicle extends IPSModule
 
         $payload = json_decode($buf, true);
         if (!is_array($payload)) {
-            $this->SendDebug('Telemetrie', 'Kein JSON im Buffer: ' . substr($buf, 0, 300), 0);
+            $this->SendDebug('Telemetry', 'No JSON in buffer: ' . substr($buf, 0, 300), 0);
             return;
         }
 
         if (isset($payload['errors'])) {
-            $this->SendDebug('Telemetrie-Fehler', json_encode($payload['errors']), 0);
+            $this->SendDebug('Telemetry error', json_encode($payload['errors']), 0);
             return;
         }
         if (isset($payload['status']) && isset($payload['connectionId'])) {
-            $this->SendDebug('Telemetrie-Verbindung', json_encode($payload), 0);
+            $this->SendDebug('Telemetry connection', json_encode($payload), 0);
             return;
         }
 
@@ -1030,7 +1048,7 @@ class TessieVehicle extends IPSModule
         $token = $this->getApiToken();
         $vin = trim((string)$this->ReadPropertyString('VIN'));
         if ($token === '' || $vin === '') {
-            throw new Exception('ApiToken oder VIN fehlt.');
+            throw new Exception($this->t('Access token or VIN is missing.'));
         }
 
         switch ((string)$Ident) {
@@ -1223,7 +1241,7 @@ class TessieVehicle extends IPSModule
 
 
             default:
-                throw new Exception('Unbekannte Aktion: ' . (string)$Ident);
+                throw new Exception(sprintf($this->t('Unknown action: %s'), (string)$Ident));
         }
     }
 
@@ -1242,7 +1260,7 @@ class TessieVehicle extends IPSModule
 
         $resp = $this->apiRequest($token, 'POST', $path, null);
         $ok = (bool)($resp['result'] ?? ($resp['response']['result'] ?? false));
-        $this->SendDebug('Befehl', ($ok ? 'OK: ' : 'Fehlgeschlagen: ') . $command . ($ok ? '' : (' ' . json_encode($resp))), 0);
+        $this->SendDebug('Command', ($ok ? 'OK: ' : 'Failed: ') . $command . ($ok ? '' : (' ' . json_encode($resp))), 0);
     }
 
     /**
@@ -1258,22 +1276,22 @@ class TessieVehicle extends IPSModule
         $token = $this->getApiToken();
         $vin = trim((string)$this->ReadPropertyString('VIN'));
         if ($token === '' || $vin === '') {
-            return 'Zugangsschlüssel oder VIN fehlt.';
+            return $this->t('Access token or VIN is missing.');
         }
 
         if ($this->getVehicleStatus($vin, $token) === 'awake') {
-            return '✅ Fahrzeug ist bereits wach.';
+            return $this->t('✅ The vehicle is already awake.');
         }
 
         $path = '/' . rawurlencode($vin) . '/wake';
         $resp = $this->apiRequest($token, 'POST', $path, null);
-        $this->SendDebug('Aufwecken', 'Antwort=' . json_encode($resp), 0);
+        $this->SendDebug('Wake-up', 'Response=' . json_encode($resp), 0);
 
         $after = $this->getVehicleStatus($vin, $token);
         if ($after === 'awake') {
-            return '✅ Fahrzeug wurde aufgeweckt.';
+            return $this->t('✅ The vehicle has been woken up.');
         }
-        return '⏳ Weckbefehl gesendet – Fahrzeug meldet aktuell "' . ($after !== '' ? $after : 'unbekannt') . '", kann bis zu einer Minute dauern.';
+        return sprintf($this->t('⏳ Wake command sent – the vehicle currently reports "%s", this can take up to a minute.'), $after !== '' ? $after : $this->t('unknown'));
     }
 
     private function ensureAwake(string $vin, string $token): void
@@ -1284,7 +1302,7 @@ class TessieVehicle extends IPSModule
         }
         $path = '/' . rawurlencode($vin) . '/wake';
         $resp = $this->apiRequest($token, 'POST', $path, null);
-        $this->SendDebug('Aufwecken', 'Antwort=' . json_encode($resp), 0);
+        $this->SendDebug('Wake-up', 'Response=' . json_encode($resp), 0);
     }
 
     private function getVehicleStatus(string $vin, string $token): string
@@ -1346,7 +1364,7 @@ class TessieVehicle extends IPSModule
             if ($key === '' || !is_array($val)) continue;
 
             if ($debugEveryKey) {
-                $this->SendDebug('Telemetrie-Key', $key . ' => ' . json_encode($val), 0);
+                $this->SendDebug('Telemetry key', $key . ' => ' . json_encode($val), 0);
             }
 
             // Bestehende Mappings
@@ -1514,7 +1532,7 @@ class TessieVehicle extends IPSModule
 
         // Wenn->Dann-Automationen nach jedem Datenpaket auswerten (flankengesteuert)
         try { $this->evaluateDataActions(); } catch (Throwable $e) {
-            $this->SendDebug('Automation', 'Fehler: ' . $e->getMessage(), 0);
+            $this->SendDebug('Automation', 'Error: ' . $e->getMessage(), 0);
         }
     }
 
@@ -1566,7 +1584,7 @@ class TessieVehicle extends IPSModule
                 $active = [];
                 foreach ($inner as $sub => $state) {
                     if (!is_bool($state)) { $allBool = false; break; }
-                    if ($state) $active[] = $this->Translate((string)$sub);
+                    if ($state) $active[] = $this->translateTelemetryKey((string)$sub);
                 }
                 if ($allBool) {
                     return [VARIABLETYPE_STRING, implode(', ', $active)];
@@ -1590,14 +1608,14 @@ class TessieVehicle extends IPSModule
         $isTime = stripos($key, 'time') !== false;
         if (is_int($inner) || is_float($inner)) {
             if ($isTime && (float)$inner > 1000000000) {
-                return [VARIABLETYPE_STRING, date('d.m.Y H:i', (int)$inner)];
+                return [VARIABLETYPE_STRING, date($this->t('Y-m-d H:i'), (int)$inner)];
             }
             return [is_int($inner) ? VARIABLETYPE_INTEGER : VARIABLETYPE_FLOAT, $inner];
         }
         $s = trim((string)$inner);
         if (is_numeric($s)) {
             if ($isTime && (float)$s > 1000000000) {
-                return [VARIABLETYPE_STRING, date('d.m.Y H:i', (int)$s)];
+                return [VARIABLETYPE_STRING, date($this->t('Y-m-d H:i'), (int)$s)];
             }
             if (strpos($s, '.') === false && stripos($s, 'e') === false) {
                 return [VARIABLETYPE_INTEGER, (int)$s];
@@ -1610,7 +1628,7 @@ class TessieVehicle extends IPSModule
     // Enum-/Code-String lesbar machen: zuerst locale.json, sonst generischer Fallback
     private function readableEnumString(string $s): string
     {
-        $t = $this->Translate($s);
+        $t = $this->translateTelemetryKey($s);
         if ($t !== $s) {
             return $t;
         }
@@ -1663,8 +1681,14 @@ class TessieVehicle extends IPSModule
 
     private function translateTelemetryKey(string $key): string
     {
-        // Übersetzung über locale.json. Wenn kein Eintrag existiert, gibt Translate den Originaltext zurück.
-        return $this->Translate($key);
+        // Deutsch: locale.json. Ohne Eintrag liefert Translate() den Schlüssel zurück - dann die englische
+        // Tabelle (Englisch ist die Quellsprache, keine locale-Tabelle), sonst bleibt der Schlüssel stehen
+        // und readableEnumString() zerlegt ihn lesbar.
+        $t = $this->t($key);
+        if ($t !== $key) {
+            return $t;
+        }
+        return TessieTelemetryNamesEn::NAMES[$key] ?? $key;
     }
 
 
@@ -1857,6 +1881,7 @@ class TessieVehicle extends IPSModule
     {
         $options = [];
         foreach ($map as $v => $caption) {
+            $caption = $this->t((string)$caption);
             // Gültige OPTIONS-Schlüssel laut Symcon-Doku (Darstellung Aufzählung): Value, Caption,
             // IconActive, IconValue, Color. Ein 'Icon' bricht auf neueren Symcon-Versionen das
             // Anlegen der Instanz ab (SUITE.md Stolperfalle 9, Fund RoboHub 13.10.2026).
@@ -1885,14 +1910,14 @@ class TessieVehicle extends IPSModule
             case 'Tessie.DistanceKm':        return $this->presValue(' km', 1);
             case 'Tessie.TempC':             return $this->presValue(' °C', 1);
             case 'Tessie.TempSetC':          return $settable ? $this->presSlider(15.0, 28.0, 0.5, ' °C', 1) : $this->presValue(' °C', 1);
-            case 'Tessie.SeatHeatLevel':     return $this->presEnum([0 => 'Aus', 1 => 'Niedrig', 2 => 'Mittel', 3 => 'Hoch']);
+            case 'Tessie.SeatHeatLevel':     return $this->presEnum([0 => 'Off', 1 => 'Low', 2 => 'Medium', 3 => 'High']);
             // Wert 3 = "Camp Mode" (so auch im Fahrzeugmenü benannt; Kommando
             // set_climate_keeper_mode erwartet mode=3 für diesen Zustand). Die
             // Fahrzeug-Telemetrie meldet den Zustand allerdings als "Party" zurück
             // (ClimateKeeperModeStateParty) - daher matcht syncFromTelemetry() sowohl
             // "party" als auch "camp" auf denselben Wert 3.
-            case 'Tessie.ClimateKeeperMode': return $this->presEnum([0 => 'Aus', 1 => 'Behalten', 2 => 'Hund', 3 => 'Camp-Modus']);
-            case 'Tessie.COPTemp':           return $this->presEnum([1 => 'Niedrig', 2 => 'Mittel', 3 => 'Hoch']);
+            case 'Tessie.ClimateKeeperMode': return $this->presEnum([0 => 'Off', 1 => 'Keep', 2 => 'Dog', 3 => 'Camp mode']);
+            case 'Tessie.COPTemp':           return $this->presEnum([1 => 'Low', 2 => 'Medium', 3 => 'High']);
             default:                         return $this->presValue('', 0);
         }
     }
@@ -1955,7 +1980,7 @@ class TessieVehicle extends IPSModule
         if ($home !== null) {
             $fences[] = [
                 'ident'  => self::STAT_AT_HOME,
-                'name'   => 'Zuhause',
+                'name'   => $this->t('Home'),
                 'lat'    => $home[0],
                 'lon'    => $home[1],
                 'radius' => max(1, (int)$this->ReadPropertyInteger('HomeRadius'))
@@ -2010,17 +2035,17 @@ class TessieVehicle extends IPSModule
     private function homeSourceStatus(): array
     {
         $radius = max(1, (int)$this->ReadPropertyInteger('HomeRadius'));
-        $fmt = fn(array $c) => number_format($c[0], 5, ',', '.') . ' / ' . number_format($c[1], 5, ',', '.');
+        $fmt = fn(array $c) => str_replace('.', $this->t('.'), number_format($c[0], 5, '.', '')) . ' / ' . str_replace('.', $this->t('.'), number_format($c[1], 5, '.', ''));
 
         $own = $this->parseLatLon($this->ReadPropertyString('HomeLocation'));
         if ($own !== null) {
-            return ['auto' => false, 'line' => '✏️ Standort Zuhause: ' . $fmt($own) . ' (eigene Angabe), Radius ' . $radius . ' m.'];
+            return ['auto' => false, 'line' => sprintf($this->t('✏️ Home location: %s (own entry), radius %d m.'), $fmt($own), $radius)];
         }
         $system = $this->parseLatLon($this->getSystemLocation());
         if ($system !== null) {
-            return ['auto' => true, 'line' => '🔗 Standort Zuhause: ' . $fmt($system) . ' (automatisch vom Systemstandort der Kern-Instanz „Location“), Radius ' . $radius . ' m.'];
+            return ['auto' => true, 'line' => sprintf($this->t('🔗 Home location: %s (automatically from the system location of the core instance "Location"), radius %d m.'), $fmt($system), $radius)];
         }
-        return ['auto' => false, 'line' => 'ℹ️ Kein Standort Zuhause ermittelbar: weder eine eigene Angabe noch ein Systemstandort in der Kern-Instanz „Location“ ist gepflegt. Die Standort-Erkennung „Zuhause“ und die Heimfahrt-/Entfernungswerte bleiben leer, bis einer von beiden eingetragen ist.'];
+        return ['auto' => false, 'line' => $this->t('ℹ️ No home location can be determined: neither an own entry nor a system location in the core instance "Location" is maintained. The "Home" location detection and the homeward-trip/distance values stay empty until one of the two is entered.')];
     }
 
     /**
@@ -2143,7 +2168,7 @@ class TessieVehicle extends IPSModule
     private function applyActionToVariable(int $vid, string $action, string $rawValue, string $context): bool
     {
         if ($vid <= 0 || !IPS_VariableExists($vid)) {
-            $this->SendDebug('Aktion', sprintf('%s: Zielvariable #%d existiert nicht', $context, $vid), 0);
+            $this->SendDebug('Action', sprintf('%s: target variable #%d does not exist', $context, $vid), 0);
             return false;
         }
 
@@ -2163,13 +2188,13 @@ class TessieVehicle extends IPSModule
         $hasAction = ((int)$var['VariableAction'] > 0 || (int)$var['VariableCustomAction'] > 0);
         $ok = $hasAction ? @RequestAction($vid, $value) : @SetValue($vid, $value);
 
-        $this->SendDebug('Aktion', sprintf(
+        $this->SendDebug('Action', sprintf(
             '%s -> %s #%d = %s (%s)',
             $context, $hasAction ? 'RequestAction' : 'SetValue',
-            $vid, json_encode($value), ($ok === false) ? 'FEHLER' : 'ok'
+            $vid, json_encode($value), ($ok === false) ? 'ERROR' : 'ok'
         ), 0);
         if ($ok === false) {
-            $this->LogMessage(sprintf('Aktion "%s" auf Variable #%d fehlgeschlagen', $context, $vid), KL_WARNING);
+            $this->LogMessage(sprintf($this->t('Action "%s" on variable #%d failed'), $context, $vid), KL_WARNING);
         }
         return $ok !== false;
     }
@@ -2180,7 +2205,8 @@ class TessieVehicle extends IPSModule
         $raw = trim($raw);
         switch ($type) {
             case VARIABLETYPE_BOOLEAN:
-                return in_array(strtolower($raw), ['1', 'true', 'ein', 'on', 'ja', 'an'], true);
+                // akzeptierte Eingabe-Schreibweisen (keine Anzeigetexte): englisch und deutsch
+                return in_array(strtolower($raw), ['1', 'true', 'on', 'yes', 'ein', 'ja', 'an'], true);
             case VARIABLETYPE_INTEGER:
                 return (int)$raw;
             case VARIABLETYPE_FLOAT:
@@ -2374,8 +2400,8 @@ class TessieVehicle extends IPSModule
     private function describeCondition(array $cond): string
     {
         $opText = [
-            'true' => 'wird EIN', 'false' => 'wird AUS', 'change' => 'ändert sich',
-            'pass' => 'Durchfahrt',
+            'true' => $this->t('becomes ON'), 'false' => $this->t('becomes OFF'), 'change' => $this->t('changes'),
+            'pass' => $this->t('drive-through'),
             'eq' => '=', 'ne' => '≠', 'gt' => '>', 'ge' => '≥', 'lt' => '<', 'le' => '≤'
         ];
 
@@ -2397,18 +2423,18 @@ class TessieVehicle extends IPSModule
     {
         $conditions = $this->normalizeRuleConditions($rule);
         $parts = array_map([$this, 'describeCondition'], $conditions);
-        $condText = (count($parts) > 0) ? implode(' UND ', $parts) : '?';
+        $condText = (count($parts) > 0) ? implode(' ' . $this->t('AND') . ' ', $parts) : '?';
 
         $tVid = (int)($rule['Target'] ?? 0);
         $tName = ($tVid > 0 && IPS_VariableExists($tVid)) ? IPS_GetName($tVid) : ('#' . $tVid);
         switch ((string)($rule['Action'] ?? 'on')) {
-            case 'off':    $do = $tName . ' ausschalten'; break;
-            case 'toggle': $do = $tName . ' umschalten'; break;
+            case 'off':    $do = sprintf($this->t('switch off %s'), $tName); break;
+            case 'toggle': $do = sprintf($this->t('toggle %s'), $tName); break;
             case 'value':  $do = $tName . ' = ' . (string)($rule['Value'] ?? ''); break;
-            default:       $do = $tName . ' einschalten'; break;
+            default:       $do = sprintf($this->t('switch on %s'), $tName); break;
         }
 
-        return sprintf('Wenn %s → %s', $condText, $do);
+        return sprintf($this->t('If %s → %s'), $condText, $do);
     }
 
     /** Datenpunkt-Optionen für Regelquellen: alle Datenpunkte + Geofence-Variablen. */
@@ -2425,10 +2451,10 @@ class TessieVehicle extends IPSModule
             $options[] = ['caption' => (string)($row['Name'] ?? $ident), 'value' => $ident];
         }
         if ($this->ReadPropertyBoolean('HomeDetection')) {
-            $options[] = ['caption' => 'Aktueller Standort', 'value' => self::STAT_LOCATION_NAME];
+            $options[] = ['caption' => $this->t('Current location'), 'value' => self::STAT_LOCATION_NAME];
             foreach ($this->getGeofences() as $f) {
                 $options[] = [
-                    'caption' => ($f['ident'] === self::STAT_AT_HOME) ? 'Zu Hause' : $f['name'],
+                    'caption' => ($f['ident'] === self::STAT_AT_HOME) ? $this->t('At home') : $f['name'],
                     'value'   => $f['ident']
                 ];
             }
@@ -2491,8 +2517,8 @@ class TessieVehicle extends IPSModule
             } elseif ($p === VARIABLE_PRESENTATION_SWITCH) {
                 // Keine eigene Ein-/Aus-Beschriftung möglich (presSwitch() liefert keine
                 // CAPTION_ON/CAPTION_OFF mehr - siehe dortiger Kommentar), daher feste Texte.
-                $out[] = ['v' => 1, 'c' => 'Ein'];
-                $out[] = ['v' => 0, 'c' => 'Aus'];
+                $out[] = ['v' => 1, 'c' => $this->t('On')];
+                $out[] = ['v' => 0, 'c' => $this->t('Off')];
             }
         }
 
@@ -2507,7 +2533,7 @@ class TessieVehicle extends IPSModule
         }
 
         if (count($out) === 0 && (int)$var['VariableType'] === VARIABLETYPE_BOOLEAN) {
-            $out = [['v' => 1, 'c' => 'Ein'], ['v' => 0, 'c' => 'Aus']];
+            $out = [['v' => 1, 'c' => $this->t('On')], ['v' => 0, 'c' => $this->t('Off')]];
         }
         return json_encode($out);
     }
@@ -2614,7 +2640,7 @@ class TessieVehicle extends IPSModule
         if ($vid > 0) {
             $s = strtolower((string)@GetValueString($vid));
             if ($s !== '') {
-                return strpos($s, 'charging') !== false || strpos($s, 'lädt') !== false;
+                return strpos($s, 'charging') !== false || strpos($s, strtolower($this->t('charging'))) !== false;
             }
         }
         return $this->stateBoolOrNull(self::ACT_START_CHARGING);
@@ -2731,11 +2757,11 @@ class TessieVehicle extends IPSModule
             return null;
         }
         $s = strtolower(trim((string)@GetValueString($vid)));
-        if ($s === '' || strpos($s, 'unbekannt') !== false || strpos($s, 'unknown') !== false) {
+        if ($s === '' || strpos($s, strtolower($this->t('unknown'))) !== false || strpos($s, 'unknown') !== false) {
             return null;
         }
         // "Geplantes Laden: aus" bzw. "Scheduled Charging Mode Off" = nicht aktiv
-        return (strpos($s, 'aus') === false && strpos($s, 'off') === false);
+        return (strpos($s, strtolower($this->t('off'))) === false && strpos($s, 'off') === false);
     }
 
     /**
@@ -2912,7 +2938,7 @@ class TessieVehicle extends IPSModule
         $name = trim((string)($in['name'] ?? ''));
         $lat = (float)($in['lat'] ?? NAN);
         $lon = (float)($in['lon'] ?? NAN);
-        if ($name === '' || $name === 'Zuhause' || !is_finite($lat) || !is_finite($lon) || ($lat == 0.0 && $lon == 0.0)) {
+        if ($name === '' || $name === $this->t('Home') || !is_finite($lat) || !is_finite($lon) || ($lat == 0.0 && $lon == 0.0)) {
             return;
         }
         // Icon: einzelnes Emoji/Symbol, grob auf wenige Zeichen begrenzt (Sicherheitsnetz
@@ -3040,92 +3066,92 @@ class TessieVehicle extends IPSModule
         }
 
         // Core Variablen
-        $this->MaintainVariable(self::ACT_LOCKED, 'Verriegelt', VARIABLETYPE_BOOLEAN, $this->presFor('~Lock', true), $pos(self::ACT_LOCKED), true);
+        $this->MaintainVariable(self::ACT_LOCKED, $this->t('Vehicle locked'), VARIABLETYPE_BOOLEAN, $this->presFor('~Lock', true), $pos(self::ACT_LOCKED), true);
         if ($keep(self::ACT_LOCKED)) $this->EnableAction(self::ACT_LOCKED);
 
-        $this->MaintainVariable(self::ACT_CLIMATE, 'Klima', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_CLIMATE), true);
+        $this->MaintainVariable(self::ACT_CLIMATE, $this->t('Climate'), VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_CLIMATE), true);
         if ($keep(self::ACT_CLIMATE)) $this->EnableAction(self::ACT_CLIMATE);
 
 
-        $this->MaintainVariable(self::ACT_CLIMATE_KEEPER_MODE, 'Klimahaltung', VARIABLETYPE_INTEGER, $this->presFor('Tessie.ClimateKeeperMode', true), $pos(self::ACT_CLIMATE_KEEPER_MODE), true);
+        $this->MaintainVariable(self::ACT_CLIMATE_KEEPER_MODE, $this->t('Climate keeper'), VARIABLETYPE_INTEGER, $this->presFor('Tessie.ClimateKeeperMode', true), $pos(self::ACT_CLIMATE_KEEPER_MODE), true);
         if ($keep(self::ACT_CLIMATE_KEEPER_MODE)) $this->EnableAction(self::ACT_CLIMATE_KEEPER_MODE);
 
-        $this->MaintainVariable(self::ACT_COP_ENABLED, 'Innenraum-Überhitzeschutz', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_COP_ENABLED), true);
+        $this->MaintainVariable(self::ACT_COP_ENABLED, $this->t('Cabin overheat protection'), VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_COP_ENABLED), true);
         if ($keep(self::ACT_COP_ENABLED)) $this->EnableAction(self::ACT_COP_ENABLED);
 
-        $this->MaintainVariable(self::ACT_COP_FAN_ONLY, 'Innenraum-Überhitzeschutz: nur Lüfter', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_COP_FAN_ONLY), true);
+        $this->MaintainVariable(self::ACT_COP_FAN_ONLY, $this->t('Cabin overheat protection: fan only'), VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_COP_FAN_ONLY), true);
         if ($keep(self::ACT_COP_FAN_ONLY)) $this->EnableAction(self::ACT_COP_FAN_ONLY);
 
-        $this->MaintainVariable(self::ACT_COP_TEMP, 'Innenraum-Überhitzeschutz: Temperaturlimit', VARIABLETYPE_INTEGER, $this->presFor('Tessie.COPTemp', true), $pos(self::ACT_COP_TEMP), true);
+        $this->MaintainVariable(self::ACT_COP_TEMP, $this->t('Cabin overheat protection: temperature limit'), VARIABLETYPE_INTEGER, $this->presFor('Tessie.COPTemp', true), $pos(self::ACT_COP_TEMP), true);
         if ($keep(self::ACT_COP_TEMP)) $this->EnableAction(self::ACT_COP_TEMP);
 
-        $this->MaintainVariable(self::ACT_BIO_DEFENSE, 'Biowaffen-Schutzmodus', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_BIO_DEFENSE), true);
+        $this->MaintainVariable(self::ACT_BIO_DEFENSE, $this->t('Bioweapon defense mode'), VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_BIO_DEFENSE), true);
         if ($keep(self::ACT_BIO_DEFENSE)) $this->EnableAction(self::ACT_BIO_DEFENSE);
 
-        $this->MaintainVariable(self::ACT_HOMELINK, 'HomeLink auslösen', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_HOMELINK), true);
+        $this->MaintainVariable(self::ACT_HOMELINK, $this->t('Trigger HomeLink'), VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_HOMELINK), true);
         if ($keep(self::ACT_HOMELINK)) $this->EnableAction(self::ACT_HOMELINK);
 
-        $this->MaintainVariable(self::ACT_FRONT_TRUNK, 'Vorderer Kofferraum öffnen', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_FRONT_TRUNK), true);
+        $this->MaintainVariable(self::ACT_FRONT_TRUNK, $this->t('Open front trunk'), VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_FRONT_TRUNK), true);
         if ($keep(self::ACT_FRONT_TRUNK)) $this->EnableAction(self::ACT_FRONT_TRUNK);
 
-        $this->MaintainVariable(self::ACT_REAR_TRUNK, 'Heckklappe öffnen/schließen', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_REAR_TRUNK), true);
+        $this->MaintainVariable(self::ACT_REAR_TRUNK, $this->t('Open/close rear trunk'), VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_REAR_TRUNK), true);
         if ($keep(self::ACT_REAR_TRUNK)) $this->EnableAction(self::ACT_REAR_TRUNK);
 
-        $this->MaintainVariable(self::ACT_START_CHARGING, 'Laden', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_START_CHARGING), true);
+        $this->MaintainVariable(self::ACT_START_CHARGING, $this->t('Charging'), VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_START_CHARGING), true);
         if ($keep(self::ACT_START_CHARGING)) $this->EnableAction(self::ACT_START_CHARGING);
 
-        $this->MaintainVariable(self::ACT_CHARGE_LIMIT, 'Ladelimit (%)', VARIABLETYPE_INTEGER, $this->presFor('Tessie.PercentInt', true), $pos(self::ACT_CHARGE_LIMIT), true);
+        $this->MaintainVariable(self::ACT_CHARGE_LIMIT, $this->t('Charge limit (%)'), VARIABLETYPE_INTEGER, $this->presFor('Tessie.PercentInt', true), $pos(self::ACT_CHARGE_LIMIT), true);
         if ($keep(self::ACT_CHARGE_LIMIT)) $this->EnableAction(self::ACT_CHARGE_LIMIT);
 
-        $this->MaintainVariable(self::ACT_CHARGING_AMPS_REQUEST, 'Ladestrom Soll (A)', VARIABLETYPE_INTEGER, $this->presFor('Tessie.Amps', true), $pos(self::ACT_CHARGING_AMPS_REQUEST), true);
+        $this->MaintainVariable(self::ACT_CHARGING_AMPS_REQUEST, $this->t('Charge current setpoint (A)'), VARIABLETYPE_INTEGER, $this->presFor('Tessie.Amps', true), $pos(self::ACT_CHARGING_AMPS_REQUEST), true);
         if ($keep(self::ACT_CHARGING_AMPS_REQUEST)) $this->EnableAction(self::ACT_CHARGING_AMPS_REQUEST);
 
-        $this->MaintainVariable(self::ACT_FLASH, 'Licht blinken', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_FLASH), true);
+        $this->MaintainVariable(self::ACT_FLASH, $this->t('Flash lights'), VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_FLASH), true);
         if ($keep(self::ACT_FLASH)) $this->EnableAction(self::ACT_FLASH);
 
-        $this->MaintainVariable(self::ACT_HONK, 'Hupe', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_HONK), true);
+        $this->MaintainVariable(self::ACT_HONK, $this->t('Honk horn'), VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_HONK), true);
         if ($keep(self::ACT_HONK)) $this->EnableAction(self::ACT_HONK);
 
-        $this->MaintainVariable(self::ACT_SENTRY_MODE, 'Wächtermodus', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_SENTRY_MODE), true);
+        $this->MaintainVariable(self::ACT_SENTRY_MODE, $this->t('Sentry mode'), VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_SENTRY_MODE), true);
         if ($keep(self::ACT_SENTRY_MODE)) $this->EnableAction(self::ACT_SENTRY_MODE);
 
-        $this->MaintainVariable(self::ACT_VALET_MODE, 'Valet-Modus', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_VALET_MODE), true);
+        $this->MaintainVariable(self::ACT_VALET_MODE, $this->t('Valet mode'), VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_VALET_MODE), true);
         if ($keep(self::ACT_VALET_MODE)) $this->EnableAction(self::ACT_VALET_MODE);
 
-        $this->MaintainVariable(self::ACT_VENT_WINDOWS, 'Fenster lüften', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_VENT_WINDOWS), true);
+        $this->MaintainVariable(self::ACT_VENT_WINDOWS, $this->t('Vent windows'), VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_VENT_WINDOWS), true);
         if ($keep(self::ACT_VENT_WINDOWS)) $this->EnableAction(self::ACT_VENT_WINDOWS);
 
-        $this->MaintainVariable(self::ACT_CLOSE_WINDOWS, 'Fenster schließen', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_CLOSE_WINDOWS), true);
+        $this->MaintainVariable(self::ACT_CLOSE_WINDOWS, $this->t('Close windows'), VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_CLOSE_WINDOWS), true);
         if ($keep(self::ACT_CLOSE_WINDOWS)) $this->EnableAction(self::ACT_CLOSE_WINDOWS);
 
-        $this->MaintainVariable(self::ACT_DEFROST, 'Max. Entfrosten', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_DEFROST), true);
+        $this->MaintainVariable(self::ACT_DEFROST, $this->t('Max defrost'), VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_DEFROST), true);
         if ($keep(self::ACT_DEFROST)) $this->EnableAction(self::ACT_DEFROST);
 
-        $this->MaintainVariable(self::ACT_STEERING_WHEEL_HEATER, 'Lenkradheizung', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_STEERING_WHEEL_HEATER), true);
+        $this->MaintainVariable(self::ACT_STEERING_WHEEL_HEATER, $this->t('Steering wheel heater'), VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_STEERING_WHEEL_HEATER), true);
         if ($keep(self::ACT_STEERING_WHEEL_HEATER)) $this->EnableAction(self::ACT_STEERING_WHEEL_HEATER);
 
-        $this->MaintainVariable(self::ACT_TEMP_DRIVER, 'Solltemperatur Fahrer (°C)', VARIABLETYPE_FLOAT, $this->presFor('Tessie.TempSetC', true), $pos(self::ACT_TEMP_DRIVER), true);
+        $this->MaintainVariable(self::ACT_TEMP_DRIVER, $this->t('Driver target temperature (°C)'), VARIABLETYPE_FLOAT, $this->presFor('Tessie.TempSetC', true), $pos(self::ACT_TEMP_DRIVER), true);
         if ($keep(self::ACT_TEMP_DRIVER)) $this->EnableAction(self::ACT_TEMP_DRIVER);
 
-        $this->MaintainVariable(self::ACT_TEMP_PASSENGER, 'Solltemperatur Beifahrer (°C)', VARIABLETYPE_FLOAT, $this->presFor('Tessie.TempSetC', true), $pos(self::ACT_TEMP_PASSENGER), true);
+        $this->MaintainVariable(self::ACT_TEMP_PASSENGER, $this->t('Passenger target temperature (°C)'), VARIABLETYPE_FLOAT, $this->presFor('Tessie.TempSetC', true), $pos(self::ACT_TEMP_PASSENGER), true);
         if ($keep(self::ACT_TEMP_PASSENGER)) $this->EnableAction(self::ACT_TEMP_PASSENGER);
 
-        $this->MaintainVariable(self::ACT_SEAT_HEAT_DRIVER, 'Sitzheizung Fahrer', VARIABLETYPE_INTEGER, $this->presFor('Tessie.SeatHeatLevel', true), $pos(self::ACT_SEAT_HEAT_DRIVER), true);
+        $this->MaintainVariable(self::ACT_SEAT_HEAT_DRIVER, $this->t('Driver seat heater'), VARIABLETYPE_INTEGER, $this->presFor('Tessie.SeatHeatLevel', true), $pos(self::ACT_SEAT_HEAT_DRIVER), true);
         if ($keep(self::ACT_SEAT_HEAT_DRIVER)) $this->EnableAction(self::ACT_SEAT_HEAT_DRIVER);
 
-        $this->MaintainVariable(self::ACT_SEAT_HEAT_PASSENGER, 'Sitzheizung Beifahrer', VARIABLETYPE_INTEGER, $this->presFor('Tessie.SeatHeatLevel', true), $pos(self::ACT_SEAT_HEAT_PASSENGER), true);
+        $this->MaintainVariable(self::ACT_SEAT_HEAT_PASSENGER, $this->t('Passenger seat heater'), VARIABLETYPE_INTEGER, $this->presFor('Tessie.SeatHeatLevel', true), $pos(self::ACT_SEAT_HEAT_PASSENGER), true);
         if ($keep(self::ACT_SEAT_HEAT_PASSENGER)) $this->EnableAction(self::ACT_SEAT_HEAT_PASSENGER);
 
-        $this->MaintainVariable(self::ACT_OPEN_CHARGE_PORT, 'Ladeport öffnen/entriegeln', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_OPEN_CHARGE_PORT), true);
+        $this->MaintainVariable(self::ACT_OPEN_CHARGE_PORT, $this->t('Open/unlock charge port'), VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_OPEN_CHARGE_PORT), true);
         if ($keep(self::ACT_OPEN_CHARGE_PORT)) $this->EnableAction(self::ACT_OPEN_CHARGE_PORT);
 
-        $this->MaintainVariable(self::ACT_CLOSE_CHARGE_PORT, 'Ladeport schließen', VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_CLOSE_CHARGE_PORT), true);
+        $this->MaintainVariable(self::ACT_CLOSE_CHARGE_PORT, $this->t('Close charge port'), VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_CLOSE_CHARGE_PORT), true);
         if ($keep(self::ACT_CLOSE_CHARGE_PORT)) $this->EnableAction(self::ACT_CLOSE_CHARGE_PORT);
 
 
-        $this->MaintainVariable(self::STAT_CHARGING_AMPS_ACTUAL, 'Ladestrom Ist (A)', VARIABLETYPE_FLOAT, $this->presFor('Tessie.AmpsFloat', false), $pos(self::STAT_CHARGING_AMPS_ACTUAL), true);
-        $this->MaintainVariable(self::STAT_CHARGING_AMPS_MAX, 'Ladestrom Max (A)', VARIABLETYPE_INTEGER, $this->presFor('Tessie.Amps', false), $pos(self::STAT_CHARGING_AMPS_MAX), true);
-        $this->MaintainVariable(self::STAT_AC_CHARGING_POWER, 'AC Ladeleistung (kW)', VARIABLETYPE_FLOAT, $this->presFor('Tessie.kW', false), $pos(self::STAT_AC_CHARGING_POWER), true);
+        $this->MaintainVariable(self::STAT_CHARGING_AMPS_ACTUAL, $this->t('Charge current actual (A)'), VARIABLETYPE_FLOAT, $this->presFor('Tessie.AmpsFloat', false), $pos(self::STAT_CHARGING_AMPS_ACTUAL), true);
+        $this->MaintainVariable(self::STAT_CHARGING_AMPS_MAX, $this->t('Charge current max (A)'), VARIABLETYPE_INTEGER, $this->presFor('Tessie.Amps', false), $pos(self::STAT_CHARGING_AMPS_MAX), true);
+        $this->MaintainVariable(self::STAT_AC_CHARGING_POWER, $this->t('AC charging power (kW)'), VARIABLETYPE_FLOAT, $this->presFor('Tessie.kW', false), $pos(self::STAT_AC_CHARGING_POWER), true);
 
         // Standort-Erkennung (Geofence): Status-Variablen nur anlegen/einblenden, wenn aktiviert.
         // Nicht Teil der VisibleVars-Liste – wird komplett über die Eigenschaften gesteuert.
@@ -3134,14 +3160,14 @@ class TessieVehicle extends IPSModule
             $geoPos = (count($posMap) ? max($posMap) : 0) + 10;
 
             // Textvariable "Aktueller Standort" (Name des Geofence bzw. "Unterwegs")
-            $this->MaintainVariable(self::STAT_LOCATION_NAME, 'Aktueller Standort', VARIABLETYPE_STRING, $this->presValue(), $geoPos, true);
+            $this->MaintainVariable(self::STAT_LOCATION_NAME, $this->t('Current location'), VARIABLETYPE_STRING, $this->presValue(), $geoPos, true);
             $geoActiveIdents[self::STAT_LOCATION_NAME] = true;
             $geoPos += 10;
 
             // Je Standort eine Boolean-Variable ("Zu Hause" = fester Zuhause-Eintrag)
             foreach ($this->getGeofences() as $f) {
                 if ($f['ident'] === self::STAT_AT_HOME) {
-                    $name = 'Zu Hause';
+                    $name = $this->t('At home');
                     $pres = $this->presFor('Tessie.AtHome', false);
                 } else {
                     $name = $f['name'];
@@ -3214,13 +3240,13 @@ class TessieVehicle extends IPSModule
         // Bestehende Variablen mit altem englischen Namen umbenennen (vom Nutzer
         // angepasste Namen bleiben erhalten, da nur exakte alte Defaults ersetzt werden)
         $renames = [
-            self::ACT_CLIMATE_KEEPER_MODE => ['Climate Keeper Mode' => 'Klimahaltung'],
-            self::ACT_FRONT_TRUNK         => ['Front-Trunk öffnen' => 'Vorderer Kofferraum öffnen'],
-            self::ACT_REAR_TRUNK          => ['Rear-Trunk öffnen/schließen' => 'Heckklappe öffnen/schließen'],
-            // Deutsche Bezeichnungen analog Tesla-Bedienungsanleitung (Sprachregel des Modul-Verbunds)
-            self::ACT_SENTRY_MODE         => ['Sentry Mode' => 'Wächtermodus'],
-            self::ACT_DEFROST             => ['Max Defrost' => 'Max. Entfrosten'],
-            self::ACT_BIO_DEFENSE         => ['Bio Defense Mode' => 'Biowaffen-Schutzmodus']
+            self::ACT_CLIMATE_KEEPER_MODE => ['Climate Keeper Mode' => $this->t('Climate keeper')],
+            self::ACT_FRONT_TRUNK         => ['Front-Trunk öffnen' => $this->t('Open front trunk')],
+            self::ACT_REAR_TRUNK          => ['Rear-Trunk öffnen/schließen' => $this->t('Open/close rear trunk')],
+            // Bezeichnungen analog Tesla-Bedienungsanleitung der jeweiligen Sprache
+            self::ACT_SENTRY_MODE         => ['Sentry Mode' => $this->t('Sentry mode')],
+            self::ACT_DEFROST             => ['Max Defrost' => $this->t('Max defrost')],
+            self::ACT_BIO_DEFENSE         => ['Bio Defense Mode' => $this->t('Bioweapon defense mode')]
         ];
         foreach ($renames as $ident => $map) {
             $vid = @IPS_GetObjectIDByIdent($ident, $this->InstanceID);
@@ -3293,7 +3319,7 @@ class TessieVehicle extends IPSModule
             $varId = @IPS_GetObjectIDByIdent($varIdent, $this->InstanceID);
             if ($varId <= 0) return;
             if (!isset($purposeIds[$purpose])) {
-                $purposeIds[$purpose] = $this->ensureCategoryUnder($rootId, $purpose, self::IDENT_PURP_PREFIX . $this->makeIdent($purpose));
+                $purposeIds[$purpose] = $this->ensureCategoryUnder($rootId, $this->purposeLabel($purpose), self::IDENT_PURP_PREFIX . $this->makeIdent($purpose));
             }
             $pid = $purposeIds[$purpose];
             $linkIdent = self::IDENT_LINK_PREFIX . $this->makeIdent($varIdent);
@@ -3322,6 +3348,18 @@ class TessieVehicle extends IPSModule
         }
 
         $this->WriteAttributeInteger(self::ATTR_LAST_LINKS_LOCATION, $linksParent);
+    }
+
+    /** Anzeigename einer Kategorie (die Konstanten PURPOSE_* bleiben als Kennung unverändert). */
+    private function purposeLabel(string $purpose): string
+    {
+        switch ($purpose) {
+            case self::PURPOSE_CHARGING: return $this->t('Charging');
+            case self::PURPOSE_CLIMATE:  return $this->t('Climate');
+            case self::PURPOSE_SECURITY: return $this->t('Security');
+            case self::PURPOSE_OTHER:    return $this->t('Other');
+        }
+        return $purpose;
     }
 
     // Domäne einer Variable für die Linkbaum-Gruppierung (genau eine pro Variable)
@@ -3539,7 +3577,7 @@ class TessieVehicle extends IPSModule
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
 
         if ((bool)$this->ReadPropertyBoolean('DebugHTTP')) {
-            $this->SendDebug('API-URL', $methodUpper . ' ' . $url, 0);
+            $this->SendDebug('API URL', $methodUpper . ' ' . $url, 0);
         }
 
         $resp = curl_exec($ch);
@@ -3548,18 +3586,18 @@ class TessieVehicle extends IPSModule
         curl_close($ch);
 
         if ($resp === false) {
-            $this->SendDebug('API-Anfrage', 'cURL-Fehler: ' . $err, 0);
+            $this->SendDebug('API request', 'cURL error: ' . $err, 0);
             return [];
         }
 
         $json = json_decode($resp, true);
         if (!is_array($json)) {
-            $this->SendDebug('API-Anfrage', 'HTTP ' . $code . ' – keine JSON-Antwort: ' . substr($resp, 0, 500), 0);
+            $this->SendDebug('API request', 'HTTP ' . $code . ' – no JSON response: ' . substr($resp, 0, 500), 0);
             return [];
         }
         if ($code >= 400) {
-            $this->SendDebug('API-Anfrage', 'HTTP ' . $code . ' ' . $methodUpper . ' ' . $path . ': ' . substr($resp, 0, 500), 0);
-            $this->LogMessage('Tessie API HTTP ' . $code . ' bei ' . $methodUpper . ' ' . $path, KL_WARNING);
+            $this->SendDebug('API request', 'HTTP ' . $code . ' ' . $methodUpper . ' ' . $path . ': ' . substr($resp, 0, 500), 0);
+            $this->LogMessage(sprintf($this->t('Tessie API HTTP %d on %s %s'), $code, $methodUpper, $path), KL_WARNING);
             return [];
         }
         return $json;

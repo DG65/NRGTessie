@@ -2,68 +2,68 @@
   "elements": [
     {
       "type": "ExpansionPanel",
-      "caption": "📖 Dokumentation & Hilfe",
+      "caption": "📖 Documentation & help",
       "expanded": false,
       "items": [
         {
           "type": "Label",
-          "caption": "── Funktionsweise ──"
+          "caption": "── How it works ──"
         },
         {
           "type": "Label",
-          "caption": "Die Kachel ist eine eigenständige Instanz für die Visualisierung (TileVisu) und von der Datenverbindung getrennt: Sie liest ihre Werte aus einer TessieVehicle-Instanz und aktualisiert sich sofort, wenn sich dort etwas ändert. Gibt es genau eine TessieVehicle-Instanz, wird sie automatisch als Quelle erkannt – nur bei mehreren Fahrzeugen wählst du die Quelle manuell."
+          "caption": "The tile is a standalone instance for the visualization (TileVisu) and is separate from the data connection: it reads its values from a TessieVehicle instance and updates immediately when something changes there. If there is exactly one TessieVehicle instance, it is detected automatically as the source – only with several vehicles do you choose the source manually."
         },
         {
           "type": "Label",
-          "caption": "── Darstellung ──"
+          "caption": "── Appearance ──"
         },
         {
           "type": "Label",
-          "caption": "Die Statusfarbe (Lädt/Bereit/Inaktiv) färbt den Akkubalken. Flächen-, Text- und Schriftoptionen passen die Kachel an deine Visualisierung an; ohne eigene Angabe folgt die Kachel dem hellen/dunklen Design des Endgeräts. Der Kachelname kann automatisch vom Fahrzeug übernommen werden."
+          "caption": "The status color (charging/ready/idle) colors the battery bar. The surface, text and font options adapt the tile to your visualization; without an own setting the tile follows the light/dark design of the device. The tile name can be taken from the vehicle automatically."
         },
         {
           "type": "Label",
-          "caption": "── Bedienung ──"
+          "caption": "── Operation ──"
         },
         {
           "type": "Label",
-          "caption": "Mit 'Bedien-Schaltflächen anzeigen' und der Liste 'Schaltflächen' wählst du frei, welche und wie viele Aktionen die Kachel anbietet – etwa nur Verriegeln, oder zusätzlich Wächtermodus, Hupe, Kofferraum und Fenster. Die Reihenfolge legst du per Ziehen und Ablegen fest, je Schaltfläche ist eine eigene Beschriftung möglich. Die Schaltflächen lösen die entsprechenden Aktionsvariablen der TessieVehicle-Quelle aus – Berechtigungen und Verhalten sind also identisch zur Bedienung im Objektbaum. Eine Schaltfläche erscheint nur, wenn der zugehörige Datenpunkt dort aktiviert ist. Über den Stift ✎ oben rechts im Bedienbereich lässt sich dieselbe Liste auch direkt in der Kachel verwalten (hinzufügen, Funktion/Beschriftung ändern, Reihenfolge per ▲▼, löschen)."
+          "caption": "With 'Show control buttons' and the 'Buttons' list you freely choose which and how many actions the tile offers – e.g. only lock/unlock, or additionally sentry mode, horn, trunk and windows. You set the order by drag and drop, and each button can have its own label. The buttons trigger the corresponding action variables of the TessieVehicle source – so permissions and behavior are identical to operating them in the object tree. A button only appears if the corresponding data point is enabled there. With the pencil ✎ at the top right of the control area, the same list can also be managed directly in the tile (add, change function/label, order with ▲▼, delete)."
         },
         {
           "type": "Label",
-          "caption": "Mit 'Automationen anzeigen' verwaltet die Kachel die Wenn→Dann-Regeln der TessieVehicle-Quelle vollständig: '+ Neue Regel' legt eine Regel an, ✎ bearbeitet, der Papierkorb löscht (mit Rückfrage), der Schalter aktiviert/deaktiviert. Im Editor werden als Ziel schaltbare Variablen (mit Aktion) angeboten – per Suchfeld filterbar; bei 'Wert setzen' erscheinen die im Profil/der Darstellung definierten Werte als Auswahlliste. Genauso beim 'Wenn'-Vergleichswert: hat der gewählte Datenpunkt bekannte Werte (z. B. Sitzheizung, Klimahaltung), erscheint dort ebenfalls eine Auswahlliste statt Freitext, und die Bedingung springt automatisch von 'wird EIN/AUS' auf '=', da das bei mehrwertigen Datenpunkten sinnvoller ist. Ist die Kachel mehrfach verlinkt, wirken alle Änderungen überall auf dieselben Regeln."
+          "caption": "With 'Show automations' the tile fully manages the If→Then rules of the TessieVehicle source: '+ New rule' creates a rule, ✎ edits it, the trash can deletes it (with confirmation), the switch activates/deactivates it. In the editor, switchable variables (with an action) are offered as targets – filterable through the search field; for 'Set value' the values defined in the profile/presentation appear as a selection list. The same applies to the 'If' comparison value: if the chosen data point has known values (e.g. seat heater, climate keeper), a selection list appears there instead of free text, and the condition switches automatically from 'becomes ON/OFF' to '=', which makes more sense for multi-valued data points. If the tile is linked several times, all changes act on the same rules everywhere."
         },
         {
           "type": "Label",
-          "caption": "Darunter verwaltet die Kachel auch die Standorte (Geofence): Schalter aktiviert die Standort-Erkennung, '+ Neuer Standort' legt einen Ort an (Koordinaten eintippen oder aktuelle Fahrzeugposition übernehmen – praktisch: hinfahren und speichern), ✎ bearbeitet Zuhause und weitere Orte, der Papierkorb löscht. Für weitere Standorte lässt sich zusätzlich ein Icon wählen (Vorschläge oder eigenes Emoji) – es erscheint in der Standortliste und in der 'Aktueller Standort'-Anzeige. Die Kartenauswahl gibt es weiterhin im Instanzformular; Zuhause ohne Koordinaten nutzt den Systemstandort."
+          "caption": "Below that, the tile also manages the locations (geofence): the switch enables the location detection, '+ New location' adds a place (type in coordinates or use the current vehicle position – handy: drive there and save), ✎ edits home and further places, the trash can deletes. For further locations you can additionally choose an icon (suggestions or your own emoji) – it appears in the location list and in the 'Current location' display. The map selection is still available in the instance form; home without coordinates uses the system location."
         },
         {
           "type": "Label",
-          "caption": "Die Schaltfläche 'Farben & Schrift auf Standard zurücksetzen' ändert nur das offene Formular – gespeichert wird erst mit 'Änderungen übernehmen'."
+          "caption": "The button 'Reset colors & font to default' only changes the open form – it is saved only with 'Apply changes'."
         },
         {
           "type": "Label",
-          "caption": "── Weitere Hilfe ──"
+          "caption": "── More help ──"
         },
         {
           "type": "Label",
-          "caption": "Ausführliche Dokumentation und Screenshots: github.com/DG65/NRGTessie."
+          "caption": "Detailed documentation and screenshots: github.com/DG65/NRGTessie."
         }
       ]
     },
     {
       "type": "Label",
-      "caption": "Eigenständige Kachel für ein Tessie-Fahrzeug. Die Kachel füllt die Tile randlos und ist von der Datenverbindung getrennt."
+      "caption": "Standalone tile for a Tessie vehicle. The tile fills the tile area edge to edge and is separate from the data connection."
     },
     {
       "type": "Label",
       "name": "SourceStatus",
-      "caption": "Datenquelle wird ermittelt …"
+      "caption": "Determining data source …"
     },
     {
       "type": "SelectInstance",
       "name": "SourceInstance",
-      "caption": "Datenquelle (leer = automatisch erkennen)",
+      "caption": "Data source (empty = detect automatically)",
       "validModules": [
         "{3F1F7E31-8BA0-4B8F-9B62-47DAD7A0B6C9}"
       ]
@@ -71,66 +71,66 @@
     {
       "type": "CheckBox",
       "name": "AdoptVehicleName",
-      "caption": "Kachelname automatisch vom Fahrzeug übernehmen"
+      "caption": "Take the tile name from the vehicle automatically"
     },
     {
       "type": "ExpansionPanel",
-      "caption": "🎨 Statusfarben",
+      "caption": "🎨 Status colors",
       "items": [
         {
           "type": "SelectColor",
           "name": "ColorCharging",
-          "caption": "Lädt"
+          "caption": "Charging"
         },
         {
           "type": "SelectColor",
           "name": "ColorReady",
-          "caption": "Bereit"
+          "caption": "Ready"
         },
         {
           "type": "SelectColor",
           "name": "ColorIdle",
-          "caption": "Inaktiv/Unbekannt"
+          "caption": "Idle/unknown"
         }
       ]
     },
     {
       "type": "ExpansionPanel",
-      "caption": "🖌️ Flächen & Text",
+      "caption": "🖌️ Surfaces & text",
       "items": [
         {
           "type": "SelectColor",
           "name": "ColorBackground",
-          "caption": "Hintergrund"
+          "caption": "Background"
         },
         {
           "type": "SelectColor",
           "name": "ColorBox",
-          "caption": "Kacheln/Boxen"
+          "caption": "Tiles/boxes"
         },
         {
           "type": "SelectColor",
           "name": "ColorText",
-          "caption": "Text (Werte)"
+          "caption": "Text (values)"
         },
         {
           "type": "SelectColor",
           "name": "ColorTextMuted",
-          "caption": "Text (Beschriftungen)"
+          "caption": "Text (labels)"
         }
       ]
     },
     {
       "type": "ExpansionPanel",
-      "caption": "🔤 Schrift",
+      "caption": "🔤 Font",
       "items": [
         {
           "type": "Select",
           "name": "FontFamily",
-          "caption": "Schriftart",
+          "caption": "Font family",
           "options": [
             {
-              "caption": "System (Standard)",
+              "caption": "System (default)",
               "value": "system"
             },
             {
@@ -150,11 +150,11 @@
               "value": "trebuchet"
             },
             {
-              "caption": "Georgia (Serif)",
+              "caption": "Georgia (serif)",
               "value": "georgia"
             },
             {
-              "caption": "Courier New (Monospace)",
+              "caption": "Courier New (monospace)",
               "value": "courier"
             }
           ]
@@ -162,7 +162,7 @@
         {
           "type": "NumberSpinner",
           "name": "FontScale",
-          "caption": "Schriftgröße (Faktor)",
+          "caption": "Font size (factor)",
           "digits": 2,
           "minimum": 0.5,
           "maximum": 2.5,
@@ -173,19 +173,19 @@
     {
       "type": "CheckBox",
       "name": "ShowControls",
-      "caption": "Bedien-Schaltflächen anzeigen (siehe Liste 'Schaltflächen' unten)"
+      "caption": "Show control buttons (see the 'Buttons' list below)"
     },
     {
       "type": "List",
       "name": "Buttons",
-      "caption": "Schaltflächen",
+      "caption": "Buttons",
       "rowCount": 6,
       "add": true,
       "delete": true,
       "changeOrder": true,
       "columns": [
         {
-          "caption": "Funktion",
+          "caption": "Function",
           "name": "Ident",
           "width": "260px",
           "add": "act_locked",
@@ -193,86 +193,86 @@
             "type": "Select",
             "options": [
               {
-                "caption": "Verriegelung",
+                "caption": "Door lock",
                 "value": "act_locked"
               },
               {
-                "caption": "Klimaanlage",
+                "caption": "Climate control",
                 "value": "act_climate"
               },
               {
-                "caption": "Laden",
+                "caption": "Start/stop charging",
                 "value": "act_charging"
               },
               {
-                "caption": "Wächtermodus",
+                "caption": "Sentry mode",
                 "value": "act_sentry"
               },
               {
-                "caption": "Valet-Modus",
+                "caption": "Valet mode",
                 "value": "act_valet"
               },
               {
-                "caption": "Max. Entfrosten",
+                "caption": "Max defrost",
                 "value": "act_defrost"
               },
               {
-                "caption": "Lenkradheizung",
+                "caption": "Steering wheel heater",
                 "value": "act_steering_wheel"
               },
               {
-                "caption": "Innenraum-Überhitzeschutz",
+                "caption": "Cabin overheat protection",
                 "value": "act_cop_enabled"
               },
               {
-                "caption": "Überhitzeschutz: nur Lüfter",
+                "caption": "Overheat protection: fan only",
                 "value": "act_cop_fan_only"
               },
               {
-                "caption": "Biowaffen-Schutzmodus",
+                "caption": "Bioweapon defense mode",
                 "value": "act_bio_defense"
               },
               {
-                "caption": "HomeLink auslösen",
+                "caption": "Trigger HomeLink",
                 "value": "act_homelink"
               },
               {
-                "caption": "Vorderer Kofferraum öffnen",
+                "caption": "Open front trunk",
                 "value": "act_front_trunk"
               },
               {
-                "caption": "Heckklappe öffnen/schließen",
+                "caption": "Open/close rear trunk",
                 "value": "act_rear_trunk"
               },
               {
-                "caption": "Lichthupe",
+                "caption": "Flash headlights",
                 "value": "act_flash"
               },
               {
-                "caption": "Hupe",
+                "caption": "Honk horn",
                 "value": "act_honk"
               },
               {
-                "caption": "Ladeport öffnen",
+                "caption": "Open charge port",
                 "value": "act_open_charge_port"
               },
               {
-                "caption": "Ladeport schließen",
+                "caption": "Close charge port",
                 "value": "act_close_charge_port"
               },
               {
-                "caption": "Fenster lüften",
+                "caption": "Vent windows",
                 "value": "act_vent_windows"
               },
               {
-                "caption": "Fenster schließen",
+                "caption": "Close windows",
                 "value": "act_close_windows"
               }
             ]
           }
         },
         {
-          "caption": "Eigene Beschriftung (optional)",
+          "caption": "Custom label (optional)",
           "name": "Label",
           "width": "auto",
           "add": "",
@@ -285,18 +285,18 @@
     },
     {
       "type": "Label",
-      "caption": "Reihenfolge per Ziehen und Ablegen. Eine Schaltfläche erscheint nur, wenn der zugehörige Datenpunkt in der TessieVehicle-Quelle aktiviert ist."
+      "caption": "Order by drag and drop. A button only appears if the corresponding data point is enabled in the TessieVehicle source."
     },
     {
       "type": "CheckBox",
       "name": "ShowAutomations",
-      "caption": "Automationen anzeigen (Wenn→Dann-Regeln der Quelle, mit Ein/Aus-Schalter)"
+      "caption": "Show automations (If→Then rules of the source, with on/off switch)"
     }
   ],
   "actions": [
     {
       "type": "Button",
-      "caption": "Farben & Schrift auf Standard zurücksetzen",
+      "caption": "Reset colors & font to default",
       "onClick": "TESSIETILE_ResetStyle($id);"
     }
   ],
@@ -304,12 +304,12 @@
     {
       "code": 102,
       "icon": "active",
-      "caption": "Aktiv"
+      "caption": "Active"
     },
     {
       "code": 104,
       "icon": "inactive",
-      "caption": "Keine Datenquelle gewählt"
+      "caption": "No data source selected"
     }
   ]
 }

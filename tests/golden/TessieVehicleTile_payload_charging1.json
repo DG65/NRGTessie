@@ -1,0 +1,193 @@
+{
+    "msg": {
+        "bg": "#000000",
+        "box": "#000000",
+        "text": "#000000",
+        "textmuted": "#000000",
+        "font": "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        "scale": 0.5,
+        "controls": true,
+        "name": "Mein Tesla",
+        "accent": "#000000",
+        "cls": "live",
+        "stateLabel": "Lädt",
+        "locked": true,
+        "climate": false,
+        "charging": true,
+        "soc": 82.4,
+        "range": null,
+        "insideTemp": null,
+        "outsideTemp": null,
+        "acPower": null,
+        "ampsActual": null,
+        "ampsMax": null,
+        "chargeLimit": null,
+        "timeToFull": null,
+        "lat": null,
+        "lon": null,
+        "location": "Zuhause",
+        "rules": null,
+        "geo": null,
+        "buttons": [
+            {
+                "i": "act_locked",
+                "idx": 0,
+                "n": "Verriegelung",
+                "label": "",
+                "c": "Entriegeln",
+                "on": false,
+                "v": false
+            },
+            {
+                "i": "act_climate",
+                "idx": 1,
+                "n": "Klimaanlage",
+                "label": "",
+                "c": "Klima ein",
+                "on": false,
+                "v": true
+            },
+            {
+                "i": "act_charging",
+                "idx": 2,
+                "n": "Laden",
+                "label": "",
+                "c": "Laden stop",
+                "on": true,
+                "v": false
+            },
+            {
+                "i": "act_sentry",
+                "idx": 3,
+                "n": "Wächtermodus",
+                "label": "",
+                "c": "Wächtermodus ausschalten",
+                "on": true,
+                "v": false
+            },
+            {
+                "i": "act_valet",
+                "idx": 4,
+                "n": "Valet-Modus",
+                "label": "",
+                "c": "Valet-Modus einschalten",
+                "on": false,
+                "v": true
+            },
+            {
+                "i": "act_honk",
+                "idx": 5,
+                "n": "Hupe",
+                "label": "",
+                "c": "Hupe",
+                "on": false,
+                "v": true
+            },
+            {
+                "i": "act_vent_windows",
+                "idx": 6,
+                "n": "Fenster lüften",
+                "label": "",
+                "c": "Fenster lüften",
+                "on": false,
+                "v": true
+            },
+            {
+                "i": "act_cop_enabled",
+                "idx": 7,
+                "n": "Innenraum-Überhitzeschutz",
+                "label": "",
+                "c": "Innenraum-Überhitzeschutz ausschalten",
+                "on": true,
+                "v": false
+            },
+            {
+                "i": "act_front_trunk",
+                "idx": 8,
+                "n": "Vorderer Kofferraum öffnen",
+                "label": "",
+                "c": "Vorderer Kofferraum öffnen",
+                "on": false,
+                "v": true
+            }
+        ]
+    },
+    "catalog": [
+        {
+            "v": "act_locked",
+            "c": "Verriegelung"
+        },
+        {
+            "v": "act_climate",
+            "c": "Klimaanlage"
+        },
+        {
+            "v": "act_charging",
+            "c": "Laden"
+        },
+        {
+            "v": "act_sentry",
+            "c": "Wächtermodus"
+        },
+        {
+            "v": "act_valet",
+            "c": "Valet-Modus"
+        },
+        {
+            "v": "act_defrost",
+            "c": "Max. Entfrosten"
+        },
+        {
+            "v": "act_steering_wheel",
+            "c": "Lenkradheizung"
+        },
+        {
+            "v": "act_cop_enabled",
+            "c": "Innenraum-Überhitzeschutz"
+        },
+        {
+            "v": "act_cop_fan_only",
+            "c": "Überhitzeschutz: nur Lüfter"
+        },
+        {
+            "v": "act_bio_defense",
+            "c": "Biowaffen-Schutzmodus"
+        },
+        {
+            "v": "act_homelink",
+            "c": "HomeLink auslösen"
+        },
+        {
+            "v": "act_front_trunk",
+            "c": "Vorderer Kofferraum öffnen"
+        },
+        {
+            "v": "act_rear_trunk",
+            "c": "Heckklappe öffnen\/schließen"
+        },
+        {
+            "v": "act_flash",
+            "c": "Lichthupe"
+        },
+        {
+            "v": "act_honk",
+            "c": "Hupe"
+        },
+        {
+            "v": "act_open_charge_port",
+            "c": "Ladeport öffnen"
+        },
+        {
+            "v": "act_close_charge_port",
+            "c": "Ladeport schließen"
+        },
+        {
+            "v": "act_vent_windows",
+            "c": "Fenster lüften"
+        },
+        {
+            "v": "act_close_windows",
+            "c": "Fenster schließen"
+        }
+    ]
+}

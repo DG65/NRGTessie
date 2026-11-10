@@ -1,0 +1,152 @@
+{
+    "elements": [
+        {
+            "type": "ExpansionPanel",
+            "name": "PurposeIntroPanel",
+            "expanded": true,
+            "caption": "👋  Wozu dieses Modul?",
+            "items": [
+                {
+                    "type": "Label",
+                    "caption": "Der Tessie Konfigurator ist der Einstiegspunkt: Zugangsschlüssel eintragen, Fahrzeuge deines Tessie-Kontos finden und per Klick die passende TessieVehicle-Instanz samt Telemetrie-Verbindung anlegen."
+                },
+                {
+                    "type": "Label",
+                    "caption": "Der Nutzen: du richtest nichts von Hand ein – Instanz, WebSocket-Verbindung und Datenpunkte entstehen automatisch. Nach dem Einrichten brauchst du dieses Modul nur noch, wenn ein weiteres Fahrzeug hinzukommt oder sich der Zugangsschlüssel ändert."
+                },
+                {
+                    "type": "Label",
+                    "caption": "Für die eigentliche Fahrzeugsteuerung/-anzeige ist TessieVehicle zuständig, für eine Kachel-Ansicht TessieVehicleTile."
+                },
+                {
+                    "type": "Button",
+                    "caption": "Verstanden – nicht mehr anzeigen",
+                    "onClick": "TESSIE_AckConfiguratorPurposeIntro($id);"
+                }
+            ]
+        },
+        {
+            "type": "ExpansionPanel",
+            "caption": "📖 Dokumentation & Hilfe (Modulversion 2.39.0)",
+            "expanded": false,
+            "items": [
+                {
+                    "type": "Label",
+                    "caption": "── Funktionsweise ──"
+                },
+                {
+                    "type": "Label",
+                    "caption": "Der Konfigurator listet alle Fahrzeuge deines Tessie-Kontos auf und legt per Klick auf 'Erstellen' die passende TessieVehicle-Instanz samt Telemetrie-Verbindung (WebSocket) an. Ein einziger Zugangsschlüssel genügt sowohl für die Abfragen als auch für die Telemetrie."
+                },
+                {
+                    "type": "Label",
+                    "caption": "── Zugangsschlüssel erstellen ──"
+                },
+                {
+                    "type": "Label",
+                    "caption": "Auf my.tessie.com anmelden, dort unter Einstellungen → API einen Zugangsschlüssel erzeugen (in der Tessie-Oberfläche heißt er 'Access Token') und hier eintragen. Gespeichert wird er ausschließlich lokal in deiner Symcon-Installation. Nach 'Änderungen übernehmen' erscheinen die Fahrzeuge in der Liste. Das Feld zeigt aus Sicherheitsgründen nie den gespeicherten Wert an und bleibt beim erneuten Öffnen leer – ein bestehender Schlüssel bleibt dabei erhalten, solange nichts eingetragen wird; zum Ändern einfach den neuen Schlüssel eintragen."
+                },
+                {
+                    "type": "Label",
+                    "caption": "── Weitere Hilfe ──"
+                },
+                {
+                    "type": "Label",
+                    "caption": "Ausführliche Dokumentation: github.com/DG65/NRGTessie. Das Modul ist ein privates Community-Projekt und steht in keiner Verbindung zu Tesla, Inc. oder Tessie."
+                }
+            ]
+        },
+        {
+            "type": "Label",
+            "label": "Tessie Konfigurator – Fahrzeuge"
+        },
+        {
+            "type": "PasswordTextBox",
+            "name": "Token",
+            "caption": "Tessie-Zugangsschlüssel (bei Tessie 'Access Token'; gilt für Abfragen und Telemetrie) – leer lassen, um den bestehenden Schlüssel zu behalten"
+        },
+        {
+            "type": "Label",
+            "name": "TokenStatus",
+            "caption": "ℹ️ Kein Zugangsschlüssel gespeichert – oben eintragen und „Änderungen übernehmen“ drücken."
+        },
+        {
+            "type": "Button",
+            "caption": "🔎 Fahrzeuge jetzt suchen",
+            "onClick": "TESSIE_RefreshVehicles($id);"
+        },
+        {
+            "type": "Label",
+            "name": "DiscoverySummary",
+            "caption": "ℹ️ Noch nicht gesucht – Zugangsschlüssel eintragen und übernehmen."
+        },
+        {
+            "type": "ExpansionPanel",
+            "name": "ForumHintPanel",
+            "expanded": true,
+            "caption": "💬  Feedback im Symcon-Forum",
+            "items": [
+                {
+                    "type": "Label",
+                    "caption": "Tessie ist Beta – Rückmeldungen, Ideen und Erfahrungsberichte sind ausdrücklich willkommen im Community-Thread."
+                },
+                {
+                    "type": "Button",
+                    "caption": "Zum Forums-Thread",
+                    "onClick": "echo 'https://community.symcon.de/t/modul-tessie-tesla-fahrzeuge-in-ip-symcon-steuerung-telemetrie-kachel/143995';",
+                    "link": true
+                },
+                {
+                    "type": "Button",
+                    "caption": "Verstanden – nicht mehr anzeigen",
+                    "onClick": "TESSIE_AckConfiguratorForumHint($id);"
+                }
+            ]
+        },
+        {
+            "type": "ExpansionPanel",
+            "expanded": false,
+            "caption": "🧡  Über dieses Modul",
+            "items": [
+                {
+                    "type": "Label",
+                    "caption": "Entstanden aus echter Begeisterung für die eigene Anlage — und ein paar durchgetippten Abenden. Trotzdem: Software-Hobby hin oder her, das hier ist geistiges Eigentum und echte Arbeit steckt drin."
+                },
+                {
+                    "type": "Label",
+                    "caption": "Lizenz: PolyForm Noncommercial 1.0.0 — privat und nicht-kommerziell frei nutzbar, für den gewerblichen Einsatz braucht es eine gesonderte Lizenz vom Rechteinhaber."
+                },
+                {
+                    "type": "Button",
+                    "caption": "Lizenztext ansehen",
+                    "onClick": "echo 'https://github.com/DG65/NRGTessie/blob/main/LICENSE';",
+                    "link": true
+                },
+                {
+                    "type": "Label",
+                    "caption": "Gewerbliche Nutzung oder Fragen zur Lizenz? Einfach melden: dietmar@gureth.eu"
+                },
+                {
+                    "type": "Label",
+                    "caption": "Gefällt dir das Modul und du möchtest trotzdem etwas dalassen? Über eine kleine Spende freue ich mich — völlig freiwillig, keine Gegenleistung nötig."
+                },
+                {
+                    "type": "Button",
+                    "caption": "☕  Spenden via PayPal",
+                    "onClick": "echo 'https://paypal.me/DietmarGureth';",
+                    "link": true
+                }
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "type": "Configurator",
+            "name": "Vehicles",
+            "caption": "Fahrzeuge",
+            "rowCount": 12,
+            "delete": true,
+            "values": []
+        }
+    ]
+}

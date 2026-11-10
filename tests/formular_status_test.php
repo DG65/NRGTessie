@@ -5,57 +5,7 @@
 declare(strict_types=1);
 error_reporting(E_ALL & ~E_DEPRECATED);
 
-class IPSModule
-{
-    public array $props = [];
-    public array $attrs = [];
-    public function __construct(public int $InstanceID = 1) {}
-    public function ReadPropertyInteger($n) { return $this->props[$n] ?? 0; }
-    public function ReadPropertyString($n) { return $this->props[$n] ?? ''; }
-    public function ReadPropertyBoolean($n) { return $this->props[$n] ?? false; }
-    public function ReadPropertyFloat($n) { return $this->props[$n] ?? 0.0; }
-    public function ReadAttributeString($n) { return $this->attrs[$n] ?? ''; }
-    public function ReadAttributeBoolean($n) { return $this->attrs[$n] ?? false; }
-    public function ReadAttributeInteger($n) { return $this->attrs[$n] ?? 0; }
-    public function WriteAttributeString($n, $v) { $this->attrs[$n] = $v; }
-    public function WriteAttributeInteger($n, $v) { $this->attrs[$n] = $v; }
-    public function WriteAttributeBoolean($n, $v) { $this->attrs[$n] = $v; }
-    public function __call($n, $a) { return null; }
-}
-
-$GLOBALS['INST'] = [];    // id => name (TessieVehicle-Instanzen)
-$GLOBALS['STATE'] = [];   // id => JSON von TESSIE_GetVehicleState
-$GLOBALS['SYSLOC'] = null; // JSON-Property der Kern-Instanz Location oder null
-function IPS_GetInstanceListByModuleID($guid)
-{
-    if ($guid === '{45E97A63-F870-408A-B259-2933F7EABF74}') {
-        return $GLOBALS['SYSLOC'] === null ? [] : [7];
-    }
-    return array_keys($GLOBALS['INST']);
-}
-function IPS_GetProperty($id, $n) { return $GLOBALS['SYSLOC']; }
-function IPS_InstanceExists($id) { return isset($GLOBALS['INST'][$id]); }
-function IPS_GetName($id) { return $GLOBALS['INST'][$id] ?? ''; }
-function IPS_GetParent($id) { return 0; }
-function TESSIE_GetVehicleState($id) { return $GLOBALS['STATE'][$id] ?? false; }
-$GLOBALS['IDENTMAP'] = []; // ident => Variablen-ID, fuer die Positions-Reconcile-Tests
-$GLOBALS['OBJPOS'] = [];   // Variablen-ID => ObjectPosition
-function IPS_GetObjectIDByIdent($ident, $parent) { return $GLOBALS['IDENTMAP'][$ident] ?? false; }
-$GLOBALS['LIBVER'] = null; // simulierte installierte Bibliotheksversion oder null (IPS_GetLibrary schlägt fehl)
-function IPS_GetLibrary($guid) { return $GLOBALS['LIBVER'] === null ? false : ['Version' => $GLOBALS['LIBVER']]; }
-function IPS_ObjectExists($id) { return false; }
-function IPS_VariableExists($id) { return false; }
-function IPS_GetChildrenIDs($id) { return []; }
-function IPS_GetObject($id) { return ['ObjectIdent' => '', 'ObjectName' => '', 'ObjectType' => 2, 'ParentID' => 0, 'ChildrenIDs' => [], 'ObjectPosition' => $GLOBALS['OBJPOS'][$id] ?? 0]; }
-function IPS_GetVariable($id) { return ['VariableType' => 3, 'VariableUpdated' => 0]; }
-function GetValue($id) { return null; }
-
-// Presentation-Konstanten (in IP-Symcon GUID-Strings; hier nur als unterscheidbare Platzhalter)
-foreach (['SWITCH', 'SLIDER', 'VALUE_PRESENTATION', 'VALUE_INPUT', 'ENUMERATION'] as $p) {
-    if (!defined('VARIABLE_PRESENTATION_' . $p)) {
-        define('VARIABLE_PRESENTATION_' . $p, '{TEST-' . $p . '}');
-    }
-}
+require __DIR__ . '/stubs.php';
 
 $root = dirname(__DIR__);
 require $root . '/TessieVehicleTile/module.php';
@@ -251,10 +201,10 @@ function newsBanner(string $seen): ?array
     return $r->invoke($m);
 }
 $b = newsBanner('');
-check('Banner: nie bestätigt -> alle Versionen, Caption bis zur höchsten', $b !== null && strpos($b['caption'], '🆕 Neu bis Version 2.36.0') === 0, $b['caption'] ?? '<<null>>');
+check('Banner: nie bestätigt -> alle Versionen, Caption bis zur höchsten', $b !== null && strpos($b['caption'], '🆕 Neu bis Version 2.39.0') === 0, $b['caption'] ?? '<<null>>');
 $b = newsBanner('2.34.0');
 check('Banner: 2.34.0 gesehen -> nur 2.35.0/2.36.0, gruppiert', $b !== null && strpos(json_encode($b, JSON_UNESCAPED_UNICODE), 'Version 2.35.0:') !== false && strpos(json_encode($b, JSON_UNESCAPED_UNICODE), '2.33.0:') === false, $b === null ? 'null' : json_encode($b, JSON_UNESCAPED_UNICODE));
-$b = newsBanner('2.36.0');
+$b = newsBanner('2.39.0');
 check('Banner: höchste Version gesehen -> kein Banner', $b === null, $b === null ? 'null' : $b['caption']);
 $b = newsBanner('2.99.0-beta.3');
 check('Banner: Beta-Suffix einer künftigen Version -> trotzdem kein Banner (version_compare ignoriert Suffix nicht, aber 2.99 > alles)', $b === null, $b === null ? 'null' : $b['caption']);
@@ -267,7 +217,7 @@ function ackNewsSets(?string $libVer): string
     return $m->attrs['SeenNews'] ?? '<<fehlt>>';
 }
 check('AckNews: installierte Version (mit Beta-Suffix) -> SeenNews ohne Suffix', ackNewsSets('2.36.0-beta.2') === '2.36.0', ackNewsSets('2.36.0-beta.2'));
-check('AckNews: IPS_GetLibrary liefert nichts -> Fallback auf höchsten NEWS_VERSIONS-Schlüssel', ackNewsSets(null) === '2.36.0', ackNewsSets(null));
+check('AckNews: IPS_GetLibrary liefert nichts -> Fallback auf höchsten NEWS_VERSIONS-Schlüssel', ackNewsSets(null) === '2.39.0', ackNewsSets(null));
 $GLOBALS['LIBVER'] = null;
 
 // ---------------- GetVehicleState(): vehicleStatus (contractVersion 1.6) ----------------

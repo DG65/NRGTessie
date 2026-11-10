@@ -1,0 +1,471 @@
+{
+    "elements": [
+        {
+            "type": "ExpansionPanel",
+            "name": "PurposeIntroPanel",
+            "expanded": true,
+            "caption": "👋  Wozu dieses Modul?",
+            "items": [
+                {
+                    "type": "Label",
+                    "caption": "Diese Kachel zeigt Ladestand, Reichweite, Temperaturen und Fahrzeugstatus deines Tesla auf einen Blick – inklusive Bedien-Buttons für Verriegelung, Klima und mehr, direkt in der Kacheln-Visualisierung."
+                },
+                {
+                    "type": "Label",
+                    "caption": "Der Nutzen: eine kompakte, optisch anpassbare Übersicht fürs WebFront, ohne selbst Variablen zusammenstellen zu müssen – die Datenquelle wird automatisch erkannt."
+                },
+                {
+                    "type": "Label",
+                    "caption": "Die eigentliche Datenverbindung zum Fahrzeug liefert die Instanz TessieVehicle; die Konfiguration/Fahrzeugsuche läuft über TessieConfigurator."
+                },
+                {
+                    "type": "Button",
+                    "caption": "Verstanden – nicht mehr anzeigen",
+                    "onClick": "TESSIETILE_AckPurposeIntro($id);"
+                }
+            ]
+        },
+        {
+            "type": "ExpansionPanel",
+            "name": "NewsPanel",
+            "caption": "🆕 Neu bis Version 2.39.0",
+            "expanded": true,
+            "items": [
+                {
+                    "type": "Label",
+                    "caption": "Neu seit dem letzten Store-Stand – bitte kurz ansehen:"
+                },
+                {
+                    "type": "Label",
+                    "caption": "Version 2.33.0:"
+                },
+                {
+                    "type": "Label",
+                    "caption": "• Neu ganz unten im Formular: ein eigenes Feedback-Panel für den Forum-Thread, und \"Über dieses Modul\" mit Lizenzinfo und Spenden-Link."
+                },
+                {
+                    "type": "Label",
+                    "caption": "• Hast du mehrere Fahrzeug-Kacheln: „Wozu dieses Modul?\" und „Was ist neu?\" musst du nur noch an einer Instanz wegklicken, nicht an jeder einzeln."
+                },
+                {
+                    "type": "Label",
+                    "caption": "• 👋 Neue Zweck-Einführung ganz oben im Formular: kurz erklärt, was diese Kachel zeigt und wozu sie gut ist."
+                },
+                {
+                    "type": "Label",
+                    "caption": "• Wenn→Dann-Regeln der Quelle direkt hier anlegen, bearbeiten und löschen – inklusive mehrerer UND-Bedingungen."
+                },
+                {
+                    "type": "Label",
+                    "caption": "• Standorte (Geofence) der Quelle direkt hier verwalten, mit eigenem Icon je Standort."
+                },
+                {
+                    "type": "Label",
+                    "caption": "• Bedien-Schaltflächen: Anzahl, Reihenfolge und Beschriftung selbst wählen (Stift-Symbol neben „Schaltflächen\")."
+                },
+                {
+                    "type": "Label",
+                    "caption": "• Vergleichswert einer Regel erscheint als Auswahlliste mit Klartext, wenn der Datenpunkt feste Werte hat."
+                },
+                {
+                    "type": "Label",
+                    "caption": "Version 2.34.0:"
+                },
+                {
+                    "type": "Label",
+                    "caption": "• Zeigt jetzt live, welches Fahrzeug automatisch erkannt wurde (Name, Ladestand, Quelle) statt es nur zu behaupten – bei mehreren Fahrzeugen oder keinem Treffer erscheint stattdessen ein Hinweis mit Auswahlfeld."
+                },
+                {
+                    "type": "Label",
+                    "caption": "Version 2.39.0:"
+                },
+                {
+                    "type": "Label",
+                    "caption": "• Jetzt zweisprachig (Deutsch/Englisch): Kachel und Formular folgen der Sprache deiner Symcon-Installation."
+                },
+                {
+                    "type": "Button",
+                    "caption": "Verstanden – nicht mehr anzeigen",
+                    "onClick": "TESSIETILE_AckNews($id);"
+                }
+            ]
+        },
+        {
+            "type": "ExpansionPanel",
+            "caption": "📖 Dokumentation & Hilfe (Modulversion 2.39.0)",
+            "expanded": false,
+            "items": [
+                {
+                    "type": "Label",
+                    "caption": "── Funktionsweise ──"
+                },
+                {
+                    "type": "Label",
+                    "caption": "Die Kachel ist eine eigenständige Instanz für die Visualisierung (TileVisu) und von der Datenverbindung getrennt: Sie liest ihre Werte aus einer TessieVehicle-Instanz und aktualisiert sich sofort, wenn sich dort etwas ändert. Gibt es genau eine TessieVehicle-Instanz, wird sie automatisch als Quelle erkannt – nur bei mehreren Fahrzeugen wählst du die Quelle manuell."
+                },
+                {
+                    "type": "Label",
+                    "caption": "── Darstellung ──"
+                },
+                {
+                    "type": "Label",
+                    "caption": "Die Statusfarbe (Lädt/Bereit/Inaktiv) färbt den Akkubalken. Flächen-, Text- und Schriftoptionen passen die Kachel an deine Visualisierung an; ohne eigene Angabe folgt die Kachel dem hellen/dunklen Design des Endgeräts. Der Kachelname kann automatisch vom Fahrzeug übernommen werden."
+                },
+                {
+                    "type": "Label",
+                    "caption": "── Bedienung ──"
+                },
+                {
+                    "type": "Label",
+                    "caption": "Mit 'Bedien-Schaltflächen anzeigen' und der Liste 'Schaltflächen' wählst du frei, welche und wie viele Aktionen die Kachel anbietet – etwa nur Verriegeln, oder zusätzlich Wächtermodus, Hupe, Kofferraum und Fenster. Die Reihenfolge legst du per Ziehen und Ablegen fest, je Schaltfläche ist eine eigene Beschriftung möglich. Die Schaltflächen lösen die entsprechenden Aktionsvariablen der TessieVehicle-Quelle aus – Berechtigungen und Verhalten sind also identisch zur Bedienung im Objektbaum. Eine Schaltfläche erscheint nur, wenn der zugehörige Datenpunkt dort aktiviert ist. Über den Stift ✎ oben rechts im Bedienbereich lässt sich dieselbe Liste auch direkt in der Kachel verwalten (hinzufügen, Funktion/Beschriftung ändern, Reihenfolge per ▲▼, löschen)."
+                },
+                {
+                    "type": "Label",
+                    "caption": "Mit 'Automationen anzeigen' verwaltet die Kachel die Wenn→Dann-Regeln der TessieVehicle-Quelle vollständig: '+ Neue Regel' legt eine Regel an, ✎ bearbeitet, der Papierkorb löscht (mit Rückfrage), der Schalter aktiviert/deaktiviert. Im Editor werden als Ziel schaltbare Variablen (mit Aktion) angeboten – per Suchfeld filterbar; bei 'Wert setzen' erscheinen die im Profil/der Darstellung definierten Werte als Auswahlliste. Genauso beim 'Wenn'-Vergleichswert: hat der gewählte Datenpunkt bekannte Werte (z. B. Sitzheizung, Klimahaltung), erscheint dort ebenfalls eine Auswahlliste statt Freitext, und die Bedingung springt automatisch von 'wird EIN/AUS' auf '=', da das bei mehrwertigen Datenpunkten sinnvoller ist. Ist die Kachel mehrfach verlinkt, wirken alle Änderungen überall auf dieselben Regeln."
+                },
+                {
+                    "type": "Label",
+                    "caption": "Darunter verwaltet die Kachel auch die Standorte (Geofence): Schalter aktiviert die Standort-Erkennung, '+ Neuer Standort' legt einen Ort an (Koordinaten eintippen oder aktuelle Fahrzeugposition übernehmen – praktisch: hinfahren und speichern), ✎ bearbeitet Zuhause und weitere Orte, der Papierkorb löscht. Für weitere Standorte lässt sich zusätzlich ein Icon wählen (Vorschläge oder eigenes Emoji) – es erscheint in der Standortliste und in der 'Aktueller Standort'-Anzeige. Die Kartenauswahl gibt es weiterhin im Instanzformular; Zuhause ohne Koordinaten nutzt den Systemstandort."
+                },
+                {
+                    "type": "Label",
+                    "caption": "Die Schaltfläche 'Farben & Schrift auf Standard zurücksetzen' ändert nur das offene Formular – gespeichert wird erst mit 'Änderungen übernehmen'."
+                },
+                {
+                    "type": "Label",
+                    "caption": "── Weitere Hilfe ──"
+                },
+                {
+                    "type": "Label",
+                    "caption": "Ausführliche Dokumentation und Screenshots: github.com/DG65/NRGTessie."
+                }
+            ]
+        },
+        {
+            "type": "Label",
+            "caption": "Eigenständige Kachel für ein Tessie-Fahrzeug. Die Kachel füllt die Tile randlos und ist von der Datenverbindung getrennt."
+        },
+        {
+            "type": "Label",
+            "name": "SourceStatus",
+            "caption": "🔗 Datenquelle: #111 „Mein Tesla“ (VIN 5YJ, Vertragsversion 1.6, automatisch erkannt, einzige TessieVehicle-Instanz). Übernommen: Ladestand 82 % (Quelle: Variable #12345), Ladekabel angesteckt.",
+            "color": 3050301
+        },
+        {
+            "type": "ExpansionPanel",
+            "caption": "✏️ Eigene Datenquelle stattdessen verwenden",
+            "expanded": false,
+            "items": [
+                {
+                    "type": "SelectInstance",
+                    "name": "SourceInstance",
+                    "caption": "Datenquelle (leer = automatisch erkennen)",
+                    "validModules": [
+                        "{3F1F7E31-8BA0-4B8F-9B62-47DAD7A0B6C9}"
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "CheckBox",
+            "name": "AdoptVehicleName",
+            "caption": "Kachelname automatisch vom Fahrzeug übernehmen"
+        },
+        {
+            "type": "ExpansionPanel",
+            "caption": "🎨 Statusfarben",
+            "items": [
+                {
+                    "type": "SelectColor",
+                    "name": "ColorCharging",
+                    "caption": "Lädt"
+                },
+                {
+                    "type": "SelectColor",
+                    "name": "ColorReady",
+                    "caption": "Bereit"
+                },
+                {
+                    "type": "SelectColor",
+                    "name": "ColorIdle",
+                    "caption": "Inaktiv/Unbekannt"
+                }
+            ]
+        },
+        {
+            "type": "ExpansionPanel",
+            "caption": "🖌️ Flächen & Text",
+            "items": [
+                {
+                    "type": "SelectColor",
+                    "name": "ColorBackground",
+                    "caption": "Hintergrund"
+                },
+                {
+                    "type": "SelectColor",
+                    "name": "ColorBox",
+                    "caption": "Kacheln/Boxen"
+                },
+                {
+                    "type": "SelectColor",
+                    "name": "ColorText",
+                    "caption": "Text (Werte)"
+                },
+                {
+                    "type": "SelectColor",
+                    "name": "ColorTextMuted",
+                    "caption": "Text (Beschriftungen)"
+                }
+            ]
+        },
+        {
+            "type": "ExpansionPanel",
+            "caption": "🔤 Schrift",
+            "items": [
+                {
+                    "type": "Select",
+                    "name": "FontFamily",
+                    "caption": "Schriftart",
+                    "options": [
+                        {
+                            "caption": "System (Standard)",
+                            "value": "system"
+                        },
+                        {
+                            "caption": "Arial",
+                            "value": "arial"
+                        },
+                        {
+                            "caption": "Verdana",
+                            "value": "verdana"
+                        },
+                        {
+                            "caption": "Tahoma",
+                            "value": "tahoma"
+                        },
+                        {
+                            "caption": "Trebuchet MS",
+                            "value": "trebuchet"
+                        },
+                        {
+                            "caption": "Georgia (Serif)",
+                            "value": "georgia"
+                        },
+                        {
+                            "caption": "Courier New (Monospace)",
+                            "value": "courier"
+                        }
+                    ]
+                },
+                {
+                    "type": "NumberSpinner",
+                    "name": "FontScale",
+                    "caption": "Schriftgröße (Faktor)",
+                    "digits": 2,
+                    "minimum": 0.5,
+                    "maximum": 2.5,
+                    "suffix": "×"
+                }
+            ]
+        },
+        {
+            "type": "CheckBox",
+            "name": "ShowControls",
+            "caption": "Bedien-Schaltflächen anzeigen (siehe Liste 'Schaltflächen' unten)"
+        },
+        {
+            "type": "List",
+            "name": "Buttons",
+            "caption": "Schaltflächen",
+            "rowCount": 6,
+            "add": true,
+            "delete": true,
+            "changeOrder": true,
+            "columns": [
+                {
+                    "caption": "Funktion",
+                    "name": "Ident",
+                    "width": "260px",
+                    "add": "act_locked",
+                    "edit": {
+                        "type": "Select",
+                        "options": [
+                            {
+                                "caption": "Verriegelung",
+                                "value": "act_locked"
+                            },
+                            {
+                                "caption": "Klimaanlage",
+                                "value": "act_climate"
+                            },
+                            {
+                                "caption": "Laden",
+                                "value": "act_charging"
+                            },
+                            {
+                                "caption": "Wächtermodus",
+                                "value": "act_sentry"
+                            },
+                            {
+                                "caption": "Valet-Modus",
+                                "value": "act_valet"
+                            },
+                            {
+                                "caption": "Max. Entfrosten",
+                                "value": "act_defrost"
+                            },
+                            {
+                                "caption": "Lenkradheizung",
+                                "value": "act_steering_wheel"
+                            },
+                            {
+                                "caption": "Innenraum-Überhitzeschutz",
+                                "value": "act_cop_enabled"
+                            },
+                            {
+                                "caption": "Überhitzeschutz: nur Lüfter",
+                                "value": "act_cop_fan_only"
+                            },
+                            {
+                                "caption": "Biowaffen-Schutzmodus",
+                                "value": "act_bio_defense"
+                            },
+                            {
+                                "caption": "HomeLink auslösen",
+                                "value": "act_homelink"
+                            },
+                            {
+                                "caption": "Vorderer Kofferraum öffnen",
+                                "value": "act_front_trunk"
+                            },
+                            {
+                                "caption": "Heckklappe öffnen/schließen",
+                                "value": "act_rear_trunk"
+                            },
+                            {
+                                "caption": "Lichthupe",
+                                "value": "act_flash"
+                            },
+                            {
+                                "caption": "Hupe",
+                                "value": "act_honk"
+                            },
+                            {
+                                "caption": "Ladeport öffnen",
+                                "value": "act_open_charge_port"
+                            },
+                            {
+                                "caption": "Ladeport schließen",
+                                "value": "act_close_charge_port"
+                            },
+                            {
+                                "caption": "Fenster lüften",
+                                "value": "act_vent_windows"
+                            },
+                            {
+                                "caption": "Fenster schließen",
+                                "value": "act_close_windows"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "caption": "Eigene Beschriftung (optional)",
+                    "name": "Label",
+                    "width": "auto",
+                    "add": "",
+                    "edit": {
+                        "type": "ValidationTextBox"
+                    }
+                }
+            ],
+            "values": []
+        },
+        {
+            "type": "Label",
+            "caption": "Reihenfolge per Ziehen und Ablegen. Eine Schaltfläche erscheint nur, wenn der zugehörige Datenpunkt in der TessieVehicle-Quelle aktiviert ist."
+        },
+        {
+            "type": "CheckBox",
+            "name": "ShowAutomations",
+            "caption": "Automationen anzeigen (Wenn→Dann-Regeln der Quelle, mit Ein/Aus-Schalter)"
+        },
+        {
+            "type": "ExpansionPanel",
+            "name": "ForumHintPanel",
+            "expanded": true,
+            "caption": "💬  Feedback im Symcon-Forum",
+            "items": [
+                {
+                    "type": "Label",
+                    "caption": "Tessie ist Beta – Rückmeldungen, Ideen und Erfahrungsberichte sind ausdrücklich willkommen im Community-Thread."
+                },
+                {
+                    "type": "Button",
+                    "caption": "Zum Forums-Thread",
+                    "onClick": "echo 'https://community.symcon.de/t/modul-tessie-tesla-fahrzeuge-in-ip-symcon-steuerung-telemetrie-kachel/143995';",
+                    "link": true
+                },
+                {
+                    "type": "Button",
+                    "caption": "Verstanden – nicht mehr anzeigen",
+                    "onClick": "TESSIETILE_AckForumHint($id);"
+                }
+            ]
+        },
+        {
+            "type": "ExpansionPanel",
+            "expanded": false,
+            "caption": "🧡  Über dieses Modul",
+            "items": [
+                {
+                    "type": "Label",
+                    "caption": "Entstanden aus echter Begeisterung für die eigene Anlage — und ein paar durchgetippten Abenden. Trotzdem: Software-Hobby hin oder her, das hier ist geistiges Eigentum und echte Arbeit steckt drin."
+                },
+                {
+                    "type": "Label",
+                    "caption": "Lizenz: PolyForm Noncommercial 1.0.0 — privat und nicht-kommerziell frei nutzbar, für den gewerblichen Einsatz braucht es eine gesonderte Lizenz vom Rechteinhaber."
+                },
+                {
+                    "type": "Button",
+                    "caption": "Lizenztext ansehen",
+                    "onClick": "echo 'https://github.com/DG65/NRGTessie/blob/main/LICENSE';",
+                    "link": true
+                },
+                {
+                    "type": "Label",
+                    "caption": "Gewerbliche Nutzung oder Fragen zur Lizenz? Einfach melden: dietmar@gureth.eu"
+                },
+                {
+                    "type": "Label",
+                    "caption": "Gefällt dir das Modul und du möchtest trotzdem etwas dalassen? Über eine kleine Spende freue ich mich — völlig freiwillig, keine Gegenleistung nötig."
+                },
+                {
+                    "type": "Button",
+                    "caption": "☕  Spenden via PayPal",
+                    "onClick": "echo 'https://paypal.me/DietmarGureth';",
+                    "link": true
+                }
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "type": "Button",
+            "caption": "Farben & Schrift auf Standard zurücksetzen",
+            "onClick": "TESSIETILE_ResetStyle($id);"
+        }
+    ],
+    "status": [
+        {
+            "code": 102,
+            "icon": "active",
+            "caption": "Aktiv"
+        },
+        {
+            "code": 104,
+            "icon": "inactive",
+            "caption": "Keine Datenquelle gewählt"
+        }
+    ]
+}
