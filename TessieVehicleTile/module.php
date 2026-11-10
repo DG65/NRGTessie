@@ -53,7 +53,7 @@ class TessieVehicleTile extends IPSModule
         'act_homelink'          => ['name' => 'Trigger HomeLink',           'kind' => 'momentary'],
         'act_front_trunk'       => ['name' => 'Open front trunk',  'kind' => 'momentary'],
         'act_rear_trunk'        => ['name' => 'Open/close rear trunk', 'kind' => 'momentary'],
-        'act_flash'             => ['name' => 'Flash headlights',                   'kind' => 'momentary'],
+        'act_flash'             => ['name' => 'Flash lights',                   'kind' => 'momentary'],
         'act_honk'              => ['name' => 'Honk horn',                       'kind' => 'momentary'],
         'act_open_charge_port'  => ['name' => 'Open charge port',            'kind' => 'momentary'],
         'act_close_charge_port' => ['name' => 'Close charge port',         'kind' => 'momentary'],
@@ -69,7 +69,7 @@ class TessieVehicleTile extends IPSModule
     // ersten Nachricht an die Kachel geschickt (d.texts) - siehe GetFullUpdateMessage(). Der Pruefstand
     // gleicht diese Liste mit module.html und locale.json ab.
     private const KACHEL_TEXTE = [
-        'Charging power', 'Charge current actual/max', 'Charge limit', 'Time to full', 'Open map', 'Buttons',
+        'Charging power', 'Charge current (actual/max)', 'Charge limit', 'Time to full', 'Open map', 'Buttons',
         '+ New button', 'Edit button', 'Function', 'Custom label (optional)', 'Cancel', 'Save', 'Edit location',
         'Name', 'Icon (optional, for the tile)', 'Latitude', 'Longitude', '📍 Use current vehicle position',
         'Radius (m)', 'Edit rule', 'If (several conditions are combined with AND)', '+ Condition (AND)',
@@ -78,15 +78,15 @@ class TessieVehicleTile extends IPSModule
         'Action', 'Switch on', 'Switch off', 'Toggle', 'Set value', 'Value', 'Edit buttons', 'empty = automatic',
         'e.g. Work', '📍 (default)', 'e.g. 48.340874', 'e.g. 8.032679', 'Search (name or path) …', 'Home', 'Locked',
         'Unlocked', 'inside', 'outside', 'Climate', 'on', 'off', 'Map', 'Automations', '+ New rule', 'Delete rule',
-        'Sure?', 'Deactivate rule: ', 'Activate rule: ', 'Locations', '+ New location',
+        'Confirm?', 'Deactivate rule: ', 'Activate rule: ', 'Locations', '+ New location',
         'Deactivate location detection', 'Activate location detection', 'Delete location', '(system location)',
         '(no location!)', '(invalid!)', 'No buttons yet – tap "+ New button".', 'Move up', 'Move down',
         'Delete button', 'Done', 'New button', 'Edit home', 'New location',
         'Leave empty = system location from the core instance "Location". Map selection is available in the instance form.',
         'Enter coordinates or use the vehicle position. Map selection is available in the instance form.',
         'Remove condition', 'Comparison value', 'IF', 'AND', 'New rule', 'becomes ON (true)', 'becomes OFF (false)',
-        '= (equal)', '≠ (not equal)', '> (greater)', '≥ (greater or equal)', '< (less)', '≤ (less or equal)',
-        'changes', 'Drive-through (location)'
+        '= (equals)', '≠ (not equal)', '> (greater than)', '≥ (greater than or equal to)', '< (less than)', '≤ (less than or equal to)',
+        'changes', 'Drives past (location)'
     ];
 
     // Standardwerte (auch für „Zurücksetzen")
@@ -250,7 +250,7 @@ class TessieVehicleTile extends IPSModule
         $source = $this->sourceStatus();
         $this->setLabelCaption($form['elements'], 'SourceStatus', $source['line'], strpos($source['line'], '🔗') === 0 ? self::AUTO_COLOR : -1);
         if ($source['auto']) {
-            $this->foldFieldIntoOverridePanel($form['elements'], 'SourceInstance', '✏️ Use own data source instead');
+            $this->foldFieldIntoOverridePanel($form['elements'], 'SourceInstance', '✏️ Select a data source manually instead');
         }
 
         // „Was ist neu"-Banner nach einem Update ganz oben.
@@ -375,7 +375,7 @@ class TessieVehicleTile extends IPSModule
         if (array_key_exists('connected', $state)) {
             $taken .= $state['connected'] ? $this->t(', charging cable plugged in') : $this->t(', charging cable not plugged in');
         }
-        return ['auto' => $auto, 'line' => sprintf($this->t('%s%s%s (%s). Taken over: %s.'), $mark, $stale, $head, implode(', ', $details), $taken)];
+        return ['auto' => $auto, 'line' => sprintf($this->t('%s%s%s (%s). Adopted: %s.'), $mark, $stale, $head, implode(', ', $details), $taken)];
     }
 
     /**

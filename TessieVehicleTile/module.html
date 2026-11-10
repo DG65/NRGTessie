@@ -123,7 +123,7 @@
 
         <div class="tsl-boxes">
             <div class="tsl-box"><div class="v" id="tsl-power">–</div><div class="k">Charging power</div></div>
-            <div class="tsl-box"><div class="v" id="tsl-amps">–</div><div class="k">Charge current actual/max</div></div>
+            <div class="tsl-box"><div class="v" id="tsl-amps">–</div><div class="k">Charge current (actual/max)</div></div>
             <div class="tsl-box"><div class="v" id="tsl-limit">–</div><div class="k">Charge limit</div></div>
             <div class="tsl-box"><div class="v" id="tsl-ttf">–</div><div class="k">Time to full</div></div>
         </div>
@@ -361,7 +361,7 @@
                     del.onclick = function () {
                         if (del.dataset.confirm === '1') { requestAction('ruleDelete', r.i); return; }
                         del.dataset.confirm = '1';
-                        del.textContent = T('Sure?');
+                        del.textContent = T('Confirm?');
                         del.className = 'tsl-ico warn';
                         setTimeout(function () { del.dataset.confirm = ''; del.textContent = '\u{1F5D1}'; del.className = 'tsl-ico'; }, 3000);
                     };
@@ -432,7 +432,7 @@
                             del.onclick = function () {
                                 if (del.dataset.confirm === '1') { onDelete(); return; }
                                 del.dataset.confirm = '1';
-                                del.textContent = T('Sure?');
+                                del.textContent = T('Confirm?');
                                 del.className = 'tsl-ico warn';
                                 setTimeout(function () { del.dataset.confirm = ''; del.textContent = '\u{1F5D1}'; del.className = 'tsl-ico'; }, 3000);
                             };
@@ -533,7 +533,7 @@
                     del.onclick = function () {
                         if (del.dataset.confirm === '1') { requestAction('btnDelete', b.idx); return; }
                         del.dataset.confirm = '1';
-                        del.textContent = T('Sure?');
+                        del.textContent = T('Confirm?');
                         del.className = 'tsl-ico warn';
                         setTimeout(function () { del.dataset.confirm = ''; del.textContent = '\u{1F5D1}'; del.className = 'tsl-ico'; }, 3000);
                     };
@@ -682,14 +682,14 @@
         var OP_OPTIONS = [
             { v: 'true', c: 'becomes ON (true)' },
             { v: 'false', c: 'becomes OFF (false)' },
-            { v: 'eq', c: '= (equal)' },
+            { v: 'eq', c: '= (equals)' },
             { v: 'ne', c: '≠ (not equal)' },
-            { v: 'gt', c: '> (greater)' },
-            { v: 'ge', c: '≥ (greater or equal)' },
-            { v: 'lt', c: '< (less)' },
-            { v: 'le', c: '≤ (less or equal)' },
+            { v: 'gt', c: '> (greater than)' },
+            { v: 'ge', c: '≥ (greater than or equal to)' },
+            { v: 'lt', c: '< (less than)' },
+            { v: 'le', c: '≤ (less than or equal to)' },
             { v: 'change', c: 'changes' },
-            { v: 'pass', c: 'Drive-through (location)' }
+            { v: 'pass', c: 'Drives past (location)' }
         ];
 
         function edOpen(i, rule, active) {

@@ -109,12 +109,12 @@ class TessieVehicle extends IPSModule
             'If you have several vehicles: you only need to dismiss "What is this module for?" and "What is new?" on one instance, not on each one separately.',
             '👋 New introduction at the very top of the form: a short explanation of what Tessie does and what it is good for.',
             'GetVehicleState() now also returns the current range (km) directly from the telemetry.',
-            'New button "Wake vehicle now" – wakes the vehicle on purpose, e.g. when the telemetry has been asleep for a while and up-to-date data is needed.',
+            'New button "Wake vehicle now" – wakes the vehicle on demand, e.g. when the telemetry has been asleep for a while and up-to-date data is needed.',
             'GetVehicleState() now returns the distance to home, whether the current navigation destination really is home and (only then) the arrival SoC forecast from Tesla itself – the basis for an EMS price reserve when a return home is expected.',
             'New button "Force apply" – re-applies the instance even without a form change, handy for checking after a module update.'
         ],
         '2.34.0' => [
-            'The form now shows live in several places whether an automatic connection really worked, instead of merely claiming it – e.g. for "Home location", whether your own entry or the system location applies.'
+            'The form now shows live in several places whether an automatic connection really worked, instead of merely claiming it – e.g. for "Home location", whether a manual entry or the system location applies.'
         ],
         '2.35.0' => [
             'When a value arrives automatically (e.g. the home location from the system location), the empty input field behind it disappears – if needed you can still show it through a collapsed "…use instead" panel.'
@@ -439,7 +439,7 @@ class TessieVehicle extends IPSModule
         // Kommt der Standort automatisch (Systemstandort), verschwindet das leere Auswahlfeld in
         // einem eingeklappten Überschreiben-Panel (SUITE.md "Wert kommt automatisch").
         if ($homeStatus['auto']) {
-            $this->foldFieldIntoOverridePanel($form['elements'], 'HomeLocation', '✏️ Use own location instead');
+            $this->foldFieldIntoOverridePanel($form['elements'], 'HomeLocation', '✏️ Use a custom location instead');
         }
 
         // Symcon-Forum-Hinweis (dismissible) und Lizenz-/Spenden-Hinweis (dauerhaft) ganz unten.
@@ -915,12 +915,12 @@ class TessieVehicle extends IPSModule
 
             ['Ident' => self::ACT_START_CHARGING,       'Name' => 'Charging',                           'Enabled' => true],
             ['Ident' => self::ACT_CHARGE_LIMIT,         'Name' => 'Charge limit (%)',                   'Enabled' => true],
-            ['Ident' => self::ACT_CHARGING_AMPS_REQUEST,'Name' => 'Charge current setpoint (A)',              'Enabled' => true],
+            ['Ident' => self::ACT_CHARGING_AMPS_REQUEST,'Name' => 'Requested charge current (A)',              'Enabled' => true],
             ['Ident' => self::ACT_OPEN_CHARGE_PORT,     'Name' => 'Open/unlock charge port',      'Enabled' => true],
             ['Ident' => self::ACT_CLOSE_CHARGE_PORT,    'Name' => 'Close charge port',              'Enabled' => true],
 
-            ['Ident' => self::STAT_CHARGING_AMPS_ACTUAL,'Name' => 'Charge current actual (A)',               'Enabled' => true],
-            ['Ident' => self::STAT_CHARGING_AMPS_MAX,   'Name' => 'Charge current max (A)',               'Enabled' => true],
+            ['Ident' => self::STAT_CHARGING_AMPS_ACTUAL,'Name' => 'Actual charge current (A)',               'Enabled' => true],
+            ['Ident' => self::STAT_CHARGING_AMPS_MAX,   'Name' => 'Maximum charge current (A)',               'Enabled' => true],
             ['Ident' => self::STAT_AC_CHARGING_POWER,   'Name' => 'AC charging power (kW)',            'Enabled' => true]
         ];
     }
@@ -1916,7 +1916,7 @@ class TessieVehicle extends IPSModule
             // Fahrzeug-Telemetrie meldet den Zustand allerdings als "Party" zurück
             // (ClimateKeeperModeStateParty) - daher matcht syncFromTelemetry() sowohl
             // "party" als auch "camp" auf denselben Wert 3.
-            case 'Tessie.ClimateKeeperMode': return $this->presEnum([0 => 'Off', 1 => 'Keep', 2 => 'Dog', 3 => 'Camp mode']);
+            case 'Tessie.ClimateKeeperMode': return $this->presEnum([0 => 'Off', 1 => 'Keep', 2 => 'Dog mode', 3 => 'Camp mode']);
             case 'Tessie.COPTemp':           return $this->presEnum([1 => 'Low', 2 => 'Medium', 3 => 'High']);
             default:                         return $this->presValue('', 0);
         }
@@ -2039,13 +2039,13 @@ class TessieVehicle extends IPSModule
 
         $own = $this->parseLatLon($this->ReadPropertyString('HomeLocation'));
         if ($own !== null) {
-            return ['auto' => false, 'line' => sprintf($this->t('✏️ Home location: %s (own entry), radius %d m.'), $fmt($own), $radius)];
+            return ['auto' => false, 'line' => sprintf($this->t('✏️ Home location: %s (manual entry), radius %d m.'), $fmt($own), $radius)];
         }
         $system = $this->parseLatLon($this->getSystemLocation());
         if ($system !== null) {
             return ['auto' => true, 'line' => sprintf($this->t('🔗 Home location: %s (automatically from the system location of the core instance "Location"), radius %d m.'), $fmt($system), $radius)];
         }
-        return ['auto' => false, 'line' => $this->t('ℹ️ No home location can be determined: neither an own entry nor a system location in the core instance "Location" is maintained. The "Home" location detection and the homeward-trip/distance values stay empty until one of the two is entered.')];
+        return ['auto' => false, 'line' => $this->t('ℹ️ No home location can be determined: neither a manual entry nor a system location in the core instance "Location" is set. The "Home" location detection and the homeward-trip/distance values stay empty until one of the two is set.')];
     }
 
     /**
@@ -2401,7 +2401,7 @@ class TessieVehicle extends IPSModule
     {
         $opText = [
             'true' => $this->t('becomes ON'), 'false' => $this->t('becomes OFF'), 'change' => $this->t('changes'),
-            'pass' => $this->t('drive-through'),
+            'pass' => $this->t('drives past'),
             'eq' => '=', 'ne' => '≠', 'gt' => '>', 'ge' => '≥', 'lt' => '<', 'le' => '≤'
         ];
 
@@ -3103,7 +3103,7 @@ class TessieVehicle extends IPSModule
         $this->MaintainVariable(self::ACT_CHARGE_LIMIT, $this->t('Charge limit (%)'), VARIABLETYPE_INTEGER, $this->presFor('Tessie.PercentInt', true), $pos(self::ACT_CHARGE_LIMIT), true);
         if ($keep(self::ACT_CHARGE_LIMIT)) $this->EnableAction(self::ACT_CHARGE_LIMIT);
 
-        $this->MaintainVariable(self::ACT_CHARGING_AMPS_REQUEST, $this->t('Charge current setpoint (A)'), VARIABLETYPE_INTEGER, $this->presFor('Tessie.Amps', true), $pos(self::ACT_CHARGING_AMPS_REQUEST), true);
+        $this->MaintainVariable(self::ACT_CHARGING_AMPS_REQUEST, $this->t('Requested charge current (A)'), VARIABLETYPE_INTEGER, $this->presFor('Tessie.Amps', true), $pos(self::ACT_CHARGING_AMPS_REQUEST), true);
         if ($keep(self::ACT_CHARGING_AMPS_REQUEST)) $this->EnableAction(self::ACT_CHARGING_AMPS_REQUEST);
 
         $this->MaintainVariable(self::ACT_FLASH, $this->t('Flash lights'), VARIABLETYPE_BOOLEAN, $this->presFor('~Switch', true), $pos(self::ACT_FLASH), true);
@@ -3149,8 +3149,8 @@ class TessieVehicle extends IPSModule
         if ($keep(self::ACT_CLOSE_CHARGE_PORT)) $this->EnableAction(self::ACT_CLOSE_CHARGE_PORT);
 
 
-        $this->MaintainVariable(self::STAT_CHARGING_AMPS_ACTUAL, $this->t('Charge current actual (A)'), VARIABLETYPE_FLOAT, $this->presFor('Tessie.AmpsFloat', false), $pos(self::STAT_CHARGING_AMPS_ACTUAL), true);
-        $this->MaintainVariable(self::STAT_CHARGING_AMPS_MAX, $this->t('Charge current max (A)'), VARIABLETYPE_INTEGER, $this->presFor('Tessie.Amps', false), $pos(self::STAT_CHARGING_AMPS_MAX), true);
+        $this->MaintainVariable(self::STAT_CHARGING_AMPS_ACTUAL, $this->t('Actual charge current (A)'), VARIABLETYPE_FLOAT, $this->presFor('Tessie.AmpsFloat', false), $pos(self::STAT_CHARGING_AMPS_ACTUAL), true);
+        $this->MaintainVariable(self::STAT_CHARGING_AMPS_MAX, $this->t('Maximum charge current (A)'), VARIABLETYPE_INTEGER, $this->presFor('Tessie.Amps', false), $pos(self::STAT_CHARGING_AMPS_MAX), true);
         $this->MaintainVariable(self::STAT_AC_CHARGING_POWER, $this->t('AC charging power (kW)'), VARIABLETYPE_FLOAT, $this->presFor('Tessie.kW', false), $pos(self::STAT_AC_CHARGING_POWER), true);
 
         // Standort-Erkennung (Geofence): Status-Variablen nur anlegen/einblenden, wenn aktiviert.

@@ -19,7 +19,7 @@
                 },
                 {
                     "type": "Label",
-                    "caption": "Tip on the update interval: 0 disables the cyclic query (sensible when telemetry is active – then e.g. 300–900 s is enough as a safety net). Querying frequently can keep the vehicle from falling asleep and increase standby consumption; however, Tessie buffers queries and does not wake the vehicle."
+                    "caption": "Tip for the update interval: 0 disables the cyclic query (sensible when telemetry is active – then e.g. 300–900 s is enough as a safety net). Querying frequently can keep the vehicle from falling asleep and increase standby consumption; however, Tessie buffers queries and does not wake the vehicle."
                 },
                 {
                     "type": "Label",
@@ -47,7 +47,7 @@
                 },
                 {
                     "type": "Label",
-                    "caption": "If 'Home location' is left empty, the module automatically takes over the system location from the core instance 'Location' – your home is usually already maintained there. An own entry takes precedence. Removed or renamed locations are not deleted but only hidden."
+                    "caption": "If 'Home location' is left empty, the module automatically adopts the system location from the core instance 'Location' – your home is usually already set there. A manual entry takes precedence. Removed or renamed locations are not deleted but only hidden."
                 },
                 {
                     "type": "Label",
@@ -55,11 +55,11 @@
                 },
                 {
                     "type": "Label",
-                    "caption": "Rules over any data points: 'If <data point> <condition> → <target variable> <action>'. Conditions: becomes ON/OFF (for switches), comparisons (=, ≠, >, ≥, <, ≤) for numbers and texts, 'changes' for every value change, 'Drive-through (location)' for location variables. Examples: 'If charge level ≥ 80 → switch off wallbox release', 'If At home becomes ON → switch on garage door' (= arrival), 'If Village entrance drive-through → switch on heating'. Rules are edge-triggered: they fire when the condition becomes true, not again on every data message – only after the condition was no longer met in between does the rule fire again. After 'Apply changes' the initial state is read in again without triggering. The rules can be managed completely in the tile (TessieVehicleTile). A rule can also combine SEVERAL conditions with AND (in the instance form currently only adjustable through the tile editor, see below) – example: 'If At home becomes ON AND charge level < 30 → open charge port'. With several conditions the rule fires as soon as ALL are met at the same time (again edge-triggered). For such a rule the list below shows only the first condition – if the rule is applied HERE (without the tile), only this first condition is kept and further AND conditions are dropped. Data points with fixed values (seat heater, climate keeper, overheat protection limit) show the comparison value in the tile as a dropdown with plain text as soon as =/≠/… is chosen – the condition then switches automatically from 'becomes ON/OFF' to '=', which makes more sense for multi-valued data points."
+                    "caption": "Rules for any data points: 'If <data point> <condition> → <target variable> <action>'. Conditions: becomes ON/OFF (for switches), comparisons (=, ≠, >, ≥, <, ≤) for numbers and texts, 'changes' for every value change, 'Drives past (location)' for location variables. Examples: 'If charge level ≥ 80 → switch off wallbox charging enable', 'If At home becomes ON → switch on garage door' (= arrival), 'If vehicle drives past Village entrance → switch on heating'. Rules are edge-triggered: they fire when the condition becomes true, not again on every data message – only after the condition was no longer met in between does the rule fire again. After 'Apply changes' the initial state is read in again without triggering. The rules can be managed completely in the tile (TessieVehicleTile). A rule can also combine SEVERAL conditions with AND (in the instance form currently only adjustable through the tile editor, see below) – example: 'If At home becomes ON AND charge level < 30 → open charge port'. With several conditions the rule fires as soon as ALL are met at the same time (again edge-triggered). For such a rule the list below shows only the first condition – if the rule is applied HERE (without the tile), only this first condition is kept and further AND conditions are dropped. Data points with fixed values (seat heater, climate keeper, overheat protection limit) show the comparison value in the tile as a dropdown with plain text as soon as =/≠/… is chosen – the condition then switches automatically from 'becomes ON/OFF' to '=', which makes more sense for multi-valued data points."
                 },
                 {
                     "type": "Label",
-                    "caption": "Location events: The variables of the location detection are ordinary data points of the automations – 'becomes ON' corresponds to entering the zone, 'becomes OFF' to leaving it, 'Drive-through (location)' fires on entering and leaving within 15 minutes (e.g. driving past without parking). It is triggered only on a zone change, not on every position message. Note: the reaction time depends on the GPS telemetry; very small zones (< 50 m) can be skipped when driving fast."
+                    "caption": "Location events: The variables of the location detection are ordinary data points of the automations – 'becomes ON' corresponds to entering the zone, 'becomes OFF' to leaving it, 'Drives past (location)' fires when the vehicle enters and leaves the zone within 15 minutes (e.g. driving past without parking). It is triggered only on a zone change, not on every position message. Note: the reaction time depends on the GPS telemetry; very small zones (< 50 m) can be skipped when driving fast."
                 },
                 {
                     "type": "Label",
@@ -75,11 +75,11 @@
                 },
                 {
                     "type": "Label",
-                    "caption": "The status icon in the object tree shows operating problems without you having to look at the log: 'API error' means the access token has become invalid or the Tessie API was repeatedly unreachable (only after two failures in a row, so that a single hiccup does not raise an alarm). 'Telemetry outdated' means that no new data has arrived from the vehicle for over 15 minutes. This is usually harmless (the vehicle is asleep), but can also indicate a disconnected telemetry stream although the vehicle is reachable – to tell these apart automatically, use the additional value 'vehicleStatus' (asleep/waiting_for_sleep/awake) of TESSIE_GetVehicleState(). Both states disappear automatically once the situation returns to normal."
+                    "caption": "The status icon in the object tree shows operating problems without you having to look at the log: 'API error' means the access token has become invalid or the Tessie API was repeatedly unreachable (only after two failures in a row, so that a single hiccup does not raise an alarm). 'Telemetry not updated' means that no new data has arrived from the vehicle for over 15 minutes. This is usually harmless (the vehicle is asleep), but can also indicate a disconnected telemetry stream although the vehicle is reachable – to tell these apart automatically, use the additional value 'vehicleStatus' (asleep/waiting_for_sleep/awake) of TESSIE_GetVehicleState(). Both states disappear automatically once the situation returns to normal."
                 },
                 {
                     "type": "Label",
-                    "caption": "The button 'Wake vehicle now' helps in exactly this case: it wakes the vehicle on purpose instead of waiting for the next automatic status query. 'Force apply' re-applies the instance even without a form change – handy for checking after a module update that everything has arrived."
+                    "caption": "The button 'Wake vehicle now' helps in exactly this case: it wakes the vehicle on demand instead of waiting for the next automatic status query. 'Force apply' re-applies the instance even without a form change – handy for checking after a module update that everything has arrived."
                 },
                 {
                     "type": "Label",
@@ -111,7 +111,7 @@
                         "items": [
                             {
                                 "type": "Label",
-                                "caption": "Controls only the regular status query (sleep-safe – it never wakes the vehicle by itself). The actual telemetry values (charge level, location, temperatures …) arrive independently by real-time push as soon as Tesla sends them – a smaller value here does not speed them up. 0 = query disabled."
+                                "caption": "Controls only the regular status query (it never wakes the vehicle by itself). The actual telemetry values (charge level, location, temperatures …) arrive independently by real-time push as soon as Tesla sends them – a smaller value here does not speed them up. 0 = query disabled."
                             }
                         ]
                     }
@@ -185,7 +185,7 @@
             "items": [
                 {
                     "type": "Label",
-                    "caption": "Rules over any data points of the vehicle: as soon as the condition is met, the module switches the target variable. Edge-triggered – a rule fires when the condition becomes true, not again on every data message. The tile can show rules and switch them on/off."
+                    "caption": "Rules for any data points of the vehicle: as soon as the condition is met, the module switches the target variable. Edge-triggered – a rule fires when the condition becomes true, not again on every data message. The tile can show rules and switch them on/off."
                 },
                 {
                     "type": "List",
@@ -231,7 +231,7 @@
                                         "value": "false"
                                     },
                                     {
-                                        "caption": "= (equal)",
+                                        "caption": "= (equals)",
                                         "value": "eq"
                                     },
                                     {
@@ -239,19 +239,19 @@
                                         "value": "ne"
                                     },
                                     {
-                                        "caption": "> (greater)",
+                                        "caption": "> (greater than)",
                                         "value": "gt"
                                     },
                                     {
-                                        "caption": "≥ (greater or equal)",
+                                        "caption": "≥ (greater than or equal to)",
                                         "value": "ge"
                                     },
                                     {
-                                        "caption": "< (less)",
+                                        "caption": "< (less than)",
                                         "value": "lt"
                                     },
                                     {
-                                        "caption": "≤ (less or equal)",
+                                        "caption": "≤ (less than or equal to)",
                                         "value": "le"
                                     },
                                     {
@@ -259,7 +259,7 @@
                                         "value": "change"
                                     },
                                     {
-                                        "caption": "Drive-through (location)",
+                                        "caption": "Drives past (location)",
                                         "value": "pass"
                                     }
                                 ]
@@ -323,7 +323,7 @@
                 },
                 {
                     "type": "Label",
-                    "caption": "'Comparison value' is only needed for =, ≠, >, ≥, <, ≤; 'Value' only for the action 'Set value'. Numbers with a period or comma. The target variable is switched through its action (like a click in the visualization); variables without an action are written directly."
+                    "caption": "'Comparison value' is only needed for =, ≠, >, ≥, <, ≤; 'Value' only for the action 'Set value'. Decimal numbers may use a period or a comma. The target variable is switched via its action (like a click in the visualization); variables without an action are written directly."
                 },
                 {
                     "type": "Label",
@@ -335,11 +335,11 @@
                 },
                 {
                     "type": "Label",
-                    "caption": "Climate keeper: 0 Off · 1 Keep · 2 Dog · 3 Camp mode"
+                    "caption": "Climate keeper: 0 Off · 1 Keep · 2 Dog mode · 3 Camp mode"
                 },
                 {
                     "type": "Label",
-                    "caption": "Cabin overheat protection: temperature limit: 1 Low · 2 Medium · 3 High"
+                    "caption": "Cabin overheat protection temperature limit: 1 Low · 2 Medium · 3 High"
                 },
                 {
                     "type": "Label",
@@ -468,7 +468,7 @@
         },
         {
             "type": "Button",
-            "caption": "Telemetry: show only important",
+            "caption": "Telemetry: show important only",
             "confirm": "Non-important telemetry data points will be hidden. Continue?",
             "onClick": "TESSIE_SetImportantTelemetryEnabled($id);"
         },

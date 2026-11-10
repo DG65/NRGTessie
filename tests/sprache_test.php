@@ -298,7 +298,8 @@ if ($mode === 'en') {
     $f = new ReflectionMethod($v, 'translateTelemetryKey');
     $raw = []; foreach (array_keys(TessieTelemetryNamesEn::NAMES) as $k) { if ($f->invoke($v, $k) !== TessieTelemetryNamesEn::NAMES[$k]) { $raw[] = $k; } }
     check('Telemetrie (en): alle ' . count(TessieTelemetryNamesEn::NAMES) . ' Schlüssel liefern den englischen Namen', count($raw) === 0, implode(',', array_slice($raw, 0, 5)));
-    $de = array_values(array_filter(TessieTelemetryNamesEn::NAMES, 'looksGerman'));
+    // Tesla-Eigenname der Felge "Überturbine" enthält bewusst einen Umlaut
+    $de = array_values(array_filter(TessieTelemetryNamesEn::NAMES, fn($n) => looksGerman($n) && strpos($n, 'Überturbine') === false));
     check('Telemetrie (en): englische Namen ohne deutsche Wörter', count($de) === 0, implode(' | ', array_slice($de, 0, 4)));
     // Auswertung gespeicherter Telemetrie-Texte: Laden wird erkannt, andere Zustände nicht
     $rc = new ReflectionMethod($v, 'isChargingActive');

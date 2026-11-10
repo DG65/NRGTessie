@@ -19,7 +19,7 @@
         },
         {
           "type": "Label",
-          "caption": "The status color (charging/ready/idle) colors the battery bar. The surface, text and font options adapt the tile to your visualization; without an own setting the tile follows the light/dark design of the device. The tile name can be taken from the vehicle automatically."
+          "caption": "The status color (charging/ready/idle) sets the color of the battery bar. The surface, text and font options adapt the tile to your visualization; without a custom setting the tile follows the light/dark design of the device. The tile name can be taken from the vehicle automatically."
         },
         {
           "type": "Label",
@@ -31,7 +31,7 @@
         },
         {
           "type": "Label",
-          "caption": "With 'Show automations' the tile fully manages the If→Then rules of the TessieVehicle source: '+ New rule' creates a rule, ✎ edits it, the trash can deletes it (with confirmation), the switch activates/deactivates it. In the editor, switchable variables (with an action) are offered as targets – filterable through the search field; for 'Set value' the values defined in the profile/presentation appear as a selection list. The same applies to the 'If' comparison value: if the chosen data point has known values (e.g. seat heater, climate keeper), a selection list appears there instead of free text, and the condition switches automatically from 'becomes ON/OFF' to '=', which makes more sense for multi-valued data points. If the tile is linked several times, all changes act on the same rules everywhere."
+          "caption": "With 'Show automations' the tile fully manages the If→Then rules of the TessieVehicle source: '+ New rule' creates a rule, ✎ edits it, the trash can deletes it (with confirmation), the switch activates/deactivates it. In the editor, switchable variables (with an action) are offered as targets – filterable using the search field; for 'Set value' the values defined in the profile/presentation appear as a selection list. The same applies to the 'If' comparison value: if the chosen data point has known values (e.g. seat heater, climate keeper), a selection list appears there instead of free text, and the condition switches automatically from 'becomes ON/OFF' to '=', which makes more sense for multi-valued data points. If the tile is linked in several places, all changes act on the same rules everywhere."
         },
         {
           "type": "Label",
@@ -71,7 +71,7 @@
     {
       "type": "CheckBox",
       "name": "AdoptVehicleName",
-      "caption": "Take the tile name from the vehicle automatically"
+      "caption": "Use the vehicle name as the tile name"
     },
     {
       "type": "ExpansionPanel",
@@ -245,7 +245,7 @@
                 "value": "act_rear_trunk"
               },
               {
-                "caption": "Flash headlights",
+                "caption": "Flash lights",
                 "value": "act_flash"
               },
               {
