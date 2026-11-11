@@ -5,8 +5,10 @@ Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Chan
 ## [2.39.1] - 2026-11-11
 ### Behoben
 - Symcon-Review-Ablehnung von 2.39.0 (Stable): `module.php` Zeile 3163 registrierte die String-Variable "Aktueller Standort" mit einer Wertanzeige samt `DIGITS` - Nachkommastellen gibt es nur bei Zahlen-Variablen, an String-Variablen lehnt Symcon den Parameter ab. Neuer Helfer `fitPresentationToType()` entfernt `DIGITS` bei String- und Boolean-Variablen; er gilt auch für die Telemetrie-Variablen aus der Registry (deren Typ erst zur Laufzeit feststeht und die über das Standardprofil dieselbe Anzeige bekamen). Bestandsvariablen bekommen die Korrektur beim nächsten "Übernehmen" (Presentation wird bei jedem Lauf neu gesetzt).
+### Geaendert
+- `AdoptDismissFromSibling()` (neue Instanz übernimmt den Ausblenden-Stand einer Geschwister-Instanz) läuft in allen drei Modulen jetzt beim Öffnen des Formulars (`GetConfigurationForm()`) statt in `ApplyChanges()`: beim Neuladen der Module (Update, Symcon-Start) sind die anderen Instanzen in `ApplyChanges()` evtl. noch nicht geladen, beim Öffnen des Formulars ist definitiv Normalbetrieb. Offener Hinweis aus dem Review von 2.38.3 (kosmetisch). Das Ergebnis für den Nutzer ist unverändert.
 ### Hinzugefuegt
-- Prüfstand: prüft `fitPresentationToType()` je Variablentyp und dass jede String-`MaintainVariable()` sowie der Telemetrie-Aufruf durch den Helfer laufen.
+- Prüfstand: prüft `fitPresentationToType()` je Variablentyp und dass jede String-`MaintainVariable()` sowie der Telemetrie-Aufruf durch den Helfer laufen; außerdem dass `AdoptDismissFromSibling()` in jedem Modul genau einmal und innerhalb von `GetConfigurationForm()` aufgerufen wird.
 
 ## [2.39.0] - 2026-11-10
 ### Hinzugefuegt

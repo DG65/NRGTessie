@@ -366,5 +366,17 @@ $bad = array_filter($strCalls[0], fn($c) => strpos($c, 'fitPresentationToType') 
 check('Quelltext: String-MaintainVariable() immer über fitPresentationToType()', count($strCalls[0]) >= 1 && count($bad) === 0, implode(' | ', array_map(fn($c) => substr($c, 0, 90), $bad)));
 check('Quelltext: Telemetrie-MaintainVariable() ($type aus Registry) über fitPresentationToType()', preg_match('/MaintainVariable\(\$ident, \$name, \$type, \$this->fitPresentationToType\(/', $vehicleSrc) === 1);
 
+// ---------------- AdoptDismissFromSibling nicht in ApplyChanges (Store-Review-Hinweis 2.38.3) ----------------
+echo "== AdoptDismissFromSibling in GetConfigurationForm ==\n";
+foreach (['TessieVehicle', 'TessieVehicleTile', 'TessieConfigurator'] as $mod) {
+    $code = file_get_contents($root . "/$mod/module.php");
+    $n = substr_count($code, '$this->AdoptDismissFromSibling();');
+    $pos = strpos($code, '$this->AdoptDismissFromSibling();');
+    $fnStart = strpos($code, 'public function GetConfigurationForm()');
+    $fnEnd = $fnStart === false ? false : strpos($code, "\n    public function ", $fnStart + 10);
+    $inForm = $pos !== false && $fnStart !== false && $pos > $fnStart && ($fnEnd === false || $pos < $fnEnd);
+    check("$mod: Aufruf genau einmal und innerhalb GetConfigurationForm (nicht ApplyChanges)", $n === 1 && $inForm, "Aufrufe=$n");
+}
+
 echo "\n$checks Prüfungen, $fails Fehler\n";
 exit($fails > 0 ? 1 : 0);

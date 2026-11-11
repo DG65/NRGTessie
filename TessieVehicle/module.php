@@ -233,11 +233,6 @@ class TessieVehicle extends IPSModule
         // nicht dauerhaft in der Property-Konfiguration liegt (NRG-Stack-Konvention).
         $this->migrateApiTokenToAttribute();
 
-        // Vor allem anderen: eine neu angelegte Instanz übernimmt den Ausblenden-Stand
-        // (Wozu/News/Forum-Hinweis) einer Geschwister-Instanz, statt bereits Bestätigtes
-        // erneut zu zeigen.
-        $this->AdoptDismissFromSibling();
-
         $interval = (int)$this->ReadPropertyInteger('UpdateInterval');
         if ($interval < 0) {
             $interval = 0;
@@ -376,6 +371,12 @@ class TessieVehicle extends IPSModule
 
     public function GetConfigurationForm()
     {
+        // Eine neu angelegte Instanz übernimmt den Ausblenden-Stand einer Geschwister-Instanz.
+        // Hier statt in ApplyChanges(): beim Neuladen der Module (Update/Symcon-Start) sind die
+        // anderen Instanzen dort evtl. noch nicht geladen; wird das Formular geöffnet, ist
+        // definitiv Normalbetrieb (Store-Review-Hinweis 2.38.3).
+        $this->AdoptDismissFromSibling();
+
         $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
         if (!is_array($form)) {
             $form = ['elements' => [], 'actions' => [], 'status' => []];
@@ -699,7 +700,7 @@ class TessieVehicle extends IPSModule
 
     /**
      * Gegenrichtung zu PropagateDismiss(): eine neu angelegte Instanz sieht beim ersten
-     * ApplyChanges() bei einer beliebigen Geschwister-Instanz nach und übernimmt deren Stand,
+     * Öffnen des Formulars (GetConfigurationForm) bei einer beliebigen Geschwister-Instanz nach und übernimmt deren Stand,
      * statt die Hinweise erneut zu zeigen, obwohl der Nutzer sie an anderer Instanz schon
      * bestätigt hat. Zieht nur vor (false→true, ältere→neuere News-Version), überschreibt nie
      * einen schon weiter fortgeschrittenen eigenen Stand.

@@ -181,9 +181,6 @@ class TessieConfigurator extends IPSModule
         // Zugangsschlüssel sofort ins Attribut übernehmen (siehe Konstante ATTR_TOKEN oben).
         $this->migrateTokenToAttribute();
 
-        // Eine neu angelegte Instanz übernimmt den Ausblenden-Stand einer Geschwister-Instanz.
-        $this->AdoptDismissFromSibling();
-
         $token = $this->getToken();
         if ($token === '') {
             return;
@@ -299,7 +296,7 @@ class TessieConfigurator extends IPSModule
 
     /**
      * Gegenrichtung zu PropagateDismiss(): eine neu angelegte Instanz sieht beim ersten
-     * ApplyChanges() bei einer beliebigen Geschwister-Instanz nach und übernimmt deren Stand.
+     * Öffnen des Formulars (GetConfigurationForm) bei einer beliebigen Geschwister-Instanz nach und übernimmt deren Stand.
      */
     private function AdoptDismissFromSibling(): void
     {
@@ -382,6 +379,12 @@ class TessieConfigurator extends IPSModule
 
     public function GetConfigurationForm()
     {
+        // Eine neu angelegte Instanz übernimmt den Ausblenden-Stand einer Geschwister-Instanz.
+        // Hier statt in ApplyChanges(): beim Neuladen der Module (Update/Symcon-Start) sind die
+        // anderen Instanzen dort evtl. noch nicht geladen; wird das Formular geöffnet, ist
+        // definitiv Normalbetrieb (Store-Review-Hinweis 2.38.3).
+        $this->AdoptDismissFromSibling();
+
         $token = $this->getToken();
         $v = $this->moduleVersion();
         $dokuCaption = $v !== ''
