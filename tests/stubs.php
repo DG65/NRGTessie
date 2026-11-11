@@ -2,6 +2,11 @@
 // Gemeinsame IP-Symcon-Attrappen für die Prüfstände (tests/*.php). Sprache: TESSIE_TEST_LANG=de|en (Standard de).
 // de = Translate() und Formular-Übersetzung nutzen die locale.json des jeweiligen Moduls, en = englische Quelltexte.
 declare(strict_types=1);
+
+// Variablentypen wie im Symcon-Kern (0 Boolean, 1 Integer, 2 Float, 3 String)
+foreach (['BOOLEAN' => 0, 'INTEGER' => 1, 'FLOAT' => 2, 'STRING' => 3] as $n => $v) {
+    if (!defined('VARIABLETYPE_' . $n)) { define('VARIABLETYPE_' . $n, $v); }
+}
 error_reporting(E_ALL & ~E_DEPRECATED);
 $GLOBALS['LANG'] = getenv('TESSIE_TEST_LANG') ?: 'de';
 $GLOBALS['LOCS'] = [];

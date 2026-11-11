@@ -351,5 +351,20 @@ foreach ($sl as $hit) {
 }
 check('Slider: mindestens ein Slider-Profil mit Variablentyp gefunden', $sliderChecked >= 3, "$sliderChecked gefunden");
 
+// ---------------- DIGITS nur an Zahlen-Variablen (Symcon-Review 2.39.0, module.php Zeile 3163) ----------------
+// An String-/Boolean-Variablen lehnt Symcon den Parameter DIGITS ab.
+echo "== DIGITS an String-Variablen ==\n";
+$fit = new ReflectionMethod($m, 'fitPresentationToType');
+$pv = new ReflectionMethod($m, 'presValue');
+$base = $pv->invoke($m, ' km', 1);
+check('String-Variable: DIGITS wird entfernt, Rest bleibt', !array_key_exists('DIGITS', $fit->invoke($m, $base, VARIABLETYPE_STRING)) && ($fit->invoke($m, $base, VARIABLETYPE_STRING)['SUFFIX'] ?? '') === ' km');
+check('Boolean-Variable: DIGITS wird entfernt', !array_key_exists('DIGITS', $fit->invoke($m, $base, VARIABLETYPE_BOOLEAN)));
+check('Integer-/Float-Variable: DIGITS bleibt', ($fit->invoke($m, $base, VARIABLETYPE_INTEGER)['DIGITS'] ?? null) === 1 && ($fit->invoke($m, $base, VARIABLETYPE_FLOAT)['DIGITS'] ?? null) === 1);
+// Quelltext: jede MaintainVariable mit festem String-Typ oder dem Registry-Typ $type läuft durch fitPresentationToType()
+preg_match_all('/MaintainVariable\([^;]*?VARIABLETYPE_STRING[^;]*;/', $vehicleSrc, $strCalls);
+$bad = array_filter($strCalls[0], fn($c) => strpos($c, 'fitPresentationToType') === false);
+check('Quelltext: String-MaintainVariable() immer über fitPresentationToType()', count($strCalls[0]) >= 1 && count($bad) === 0, implode(' | ', array_map(fn($c) => substr($c, 0, 90), $bad)));
+check('Quelltext: Telemetrie-MaintainVariable() ($type aus Registry) über fitPresentationToType()', preg_match('/MaintainVariable\(\$ident, \$name, \$type, \$this->fitPresentationToType\(/', $vehicleSrc) === 1);
+
 echo "\n$checks Prüfungen, $fails Fehler\n";
 exit($fails > 0 ? 1 : 0);

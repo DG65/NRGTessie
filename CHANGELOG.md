@@ -2,6 +2,12 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.39.1] - 2026-11-11
+### Behoben
+- Symcon-Review-Ablehnung von 2.39.0 (Stable): `module.php` Zeile 3163 registrierte die String-Variable "Aktueller Standort" mit einer Wertanzeige samt `DIGITS` - Nachkommastellen gibt es nur bei Zahlen-Variablen, an String-Variablen lehnt Symcon den Parameter ab. Neuer Helfer `fitPresentationToType()` entfernt `DIGITS` bei String- und Boolean-Variablen; er gilt auch für die Telemetrie-Variablen aus der Registry (deren Typ erst zur Laufzeit feststeht und die über das Standardprofil dieselbe Anzeige bekamen). Bestandsvariablen bekommen die Korrektur beim nächsten "Übernehmen" (Presentation wird bei jedem Lauf neu gesetzt).
+### Hinzugefuegt
+- Prüfstand: prüft `fitPresentationToType()` je Variablentyp und dass jede String-`MaintainVariable()` sowie der Telemetrie-Aufruf durch den Helfer laufen.
+
 ## [2.39.0] - 2026-11-10
 ### Hinzugefuegt
 - **Zweisprachig (Deutsch/Englisch)** in allen drei Modulen (TessieVehicle, TessieVehicleTile, TessieConfigurator), nach der Verbund-Konvention SUITE.md "Zweisprachigkeit": Formular, Meldungen, Variablennamen und Darstellungs-Beschriftungen, Statuszeilen, "Was ist neu"-Banner und die komplette Kachel (inkl. Editoren) folgen der Sprache der Symcon-Installation. Quelltexte sind Englisch, die deutsche Fassung steht in je einer `locale.json` je Modul - die deutsche Ausgabe ist gegenueber 2.38.3 unveraendert (per Vergleich mit den Ausgaben des alten Stands geprueft). Neue Datei `TessieVehicle/libs/TessieTelemetryNamesEn.php` liefert englische Anzeigenamen fuer die Telemetrie-Datenpunkte. README.en.md ergaenzt.

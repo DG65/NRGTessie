@@ -1877,6 +1877,17 @@ class TessieVehicle extends IPSModule
         return ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'SUFFIX' => $suffix, 'DIGITS' => $digits];
     }
 
+    // DIGITS (Nachkommastellen) gibt es nur bei Zahlen-Variablen. Bei String-/Boolean-Variablen
+    // lehnt Symcon den Parameter ab (Review-Ablehnung 2.39.0, module.php Zeile 3163) - daher
+    // je Variablentyp bereinigen, nicht in den Presentation-Helfern raten.
+    private function fitPresentationToType(array $presentation, int $variableType): array
+    {
+        if ($variableType === VARIABLETYPE_STRING || $variableType === VARIABLETYPE_BOOLEAN) {
+            unset($presentation['DIGITS']);
+        }
+        return $presentation;
+    }
+
     private function presEnum(array $map): array
     {
         $options = [];
@@ -3160,7 +3171,7 @@ class TessieVehicle extends IPSModule
             $geoPos = (count($posMap) ? max($posMap) : 0) + 10;
 
             // Textvariable "Aktueller Standort" (Name des Geofence bzw. "Unterwegs")
-            $this->MaintainVariable(self::STAT_LOCATION_NAME, $this->t('Current location'), VARIABLETYPE_STRING, $this->presValue(), $geoPos, true);
+            $this->MaintainVariable(self::STAT_LOCATION_NAME, $this->t('Current location'), VARIABLETYPE_STRING, $this->fitPresentationToType($this->presValue(), VARIABLETYPE_STRING), $geoPos, true);
             $geoActiveIdents[self::STAT_LOCATION_NAME] = true;
             $geoPos += 10;
 
@@ -3216,7 +3227,7 @@ class TessieVehicle extends IPSModule
             // GPS-Koordinaten (Lat/Lon) brauchen genug Nachkommastellen (~1 m -> 6 Stellen)
             $isCoord = (substr($ident, -4) === '_lat' || substr($ident, -4) === '_lon');
             $presentation = $isCoord ? $this->presValue('', 6) : $this->presFor($profile, false);
-            $this->MaintainVariable($ident, $name, $type, $presentation, $position, true);
+            $this->MaintainVariable($ident, $name, $type, $this->fitPresentationToType($presentation, $type), $position, true);
         }
 
         // Abgewählte Variablen ausblenden statt löschen (Objekt-ID und Archivdaten bleiben erhalten);
