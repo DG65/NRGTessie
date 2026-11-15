@@ -2855,6 +2855,168 @@ class TessieVehicle extends IPSModule
         ]);
     }
 
+    /**
+     * Herstellerneutraler Fahrzeug-Vertrag `vehicle` 1.0 (SUITE.md, "Kanonisches Feldregister:
+     * vehicle-Vertrag 1.0", verbindlich ab 15.11.2026). Gleiche Funktion und gleiches Format bei
+     * jedem Fahrzeugmodul, nur das Präfix unterscheidet sich (TESSIE_, später z. B. BMW-Modul).
+     * GetVehicleState() (Vertrag 1.6) ist eingefroren; beide Funktionen speisen sich aus demselben
+     * Zustand: die gemeinsamen Felder kommen unverändert aus GetVehicleState(), hier werden sie nur
+     * auf die Vertragsregeln gebracht (Einheiten, Ganzzahlen) und um die neuen Felder ergänzt.
+     *
+     * Regeln: Pflichtfelder sind immer vorhanden, null = unbekannt (nie 0 als "unbekannt").
+     * Einheiten: % / W / kWh / A / km / Minuten / Unix-Sekunden. Keine Rohkoordinaten.
+     * Die Bidirektional-Felder (Entladen/V2H) liefert Tesla über Tessie nicht - dauerhaft null.
+     */
+    public function GetVehicleData(): string
+    {
+        $v = json_decode($this->GetVehicleState(), true);
+        if (!is_array($v)) {
+            $v = [];
+        }
+        $charging = $v['charging'] ?? null;
+        $chargeLimit = $v['chargeLimit'] ?? null;
+
+        return json_encode([
+            'contractType'                  => 'vehicle',
+            'contractVersion'               => '1.0',
+            'instanceID'                    => $this->InstanceID,
+            'name'                          => IPS_GetName($this->InstanceID),
+            'provider'                      => 'TESSIE',
+            // Pflicht
+            'soc'                           => $v['soc'] ?? null,
+            'connected'                     => $v['connected'] ?? null,
+            'charging'                      => $charging,
+            'chargeLimit'                   => ($chargeLimit !== null) ? (int)round((float)$chargeLimit) : null,
+            'atHome'                        => $v['atHome'] ?? null,
+            'batteryCapacityKwh'            => $v['batteryCapacityKwh'] ?? null,
+            'lastSeenAt'                    => $this->lastSeenAtOrNull(),
+            // Empfohlen: Variablen-IDs für ereignisgesteuertes Lesen (0 = nicht vorhanden)
+            'socID'                         => (int)($v['socID'] ?? 0),
+            'chargingID'                    => (int)($v['chargingID'] ?? 0),
+            // Optional
+            'vin'                           => $v['vin'] ?? '',
+            'manufacturer'                  => 'Tesla',
+            'powertrain'                    => 'bev',
+            'chargeState'                   => $this->chargeStateOrNull(),
+            'chargePowerW'                  => $this->chargePowerWOrNull($charging),
+            'chargeAmpsRequest'             => $v['chargeAmpsRequest'] ?? null,
+            'chargeAmpsMax'                 => $v['chargeAmpsMax'] ?? null,
+            'chargeTimeRemainingMin'        => ($charging === true) ? $this->chargeTimeRemainingMinOrNull() : null,
+            'energyRemainingKwh'            => $v['energyRemainingKwh'] ?? null,
+            'rangeKm'                       => $v['rangeKm'] ?? null,
+            'scheduledChargingActive'       => $v['scheduledChargingActive'] ?? null,
+            'scheduledDepartureAt'          => $this->scheduledDepartureAtOrNull(),
+            'distanceToHomeKm'              => $v['distanceToHomeKm'] ?? null,
+            'headingHome'                   => $v['headingHome'] ?? null,
+            'expectedHomeArrivalSocPercent' => $v['expectedHomeArrivalSocPercent'] ?? null,
+            'vehicleStatus'                 => $v['vehicleStatus'] ?? null,
+            'bidirectionalCapable'          => null,
+            'dischargeAllowed'              => null,
+            'targetSocProfessionalPercent'  => null,
+            'departureRelevant'             => null
+        ]);
+    }
+
+    /** Zeitpunkt des letzten Telemetrie-Pakets (Unix, UTC), null solange noch keines empfangen wurde. */
+    private function lastSeenAtOrNull(): ?int
+    {
+        $t = (int)$this->ReadAttributeInteger(self::ATTR_LAST_TELEMETRY_AT);
+        return $t > 0 ? $t : null;
+    }
+
+    /**
+     * Normalisierter Ladezustand aus dem gespeicherten Telemetrie-Text ("Ladestatus (Detail)").
+     * Feste Menge laut Vertrag; was nicht eindeutig zuzuordnen ist (u. a. "unbekannt"), bleibt null -
+     * es werden keine eigenen Werte erfunden. Der Text liegt sprachabhängig vor (Deutsch/Englisch),
+     * daher wie bei isChargingActive() Englisch-Stichwort plus übersetztes Stichwort. Reihenfolge
+     * wichtig: "charging" zuletzt, weil kein anderer Zustandstext dieses Wort enthalten darf
+     * (der Prüfstand stellt das sicher).
+     */
+    private function chargeStateOrNull(): ?string
+    {
+        $vid = @IPS_GetObjectIDByIdent('stat_tel_DetailedChargeState', $this->InstanceID);
+        if ($vid <= 0) {
+            return null;
+        }
+        $s = strtolower(trim((string)@GetValueString($vid)));
+        if ($s === '') {
+            return null;
+        }
+        $map = [
+            'disconnected' => 'disconnected',
+            'no power'     => 'idle',
+            'starting'     => 'starting',
+            'complete'     => 'complete',
+            'stopped'      => 'paused',
+            'charging'     => 'charging'
+        ];
+        foreach ($map as $keyword => $state) {
+            if (strpos($s, $keyword) !== false || strpos($s, strtolower($this->t($keyword))) !== false) {
+                return $state;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Aktuelle Ladeleistung in W (positiv = ins Auto). AC kommt aus der Kernvariable, DC aus der
+     * Telemetrie (Supercharger) - es zählt der größere Wert, da nie beide gleichzeitig laden.
+     * Wird sicher nicht geladen, ist die Leistung 0 (ein alter Telemetriewert darf nicht stehen
+     * bleiben); ist der Ladezustand unbekannt, wird der letzte bekannte Wert gemeldet.
+     */
+    private function chargePowerWOrNull($charging): ?float
+    {
+        if ($charging === false) {
+            return 0.0;
+        }
+        $ac = $this->stateNumberOrNull(self::STAT_AC_CHARGING_POWER);
+        $dc = $this->stateNumberOrNull('stat_tel_DCChargingPower');
+        if ($ac === null && $dc === null) {
+            return null;
+        }
+        return round(max($ac ?? 0.0, $dc ?? 0.0) * 1000.0, 0);
+    }
+
+    /** Restladedauer in Minuten (Telemetrie liefert Stunden), null ohne Datenpunkt. */
+    private function chargeTimeRemainingMinOrNull(): ?int
+    {
+        $h = $this->stateNumberOrNull('stat_tel_TimeToFullCharge');
+        return ($h !== null && $h >= 0.0) ? (int)round($h * 60.0) : null;
+    }
+
+    /**
+     * Geplante Abfahrt als Unix-Zeit (UTC). Die Telemetrie speichert Zeitstempel als lesbaren Text
+     * in der Serverzeit (je nach Sprache "Y-m-d H:i" oder "d.m.Y H:i", siehe telemetryScalar()) -
+     * hier zurückgerechnet; beide Formate werden probiert, damit ein Sprachwechsel zwischen
+     * Empfang und Abruf nichts kaputt macht. Zahlen über 10^9 gelten bereits als Unix-Zeit.
+     * Null, wenn kein Datenpunkt da ist, der Wert leer/ungültig ist oder keine Abfahrt geplant ist.
+     */
+    private function scheduledDepartureAtOrNull(): ?int
+    {
+        $vid = @IPS_GetObjectIDByIdent('stat_tel_ScheduledDepartureTime', $this->InstanceID);
+        if ($vid <= 0) {
+            return null;
+        }
+        $raw = @GetValue($vid);
+        if (is_int($raw) || is_float($raw)) {
+            return ((float)$raw > 1000000000) ? (int)$raw : null;
+        }
+        $text = trim((string)$raw);
+        if ($text === '') {
+            return null;
+        }
+        if (is_numeric($text)) {
+            return ((float)$text > 1000000000) ? (int)$text : null;
+        }
+        foreach (['Y-m-d H:i', 'd.m.Y H:i'] as $format) {
+            $d = \DateTime::createFromFormat('!' . $format, $text);
+            if ($d !== false && $d->format($format) === $text) {
+                return $d->getTimestamp();
+            }
+        }
+        return null;
+    }
+
     /** Zuletzt bekannter Schlaf-/Wachzustand (aus getVehicleStatus()/Update()), null falls noch keiner bekannt. */
     private function lastVehicleStatusOrNull(): ?string
     {

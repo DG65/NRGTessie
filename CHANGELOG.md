@@ -2,6 +2,14 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.40.0] - 2026-11-15
+### Hinzugefuegt
+- **`TESSIE_GetVehicleData($id)`: herstellerneutraler Fahrzeug-Vertrag `vehicle` 1.0** (NRG-Stack, SUITE.md "Kanonisches Feldregister: vehicle-Vertrag 1.0", von Dietmar am 15.11.2026 freigegeben, Erstentwurf Tessie, geprüft EMS). Anlass: BMW CarData (Dirk) und Fahrzeugdaten aus Home Assistant (Tessie-Thread im Symcon-Forum). Gleiche Funktion und gleiches Format bei jedem Fahrzeugmodul, nur das Präfix unterscheidet sich - ein Konsument findet jeden Anbieter über `IPS_GetModule()['Prefix']` + `function_exists('<PREFIX>_GetVehicleData')` (nur ModuleType 3, nur Instanzstatus 102) statt über feste GUIDs. Pflichtfelder (Schlüssel immer da, null = unbekannt): `soc`, `connected`, `charging`, `chargeLimit` (Ganzzahl), `atHome`, `batteryCapacityKwh`, `lastSeenAt` (neu, aus `LastTelemetryAt`). Neue optionale Felder: `chargeState` (normalisiert; Unbekanntes null, sprachunabhängig aus dem gespeicherten Telemetrie-Text), `chargePowerW` (AC/DC, kW -> W, 0 bei sicher nicht ladend), `chargeTimeRemainingMin` (nur beim Laden), `scheduledDepartureAt` (Unix, aus dem gespeicherten Datumstext zurückgerechnet), `manufacturer`/`powertrain`; Bidirektional-Felder dauerhaft null. Keine Rohkoordinaten, kein `wallboxID`. Rein lesend/additiv: Migrationsvergleich ohne Bruch.
+- Prüfstand: 25 Prüfungen zu `GetVehicleData` (Kopf, Pflichtfelder auch ohne Daten, Einheiten/Ganzzahlen, DC/AC, "nicht ladend", Datumsformate, unbekannte Texte, Konfigurator ohne die Funktion) und 14 Prüfungen zu `chargeState` für alle 7 Tesla-Zustände in Deutsch UND Englisch mit den echt angezeigten Texten. Gegenprobe mit absichtlich falscher Zuordnung/Einheit schlägt an.
+### Geaendert
+- `TESSIE_GetVehicleState` (Vertrag 1.6) ist ab sofort eingefroren (nur noch Fehlerbehebungen); das EMS liest ihn nur noch, solange kein `GetVehicleData` vorhanden ist.
+- Neu-Banner: keine Änderung - der Vertrag betrifft Fremdmodule, nicht die Bedienung (bewusst geprüft).
+
 ## [2.39.1] - 2026-11-11
 ### Behoben
 - Symcon-Review-Ablehnung von 2.39.0 (Stable): `module.php` Zeile 3163 registrierte die String-Variable "Aktueller Standort" mit einer Wertanzeige samt `DIGITS` - Nachkommastellen gibt es nur bei Zahlen-Variablen, an String-Variablen lehnt Symcon den Parameter ab. Neuer Helfer `fitPresentationToType()` entfernt `DIGITS` bei String- und Boolean-Variablen; er gilt auch für die Telemetrie-Variablen aus der Registry (deren Typ erst zur Laufzeit feststeht und die über das Standardprofil dieselbe Anzeige bekamen). Bestandsvariablen bekommen die Korrektur beim nächsten "Übernehmen" (Presentation wird bei jedem Lauf neu gesetzt).

@@ -3,7 +3,7 @@
 [English version: README.en.md](README.en.md)
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Modul Version](https://img.shields.io/badge/Modul_Version-2.39.1-blue)
+![Modul Version](https://img.shields.io/badge/Modul_Version-2.40.0-blue)
 ![Symcon Version](https://img.shields.io/badge/Symcon_Version-9.0%2B-blue)
 ![License](https://img.shields.io/badge/License-PolyForm_Noncommercial_1.0.0-lightgrey)
 [![Check Style](https://github.com/DG65/NRGTessie/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/NRGTessie/actions/workflows/check-style.yml)
@@ -129,6 +129,26 @@ Status-/Telemetriewerte (Ladestand, Reichweite, Temperaturen, Standort …) ersc
 Alle Zusatzfelder sind `null`, wenn der zugehörige Datenpunkt in der Instanz nicht aktiviert bzw. noch nicht empfangen wurde. Rein additive, lesende Funktion – ändert nichts am Modulverhalten. Fremde Module sollten den Aufruf hinter `function_exists('TESSIE_GetVehicleState')` absichern.
 
 > Hinweis: Eine Tesla-API kennt kein Feld dafür, **wer** einen Ladebefehl ausgelöst hat. Ob eine Fremdsteuerung (z. B. Tibber) aktiv eingreift, ist darüber nicht zuverlässig erkennbar – dafür ist eine bewusste Kennzeichnung im steuernden Modul vorgesehen. `scheduledChargingActive` deckt nur die fahrzeugeigene Planung ab.
+
+### Herstellerneutraler Fahrzeug-Vertrag `TESSIE_GetVehicleData`
+
+Ab 2.40.0 gibt es zusätzlich `TESSIE_GetVehicleData($id): string` (JSON). Das ist der herstellerneutrale Fahrzeug-Vertrag `vehicle` des NRG-Stacks: gleiche Funktion und gleiches Datenformat bei jedem Fahrzeugmodul, nur das Präfix unterscheidet sich. Ein Konsument (z. B. das EMS) findet so jedes Fahrzeugmodul über das Präfix, ohne die Hersteller einzeln zu kennen. `TESSIE_GetVehicleState` (Vertrag 1.6) bleibt unverändert erhalten und ist eingefroren; neue Konsumenten verwenden `GetVehicleData`.
+
+```json
+{
+  "contractType": "vehicle", "contractVersion": "1.0", "instanceID": 12345, "name": "Mein Auto", "provider": "TESSIE",
+  "soc": 67.0, "connected": true, "charging": true, "chargeLimit": 80, "atHome": true,
+  "batteryCapacityKwh": 74.3, "lastSeenAt": 1794350000,
+  "chargeState": "charging", "chargePowerW": 7360, "chargeTimeRemainingMin": 95,
+  "manufacturer": "Tesla", "powertrain": "bev"
+}
+```
+
+- **Pflichtfelder** (Schlüssel immer vorhanden, `null` = unbekannt, nie 0 als „unbekannt"): `soc` (%), `connected`, `charging`, `chargeLimit` (% als Ganzzahl), `atHome`, `batteryCapacityKwh` (nutzbare Netto-Kapazität) und `lastSeenAt` (Unix-Zeit des letzten Telemetrie-Pakets – damit ein schlafendes Fahrzeug von einer ausgefallenen Quelle unterscheidbar ist).
+- **Optional:** `chargeState` (`disconnected`, `idle`, `starting`, `charging`, `paused`, `complete`, `error`; Unbekanntes bleibt `null`), `chargePowerW` (W, positiv = ins Fahrzeug; ist sicher nicht am Laden, ist der Wert 0), `chargeTimeRemainingMin` (nur beim Laden), `scheduledDepartureAt` (Unix-Zeit), `chargeAmpsRequest`/`chargeAmpsMax`, `energyRemainingKwh`, `rangeKm`, `scheduledChargingActive`, `distanceToHomeKm`, `headingHome`, `expectedHomeArrivalSocPercent`, `vehicleStatus`, `vin`, `manufacturer`, `powertrain`. Die Bidirektional-Felder (`bidirectionalCapable`, `dischargeAllowed`, `targetSocProfessionalPercent`, `departureRelevant`) liefert Tesla über Tessie nicht und sind immer `null`.
+- **Einheiten:** % / W / kWh / A / km / Minuten / Unix-Sekunden (UTC). Es werden keine Koordinaten ausgegeben (nur `atHome`, `distanceToHomeKm`, `headingHome`).
+- **Versionsregel:** neue optionale Felder erhöhen die Minor-Version, Änderungen an Pflichtfeldern oder Einheiten die Major-Version. Konsumenten akzeptieren jede Minor-Version von Major 1.
+- Nur Instanzen vom Typ `TessieVehicle` liefern den Vertrag (der Konfigurator nicht). Rein lesend, ändert nichts am Modulverhalten.
 
 ## Changelog
 

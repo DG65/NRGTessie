@@ -342,7 +342,12 @@
       "off": "aus",
       "Tessie API HTTP %d on %s %s": "Tessie API HTTP %d bei %s %s",
       "On": "Ein",
-      "Now bilingual (German/English): form, messages, variable names, status lines and tile follow the language of your Symcon installation. Existing variables keep their names; new variables are named in the current language.": "Jetzt zweisprachig (Deutsch/Englisch): Formular, Meldungen, Variablennamen, Statuszeilen und Kachel folgen der Sprache deiner Symcon-Installation. Bestehende Variablen behalten ihre Namen; neue Variablen werden in der aktuellen Sprache benannt."
+      "Now bilingual (German/English): form, messages, variable names, status lines and tile follow the language of your Symcon installation. Existing variables keep their names; new variables are named in the current language.": "Jetzt zweisprachig (Deutsch/Englisch): Formular, Meldungen, Variablennamen, Statuszeilen und Kachel folgen der Sprache deiner Symcon-Installation. Bestehende Variablen behalten ihre Namen; neue Variablen werden in der aktuellen Sprache benannt.",
+      "disconnected": "getrennt",
+      "no power": "keine ladeleistung",
+      "starting": "startet",
+      "complete": "vollständig",
+      "stopped": "angehalten"
     }
   }
 }

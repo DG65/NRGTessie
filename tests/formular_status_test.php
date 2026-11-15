@@ -236,6 +236,76 @@ check('GetVehicleState: vehicleStatus null vor erster Antwort', array_key_exists
 $s = vehicleState('asleep');
 check('GetVehicleState: vehicleStatus "asleep" nach Update()', ($s['vehicleStatus'] ?? null) === 'asleep', var_export($s['vehicleStatus'] ?? null, true));
 
+// ---------------- GetVehicleData(): herstellerneutraler Vertrag vehicle 1.0 (SUITE.md) ----------------
+echo "== GetVehicleData (vehicle 1.0) ==\n";
+function vehicleData(array $idents = [], array $values = [], array $attrs = [], array $props = []): array
+{
+    $GLOBALS['IDENTMAP'] = $idents;
+    $GLOBALS['VALUES'] = $values;
+    $m = new TessieVehicle(5);
+    foreach ($attrs as $k => $v) { $m->attrs[$k] = $v; }
+    foreach ($props as $k => $v) { $m->props[$k] = $v; }
+    $r = json_decode($m->GetVehicleData(), true);
+    $GLOBALS['IDENTMAP'] = [];
+    $GLOBALS['VALUES'] = [];
+    return $r;
+}
+$must = ['soc', 'connected', 'charging', 'chargeLimit', 'atHome', 'batteryCapacityKwh', 'lastSeenAt'];
+$d = vehicleData();
+check('vehicle: Kopf contractType/contractVersion/provider', ($d['contractType'] ?? null) === 'vehicle' && ($d['contractVersion'] ?? null) === '1.0' && ($d['provider'] ?? null) === 'TESSIE' && ($d['instanceID'] ?? null) === 5);
+$missing = array_filter($must, fn($k) => !array_key_exists($k, $d));
+check('vehicle: alle 7 Pflichtfelder als Schlüssel vorhanden (auch ohne Daten)', count($missing) === 0, implode(',', $missing));
+$nonNull = array_filter($must, fn($k) => !array_key_exists($k, $d) || $d[$k] !== null);
+check('vehicle: ohne Daten sind alle Pflichtwerte null (nie 0 als "unbekannt")', count($nonNull) === 0, implode(',', $nonNull));
+check('vehicle: Bidirektional-Felder vorhanden und null (Tesla liefert sie nicht)', array_key_exists('bidirectionalCapable', $d) && $d['bidirectionalCapable'] === null && $d['dischargeAllowed'] === null && $d['targetSocProfessionalPercent'] === null && $d['departureRelevant'] === null);
+check('vehicle: manufacturer=Tesla, powertrain=bev', ($d['manufacturer'] ?? null) === 'Tesla' && ($d['powertrain'] ?? null) === 'bev');
+check('vehicle: kein wallboxID und keine Rohkoordinaten im Vertrag', !array_key_exists('wallboxID', $d) && !array_key_exists('latitude', $d) && !array_key_exists('longitude', $d) && !array_key_exists('lat', $d) && !array_key_exists('lon', $d));
+check('vehicle: ohne Daten chargePowerW/chargeTimeRemainingMin/scheduledDepartureAt null', $d['chargePowerW'] === null && $d['chargeTimeRemainingMin'] === null && $d['scheduledDepartureAt'] === null);
+
+$idents = ['stat_tel_Soc' => 101, 'stat_tel_DetailedChargeState' => 102, 'act_charge_limit' => 103, stat_ac_ident() => 104, 'stat_tel_DCChargingPower' => 105, 'stat_tel_TimeToFullCharge' => 106, 'stat_tel_ScheduledDepartureTime' => 107, 'stat_tel_EnergyRemaining' => 108];
+function stat_ac_ident(): string { return 'stat_ac_charging_power'; }
+$vals = [101 => 80.0, 102 => 'Ladestatus: lädt', 103 => 80.0, 104 => 7.36, 105 => 0.0, 106 => 1.5, 107 => '12.11.2026 07:30', 108 => 60.0];
+$d = vehicleData($idents, $vals, ['LastTelemetryAt' => 1700000000]);
+// Hinweis: JSON kennt keinen Unterschied 80 / 80.0 (ohne JSON_PRESERVE_ZERO_FRACTION, wie in 1.6) - Zahlen werden numerisch verglichen
+check('vehicle: soc numerisch 80, chargeLimit als Ganzzahl (80)', $d['soc'] == 80 && $d['chargeLimit'] === 80 && is_int($d['chargeLimit']), var_export($d['chargeLimit'], true));
+check('vehicle: charging=true, chargeState "charging"', $d['charging'] === true && $d['chargeState'] === 'charging', var_export($d['chargeState'], true));
+check('vehicle: chargePowerW in W (7,36 kW -> 7360), positiv', $d['chargePowerW'] == 7360, var_export($d['chargePowerW'], true));
+check('vehicle: chargeTimeRemainingMin in Minuten (1,5 h -> 90)', $d['chargeTimeRemainingMin'] === 90, var_export($d['chargeTimeRemainingMin'], true));
+check('vehicle: lastSeenAt aus Attribut LastTelemetryAt', $d['lastSeenAt'] === 1700000000, var_export($d['lastSeenAt'], true));
+check('vehicle: batteryCapacityKwh = Restenergie / SoC (60 kWh bei 80 % -> 75)', $d['batteryCapacityKwh'] == 75, var_export($d['batteryCapacityKwh'], true));
+$exp = (new DateTime('2026-11-12 07:30:00'))->getTimestamp();
+check('vehicle: scheduledDepartureAt aus deutschem Datumstext (d.m.Y H:i) -> Unix', $d['scheduledDepartureAt'] === $exp, var_export($d['scheduledDepartureAt'], true) . " erwartet $exp");
+$d2 = vehicleData($idents, [107 => '2026-11-12 07:30'] + $vals);
+check('vehicle: scheduledDepartureAt auch aus englischem Datumstext (Y-m-d H:i)', $d2['scheduledDepartureAt'] === $exp, var_export($d2['scheduledDepartureAt'], true));
+$d2 = vehicleData($idents, [107 => 1800000000] + $vals);
+check('vehicle: scheduledDepartureAt bei Unix-Zahl unverändert', $d2['scheduledDepartureAt'] === 1800000000);
+$d2 = vehicleData($idents, [107 => 'kein Datum'] + $vals);
+check('vehicle: scheduledDepartureAt bei ungültigem Text null', $d2['scheduledDepartureAt'] === null);
+$d2 = vehicleData($idents, [107 => ''] + $vals);
+check('vehicle: scheduledDepartureAt bei leerem Wert null', $d2['scheduledDepartureAt'] === null);
+
+// DC (Supercharger): es zählt der größere Wert, kW -> W
+$d2 = vehicleData($idents, [104 => 0.0, 105 => 120.5] + $vals);
+check('vehicle: DC-Leistung zählt (120,5 kW -> 120500 W)', $d2['chargePowerW'] == 120500, var_export($d2['chargePowerW'], true));
+// nicht geladen: Leistung sicher 0, Restdauer null (kein veralteter Telemetriewert)
+$d2 = vehicleData($idents, [102 => 'Ladestatus: vollständig geladen'] + $vals);
+check('vehicle: nicht geladen -> charging=false, chargePowerW 0.0, chargeTimeRemainingMin null, chargeState complete', $d2['charging'] === false && $d2['chargePowerW'] !== null && $d2['chargePowerW'] == 0 && $d2['chargeTimeRemainingMin'] === null && $d2['chargeState'] === 'complete', json_encode([$d2['charging'], $d2['chargePowerW'], $d2['chargeTimeRemainingMin'], $d2['chargeState']]));
+// Ladezustand unbekannt ("unbekannt") -> chargeState null, keine erfundenen Werte
+$d2 = vehicleData($idents, [102 => 'Ladestatus: unbekannt'] + $vals);
+check('vehicle: unbekannter Ladestatus -> chargeState null', $d2['chargeState'] === null, var_export($d2['chargeState'], true));
+$d2 = vehicleData($idents, [102 => 'etwas ganz anderes'] + $vals);
+check('vehicle: nicht zuordenbarer Text -> chargeState null', $d2['chargeState'] === null, var_export($d2['chargeState'], true));
+// kein Ladezustand-Datenpunkt: chargePowerW aus bekannten Werten, sonst null
+$d2 = vehicleData(['stat_ac_charging_power' => 104], [104 => 3.7]);
+check('vehicle: Ladezustand unbekannt, aber Leistung vorhanden -> letzter Wert in W (3,7 kW -> 3700)', $d2['charging'] === null && $d2['chargePowerW'] == 3700, json_encode([$d2['charging'], $d2['chargePowerW']]));
+
+// Ältere Funktion bleibt eingefroren: Vertrag 1.6 ohne neue Felder
+$GLOBALS['IDENTMAP'] = []; $GLOBALS['VALUES'] = [];
+$old = json_decode((new TessieVehicle(5))->GetVehicleState(), true);
+check('GetVehicleState bleibt eingefroren: contractVersion 1.6, kein contractType/chargePowerW/lastSeenAt', ($old['contractVersion'] ?? null) === '1.6' && !array_key_exists('contractType', $old) && !array_key_exists('chargePowerW', $old) && !array_key_exists('lastSeenAt', $old));
+$cfgPublic = array_map(fn($mm) => $mm->name, (new ReflectionClass('TessieConfigurator'))->getMethods(ReflectionMethod::IS_PUBLIC));
+check('Konfigurator hat kein GetVehicleData (Anbieter ist nur TessieVehicle, Typ 3)', !in_array('GetVehicleData', $cfgPublic, true));
+
 // ---------------- reconcileOrderWithLivePositions() (SUITE.md 9m) ----------------
 echo "== Positions-Reconcile (SUITE.md 9m) ==\n";
 function reconciledIdents(array $storedOrderIdents, array $livePositions): array

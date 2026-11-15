@@ -232,6 +232,23 @@ function payloadOf(int $charging): string
     return json_encode($out, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . "\n";
 }
 
+// Normalisierter chargeState (vehicle 1.0): jeder der 7 Tesla-Zustände ergibt in BEIDEN Sprachen genau den
+// vorgesehenen Wert - mit den echten angezeigten Texten (translateTelemetryKey), nicht mit handgeschriebenen.
+// Das sichert auch, dass nur "charging" das Wort "charging"/"lädt" enthält (Stichwort-Eindeutigkeit).
+function chargeStateChecks(TessieVehicle $v, string $lang): void
+{
+    $tr = new ReflectionMethod($v, 'translateTelemetryKey');
+    $cs = new ReflectionMethod($v, 'chargeStateOrNull');
+    $expect = ['Unknown' => null, 'Disconnected' => 'disconnected', 'NoPower' => 'idle', 'Starting' => 'starting', 'Charging' => 'charging', 'Complete' => 'complete', 'Stopped' => 'paused'];
+    foreach ($expect as $suffix => $state) {
+        $txt = (string)$tr->invoke($v, 'DetailedChargeState' . $suffix);
+        $GLOBALS['IDENTMAP'] = ['stat_tel_DetailedChargeState' => 50]; $GLOBALS['VALUES'] = [50 => $txt];
+        $got = $cs->invoke($v);
+        check("chargeState ($lang): '$txt' -> " . var_export($state, true), $got === $state, var_export($got, true));
+    }
+    $GLOBALS['IDENTMAP'] = []; $GLOBALS['VALUES'] = [];
+}
+
 if ($mode === 'de') {
     echo "== Deutsch: Ausgabe identisch zur Referenz vor der Umstellung (tests/golden) ==\n";
     foreach (MODULE_DIRS as $mod) {
@@ -266,6 +283,7 @@ if ($mode === 'de') {
         $GLOBALS['IDENTMAP'] = ['stat_tel_ScheduledChargingMode' => 51]; $GLOBALS['VALUES'] = [51 => $txt];
         check("Geplantes Laden (de): '$txt' -> " . ($expect ? 'aktiv' : 'nicht aktiv'), $rs->invoke($v) === $expect);
     }
+    chargeStateChecks($v, 'de');
     $GLOBALS['IDENTMAP'] = []; $GLOBALS['VALUES'] = [];
     echo "\n$checks Prüfungen, $fails Fehler\n";
     exit($fails > 0 ? 1 : 0);
@@ -312,6 +330,7 @@ if ($mode === 'en') {
         $GLOBALS['IDENTMAP'] = ['stat_tel_ScheduledChargingMode' => 51]; $GLOBALS['VALUES'] = [51 => $txt];
         check("Geplantes Laden (en): '$txt' -> " . ($expect ? 'aktiv' : 'nicht aktiv'), $rs->invoke($v) === $expect);
     }
+    chargeStateChecks($v, 'en');
     $GLOBALS['IDENTMAP'] = []; $GLOBALS['VALUES'] = [];
     echo "\n$checks Prüfungen, $fails Fehler\n";
     exit($fails > 0 ? 1 : 0);
