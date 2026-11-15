@@ -284,6 +284,27 @@ check('vehicle: scheduledDepartureAt bei ungültigem Text null', $d2['scheduledD
 $d2 = vehicleData($idents, [107 => ''] + $vals);
 check('vehicle: scheduledDepartureAt bei leerem Wert null', $d2['scheduledDepartureAt'] === null);
 
+// Heimfahrt: steht das Fahrzeug zu Hause, ist headingHome false und der Ankunfts-SoC null (2.40.1)
+$homeProps = ['HomeDetection' => true, 'HomeLocation' => '{"latitude":49.0,"longitude":8.0}'];
+$homeIdents = ['stat_at_home' => 201, 'stat_tel_DestinationLocation_lat' => 202, 'stat_tel_DestinationLocation_lon' => 203, 'stat_tel_ExpectedEnergyPercentAtTripArrival' => 204];
+$homeVals = [202 => 49.0, 203 => 8.0, 204 => 55.0]; // Navigationsziel = Zuhause
+$d2 = vehicleData($homeIdents, [201 => true] + $homeVals, [], $homeProps);
+check('vehicle: zu Hause + Ziel Zuhause -> atHome true, headingHome false, Ankunfts-SoC null', $d2['atHome'] === true && $d2['headingHome'] === false && $d2['expectedHomeArrivalSocPercent'] === null, json_encode([$d2['atHome'], $d2['headingHome'], $d2['expectedHomeArrivalSocPercent']]));
+$d2 = vehicleData($homeIdents, [201 => false] + $homeVals, [], $homeProps);
+check('vehicle: unterwegs + Ziel Zuhause -> headingHome true, Ankunfts-SoC 55', $d2['atHome'] === false && $d2['headingHome'] === true && $d2['expectedHomeArrivalSocPercent'] === 55, json_encode([$d2['atHome'], $d2['headingHome'], $d2['expectedHomeArrivalSocPercent']]));
+$d2 = vehicleData($homeIdents, [201 => false, 202 => 48.0] + $homeVals, [], $homeProps);
+check('vehicle: unterwegs + anderes Ziel -> headingHome false, Ankunfts-SoC null', $d2['headingHome'] === false && $d2['expectedHomeArrivalSocPercent'] === null, json_encode([$d2['headingHome'], $d2['expectedHomeArrivalSocPercent']]));
+// GetVehicleState (Vertrag 1.6) bleibt eingefroren: dort bleibt headingHome auch zu Hause true
+$GLOBALS['IDENTMAP'] = $homeIdents;
+$GLOBALS['VALUES'] = [201 => true] + $homeVals;
+$mm = new TessieVehicle(5);
+foreach ($homeProps as $k => $v) { $mm->props[$k] = $v; }
+$st = json_decode($mm->GetVehicleState(), true);
+$GLOBALS['IDENTMAP'] = [];
+$GLOBALS['VALUES'] = [];
+check('vehicle: GetVehicleState 1.6 unverändert (zu Hause + Ziel Zuhause -> headingHome true, Ankunfts-SoC 55)', ($st['headingHome'] ?? null) === true && ($st['expectedHomeArrivalSocPercent'] ?? null) === 55, json_encode([$st['headingHome'] ?? null, $st['expectedHomeArrivalSocPercent'] ?? null]));
+check('vehicle: ohne Heimdaten bleibt headingHome null', vehicleData()['headingHome'] === null);
+
 // DC (Supercharger): es zählt der größere Wert, kW -> W
 $d2 = vehicleData($idents, [104 => 0.0, 105 => 120.5] + $vals);
 check('vehicle: DC-Leistung zählt (120,5 kW -> 120500 W)', $d2['chargePowerW'] == 120500, var_export($d2['chargePowerW'], true));

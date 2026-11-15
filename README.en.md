@@ -3,7 +3,7 @@
 [Deutsche Fassung: README.md](README.md)
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Module version](https://img.shields.io/badge/Module_Version-2.40.0-blue)
+![Module version](https://img.shields.io/badge/Module_Version-2.40.1-blue)
 ![Symcon version](https://img.shields.io/badge/Symcon_Version-9.0%2B-blue)
 ![License](https://img.shields.io/badge/License-PolyForm_Noncommercial_1.0.0-lightgrey)
 [![Check Style](https://github.com/DG65/NRGTessie/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/NRGTessie/actions/workflows/check-style.yml)
@@ -136,7 +136,7 @@ All additional fields are `null` if the corresponding data point is not enabled 
 
 ### Vendor-neutral vehicle contract `TESSIE_GetVehicleData`
 
-Since 2.40.0 there is also `TESSIE_GetVehicleData($id): string` (JSON). It is the vendor-neutral vehicle contract `vehicle` of the NRG-Stack: the same function and data format for every vehicle module, only the prefix differs. A consumer (e.g. the EMS) can therefore find any vehicle module by its prefix without knowing each manufacturer. `TESSIE_GetVehicleState` (contract 1.6) is kept unchanged and is frozen; new consumers should use `GetVehicleData`.
+Since 2.40.0 there is also `TESSIE_GetVehicleData($id): string` (JSON). It is the vendor-neutral vehicle contract `vehicle` of the NRG-Stack: the same function and data format for every vehicle module, only the prefix differs. A consumer (e.g. the EMS) can therefore find any vehicle module by its prefix without knowing each manufacturer. `TESSIE_GetVehicleState` (contract 1.6) is kept unchanged and is frozen; new consumers should use `GetVehicleData`. One difference from `GetVehicleState`: if the vehicle is at home (`atHome` true), `GetVehicleData` always returns `headingHome: false` and `expectedHomeArrivalSocPercent: null` (since 2.40.1), even if the vehicle still has a navigation destination "home" stored.
 
 ```json
 {

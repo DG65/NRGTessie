@@ -2875,6 +2875,7 @@ class TessieVehicle extends IPSModule
         }
         $charging = $v['charging'] ?? null;
         $chargeLimit = $v['chargeLimit'] ?? null;
+        $atHomeNow = $v['atHome'] ?? null;
 
         return json_encode([
             'contractType'                  => 'vehicle',
@@ -2907,8 +2908,10 @@ class TessieVehicle extends IPSModule
             'scheduledChargingActive'       => $v['scheduledChargingActive'] ?? null,
             'scheduledDepartureAt'          => $this->scheduledDepartureAtOrNull(),
             'distanceToHomeKm'              => $v['distanceToHomeKm'] ?? null,
-            'headingHome'                   => $v['headingHome'] ?? null,
-            'expectedHomeArrivalSocPercent' => $v['expectedHomeArrivalSocPercent'] ?? null,
+            // Steht das Fahrzeug schon zu Hause, fährt es nicht heim: ein Navigationsziel "Zuhause"
+            // (oft ein altes) darf dann weder headingHome noch den Ankunfts-SoC auslösen.
+            'headingHome'                   => $atHomeNow === true ? false : ($v['headingHome'] ?? null),
+            'expectedHomeArrivalSocPercent' => $atHomeNow === true ? null : ($v['expectedHomeArrivalSocPercent'] ?? null),
             'vehicleStatus'                 => $v['vehicleStatus'] ?? null,
             'bidirectionalCapable'          => null,
             'dischargeAllowed'              => null,

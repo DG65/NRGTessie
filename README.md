@@ -3,7 +3,7 @@
 [English version: README.en.md](README.en.md)
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Modul Version](https://img.shields.io/badge/Modul_Version-2.40.0-blue)
+![Modul Version](https://img.shields.io/badge/Modul_Version-2.40.1-blue)
 ![Symcon Version](https://img.shields.io/badge/Symcon_Version-9.0%2B-blue)
 ![License](https://img.shields.io/badge/License-PolyForm_Noncommercial_1.0.0-lightgrey)
 [![Check Style](https://github.com/DG65/NRGTessie/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/NRGTessie/actions/workflows/check-style.yml)
@@ -132,7 +132,7 @@ Alle Zusatzfelder sind `null`, wenn der zugehörige Datenpunkt in der Instanz ni
 
 ### Herstellerneutraler Fahrzeug-Vertrag `TESSIE_GetVehicleData`
 
-Ab 2.40.0 gibt es zusätzlich `TESSIE_GetVehicleData($id): string` (JSON). Das ist der herstellerneutrale Fahrzeug-Vertrag `vehicle` des NRG-Stacks: gleiche Funktion und gleiches Datenformat bei jedem Fahrzeugmodul, nur das Präfix unterscheidet sich. Ein Konsument (z. B. das EMS) findet so jedes Fahrzeugmodul über das Präfix, ohne die Hersteller einzeln zu kennen. `TESSIE_GetVehicleState` (Vertrag 1.6) bleibt unverändert erhalten und ist eingefroren; neue Konsumenten verwenden `GetVehicleData`.
+Ab 2.40.0 gibt es zusätzlich `TESSIE_GetVehicleData($id): string` (JSON). Das ist der herstellerneutrale Fahrzeug-Vertrag `vehicle` des NRG-Stacks: gleiche Funktion und gleiches Datenformat bei jedem Fahrzeugmodul, nur das Präfix unterscheidet sich. Ein Konsument (z. B. das EMS) findet so jedes Fahrzeugmodul über das Präfix, ohne die Hersteller einzeln zu kennen. `TESSIE_GetVehicleState` (Vertrag 1.6) bleibt unverändert erhalten und ist eingefroren; neue Konsumenten verwenden `GetVehicleData`. Ein Unterschied zu `GetVehicleState`: Steht das Fahrzeug zu Hause (`atHome` true), liefert `GetVehicleData` immer `headingHome: false` und `expectedHomeArrivalSocPercent: null` (ab 2.40.1), auch wenn im Fahrzeug noch ein Navigationsziel „Zuhause“ gespeichert ist.
 
 ```json
 {

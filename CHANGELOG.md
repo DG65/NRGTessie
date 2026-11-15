@@ -2,6 +2,13 @@
 
 Alle nennenswerten Änderungen an diesem Modul. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/).
 
+## [2.40.1] - 2026-11-15
+### Behoben
+- `TESSIE_GetVehicleData`: steht das Fahrzeug zu Hause (`atHome` true), ist `headingHome` jetzt immer `false` und `expectedHomeArrivalSocPercent` `null`. Live-Fund bei Dietmars Fahrzeug #41537: zu Hause (0 km), aber noch ein altes Navigationsziel "Zuhause" gespeichert - das ergab `headingHome: true` mit Ankunfts-SoC 55 % und hätte beim Konsumenten (EMS) eine Heimkehr-Reserve für ein Auto ausgelöst, das schon da steht. Anregung EMS: das Feld soll für jeden Konsumenten dasselbe bedeuten. `TESSIE_GetVehicleState` (Vertrag 1.6, eingefroren) bleibt unverändert; der Vertrag `vehicle` bleibt 1.0 (nur sauberere Befüllung).
+### Hinzugefuegt
+- Prüfstand: 5 Prüfungen (zu Hause + Ziel Zuhause, unterwegs + Ziel Zuhause, unterwegs + anderes Ziel, `GetVehicleState` unverändert, ohne Heimdaten). Gegenprobe ohne die Änderung schlägt an.
+- Neu-Banner: keine Änderung (für den Nutzer nicht sichtbar, bewusst geprüft).
+
 ## [2.40.0] - 2026-11-15
 ### Hinzugefuegt
 - **`TESSIE_GetVehicleData($id)`: herstellerneutraler Fahrzeug-Vertrag `vehicle` 1.0** (NRG-Stack, SUITE.md "Kanonisches Feldregister: vehicle-Vertrag 1.0", von Dietmar am 15.11.2026 freigegeben, Erstentwurf Tessie, geprüft EMS). Anlass: BMW CarData (Dirk) und Fahrzeugdaten aus Home Assistant (Tessie-Thread im Symcon-Forum). Gleiche Funktion und gleiches Format bei jedem Fahrzeugmodul, nur das Präfix unterscheidet sich - ein Konsument findet jeden Anbieter über `IPS_GetModule()['Prefix']` + `function_exists('<PREFIX>_GetVehicleData')` (nur ModuleType 3, nur Instanzstatus 102) statt über feste GUIDs. Pflichtfelder (Schlüssel immer da, null = unbekannt): `soc`, `connected`, `charging`, `chargeLimit` (Ganzzahl), `atHome`, `batteryCapacityKwh`, `lastSeenAt` (neu, aus `LastTelemetryAt`). Neue optionale Felder: `chargeState` (normalisiert; Unbekanntes null, sprachunabhängig aus dem gespeicherten Telemetrie-Text), `chargePowerW` (AC/DC, kW -> W, 0 bei sicher nicht ladend), `chargeTimeRemainingMin` (nur beim Laden), `scheduledDepartureAt` (Unix, aus dem gespeicherten Datumstext zurückgerechnet), `manufacturer`/`powertrain`; Bidirektional-Felder dauerhaft null. Keine Rohkoordinaten, kein `wallboxID`. Rein lesend/additiv: Migrationsvergleich ohne Bruch.
